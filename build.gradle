@@ -18,7 +18,7 @@ loom {
 	splitEnvironmentSourceSets()
 
 	mods {
-		"modid" {
+		"quirky" {
 			sourceSet sourceSets.main
 			sourceSet sourceSets.client
 		}
