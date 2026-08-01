@@ -11,6 +11,7 @@ public class QuirkyMod implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		ModItems.register();
 		LOGGER.info("Quirky loaded");
 	}
 
