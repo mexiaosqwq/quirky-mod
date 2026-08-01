@@ -1,0 +1,6 @@
+{
+  "item.quirky.bottled_cloud": "云瓶",
+  "tooltip.quirky.clock": "第 %s 天 · %s",
+  "tooltip.quirky.compass": "朝向 %s · 出生点 %s, %s",
+  "tooltip.quirky.lodestone": "磁石 %s, %s (%s)"
+}

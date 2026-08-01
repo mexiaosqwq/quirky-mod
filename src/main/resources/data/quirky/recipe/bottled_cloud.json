@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "minecraft:glass_bottle",
+    "minecraft:phantom_membrane"
+  ],
+  "result": {
+    "id": "quirky:bottled_cloud",
+    "count": 1
+  }
+}
