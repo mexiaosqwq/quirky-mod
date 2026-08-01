@@ -55,6 +55,7 @@
 - 在 `MapItem.getTooltipImage` 注入自定义 `TooltipComponent`。
 - 客户端通过 Fabric `ClientTooltipComponentCallback` 转换为自定义渲染组件。
 - 用 `MapRenderer.extractRenderState` 生成 `MapRenderState`，再用 `GuiGraphicsExtractor.map` 按比例绘制。
+- 回调遇到非地图的 `TooltipComponent` 时返回 `null`，沿用原版渲染。
 
 ### 5.2 右键收割补种
 
@@ -71,19 +72,20 @@
 
 - 服务端使用 Fabric `UseBlockCallback`。
 - 通过 `CropBlock.isMaxAge` 与 `NetherWartBlock` 的成熟状态判断。
-- 补种通过 `getStateForAge(0)` 重置状态。
+- 补种时 `CropBlock` 使用 `getStateForAge(0)`，`NetherWartBlock` 使用 `AGE=0` 重建状态。
 
 ### 5.3 双开门联动
 
 行为：
 
-- 玩家手动开/关一扇门时，相邻的同一类型、同一朝向、铰链匹配的另一扇门同步开/关。
+- 玩家手动开/关一扇门时，相邻的同一类型、同一朝向、铰链互为另一侧的门同步开/关。
 - 铁门等不能手开的门保持原版规则，不强行联动。
 - 单独放置的门不受影响。
 
 实现方式：
 
 - 在 `DoorBlock.useWithoutItem` 尾部注入。
+- 无论点击上半块还是下半块，都先归一到下半块作为基准。
 - 根据 `FACING` 和 `HINGE` 计算相邻门位置。
 - 使用原版 `DoorBlock.setOpen` 同步另一半。
 
