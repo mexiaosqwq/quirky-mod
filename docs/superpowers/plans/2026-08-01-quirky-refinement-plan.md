@@ -2,7 +2,38 @@
 
 > **给执行者：** 使用 `superpowers:subagent-driven-development` 或 `superpowers:executing-plans` 按任务执行。步骤用 `- [ ]` 跟踪。
 
-**目标：** 修复用户反馈的四类问题，并把所有“手感细节”补齐：音效、粒子、挥臂、物品抛掷、拾取延迟、地图纸边。
+## 本次要改什么
+
+- **云瓶**：把现在的“缓慢下落”改成“右键在准心最近的空气方块生成临时云团”。云团可被普通方块原位替换、实体缓慢穿过、下方持续白色粒子、10 秒后消失；生存消耗并返还玻璃瓶，创造不消耗。
+- **双开门**：玩家、村民等实体打开一扇门时，相邻匹配门同步开关；铁门和红石直改状态不联动。
+- **吃西瓜**：吃完最后一片不再直接进背包，改为从玩家面前吐出 `melon_seeds` 物品实体，带 40 tick 拾取延迟、投掷者和吐籽音效。
+- **地图 tooltip**：悬停地图时显示原版肉色地图纸边，预览尺寸从 64x64 改为 71x71。
+- **收割反馈**：保留已有破坏粒子和点击者挥臂，补上破坏音效；作物/下界疣补种成功时补上补种音效。
+
+## 文件跟踪
+
+- [ ] `src/main/java/dev/quirky/ModBlocks.java`（新增：注册云团方块）
+- [ ] `src/main/java/dev/quirky/block/CloudBlock.java`（新增：临时云团方块）
+- [ ] `src/main/java/dev/quirky/cloud/CloudPlacement.java`（新增：准心空气方块查找）
+- [ ] `src/main/java/dev/quirky/item/BottledCloudItem.java`（修改：右键放云团）
+- [ ] `src/main/java/dev/quirky/QuirkyMod.java`（修改：初始化注册顺序）
+- [ ] `src/test/java/dev/quirky/cloud/CloudPlacementTest.java`（新增）
+- [ ] `src/test/java/dev/quirky/block/CloudBlockTest.java`（新增）
+- [ ] `src/test/java/dev/quirky/item/BottledCloudUseTest.java`（修改）
+- [ ] `src/main/java/dev/quirky/door/DoubleDoorHandler.java`（修改：支持非玩家实体）
+- [ ] `src/main/java/dev/quirky/mixin/DoubleDoorMixin.java`（修改：增加 `setOpen` 注入）
+- [ ] `src/test/java/dev/quirky/door/DoubleDoorHandlerTest.java`（修改）
+- [ ] `src/main/java/dev/quirky/food/MelonSeedHandler.java`（修改：吐籽）
+- [ ] `src/test/java/dev/quirky/food/MelonSeedHandlerTest.java`（修改）
+- [ ] `src/client/java/dev/quirky/client/tooltips/ClientMapTooltipComponent.java`（修改：地图纸边）
+- [ ] `src/test/java/dev/quirky/client/tooltips/ClientMapTooltipComponentTest.java`（新增）
+- [ ] `build.gradle`（修改：测试编译包含 client 输出）
+- [ ] `src/main/java/dev/quirky/harvest/HarvestFx.java`（修改：补破坏音/补种音）
+- [ ] `src/main/java/dev/quirky/harvest/HarvestHandler.java`（修改：补种音调用点）
+- [ ] `src/test/java/dev/quirky/harvest/HarvestFxTest.java`（修改）
+- [ ] `src/main/resources/assets/quirky/blockstates/cloud.json`（新增）
+- [ ] `src/main/resources/assets/quirky/models/block/cloud.json`（新增）
+- [ ] `src/main/resources/assets/quirky/textures/block/cloud.png`（新增）
 
 **架构：** 继续使用单一 Fabric 模组。服务端/通用逻辑在 `src/main`，客户端逻辑在 `src/client`，每个机制一个包，Mixin 只用于 Fabric API 没有钩子的地方。
 
