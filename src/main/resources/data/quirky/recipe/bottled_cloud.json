@@ -1,12 +1,8 @@
 {
   "type": "minecraft:crafting_shapeless",
   "ingredients": [
-    {
-      "item": "minecraft:glass_bottle"
-    },
-    {
-      "item": "minecraft:phantom_membrane"
-    }
+    "minecraft:glass_bottle",
+    "minecraft:phantom_membrane"
   ],
   "result": {
     "id": "quirky:bottled_cloud",
