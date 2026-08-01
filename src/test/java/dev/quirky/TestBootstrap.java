@@ -30,6 +30,7 @@ public final class TestBootstrap {
 		// BuiltInRegistries requires the guard before ModItems can register pre-freeze items.
 		setBootstrapped(true);
 		BuiltInRegistries.REGISTRY.keySet();
+		ModBlocks.register();
 		ModItems.register();
 		setBootstrapped(false);
 		Bootstrap.bootStrap();

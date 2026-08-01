@@ -13,6 +13,7 @@ public class QuirkyMod implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		ModBlocks.register();
 		ModItems.register();
 		HarvestHandler.init();
 		EquipSwapServer.init();
