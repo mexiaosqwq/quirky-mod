@@ -43,6 +43,15 @@ public final class TestBootstrap {
 		initialized = true;
 	}
 
+	/**
+	 * Binds vanilla component initializers (equippable, food, etc.) for an
+	 * additional item under test, e.g. armor used by equip-swap tests.
+	 */
+	public static void bindItem(Item item) {
+		RegistryAccess.Frozen registries = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY);
+		bindInitializer(item, registries);
+	}
+
 	@SuppressWarnings("deprecation")
 	private static void bindInitializer(Item item, HolderLookup.Provider context) {
 		ResourceKey<Item> key = item.builtInRegistryHolder().key();
