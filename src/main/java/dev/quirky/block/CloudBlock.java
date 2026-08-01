@@ -1,12 +1,19 @@
 package dev.quirky.block;
 
 import com.mojang.serialization.MapCodec;
+import dev.quirky.ModItems;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.InsideBlockEffectApplier;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
@@ -14,6 +21,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
@@ -64,6 +72,30 @@ public class CloudBlock extends Block {
 				level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
 			}
 		}
+	}
+
+	@Override
+	protected InteractionResult useItemOn(
+		ItemStack itemStack,
+		BlockState state,
+		Level level,
+		BlockPos pos,
+		Player player,
+		InteractionHand hand,
+		BlockHitResult hitResult
+	) {
+		if (!itemStack.is(Items.GLASS_BOTTLE)) {
+			return InteractionResult.PASS;
+		}
+		if (!level.isClientSide()) {
+			level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+			player.playSound(SoundEvents.BOTTLE_FILL, 1.0F, 1.0F);
+			if (!player.hasInfiniteMaterials()) {
+				itemStack.shrink(1);
+			}
+			player.getInventory().placeItemBackInInventory(new ItemStack(ModItems.BOTTLED_CLOUD));
+		}
+		return InteractionResult.SUCCESS;
 	}
 
 	@Override

@@ -1,5 +1,6 @@
 package dev.quirky.block;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -7,16 +8,25 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import dev.quirky.ModBlocks;
+import dev.quirky.ModItems;
 import dev.quirky.TestBootstrap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityEquipment;
 import net.minecraft.world.entity.InsideBlockEffectApplier;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -25,6 +35,7 @@ class CloudBlockTest {
 	@BeforeAll
 	static void bootStrap() {
 		TestBootstrap.boot();
+		TestBootstrap.bindItem(Items.STONE);
 	}
 
 	@Test
@@ -98,5 +109,41 @@ class CloudBlockTest {
 	@Test
 	void cloudIsReplaceableByBlockPlacement() {
 		assertTrue(ModBlocks.CLOUD.defaultBlockState().canBeReplaced(mock(BlockPlaceContext.class)));
+	}
+
+	@Test
+	void useItemOnWithGlassBottleCollectsCloudIntoBottle() {
+		Level level = mock(Level.class);
+		BlockPos pos = new BlockPos(1, 64, 1);
+		BlockState state = ModBlocks.CLOUD.defaultBlockState();
+		Player player = mock(Player.class);
+		Inventory inventory = new Inventory(player, new EntityEquipment());
+		when(player.getInventory()).thenReturn(inventory);
+		when(player.hasInfiniteMaterials()).thenReturn(false);
+		ItemStack bottle = new ItemStack(Items.GLASS_BOTTLE);
+
+		InteractionResult result = ModBlocks.CLOUD.useItemOn(
+			bottle, state, level, pos, player, InteractionHand.MAIN_HAND, mock(BlockHitResult.class)
+		);
+
+		assertTrue(result.consumesAction());
+		verify(level).setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+		assertTrue(bottle.isEmpty());
+		assertTrue(inventory.hasAnyMatching(stack -> stack.is(ModItems.BOTTLED_CLOUD)));
+	}
+
+	@Test
+	void useItemOnWithoutGlassBottlePasses() {
+		Level level = mock(Level.class);
+		BlockPos pos = new BlockPos(1, 64, 1);
+		BlockState state = ModBlocks.CLOUD.defaultBlockState();
+		Player player = mock(Player.class);
+
+		InteractionResult result = ModBlocks.CLOUD.useItemOn(
+			new ItemStack(Items.STONE), state, level, pos, player, InteractionHand.MAIN_HAND, mock(BlockHitResult.class)
+		);
+
+		assertEquals(InteractionResult.PASS, result);
+		verify(level, never()).setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
 	}
 }
