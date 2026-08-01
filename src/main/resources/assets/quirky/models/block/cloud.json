@@ -1,6 +1,8 @@
 {
-  "parent": "minecraft:block/cube_all",
+  "parent": "minecraft:block/cube_bottom_top",
   "textures": {
-    "all": "quirky:block/cloud"
+    "top": "quirky:block/cloud_top",
+    "bottom": "quirky:block/cloud_bottom",
+    "side": "quirky:block/cloud"
   }
 }
