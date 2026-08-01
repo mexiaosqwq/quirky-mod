@@ -2,6 +2,7 @@ package dev.quirky.block;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -63,7 +64,35 @@ class CloudBlockTest {
 
 		ModBlocks.CLOUD.entityInside(state, level, pos, entity, InsideBlockEffectApplier.NOOP, false);
 
-		verify(entity).makeStuckInBlock(state, new Vec3(0.9, 0.25, 0.9));
+		verify(entity).makeStuckInBlock(state, new Vec3(0.95, 0.6, 0.95));
+	}
+
+	@Test
+	void entityInsideExtinguishesFireAndRemovesCloud() {
+		Level level = mock(Level.class);
+		BlockPos pos = new BlockPos(1, 64, 1);
+		BlockState state = ModBlocks.CLOUD.defaultBlockState();
+		Entity entity = mock(Entity.class);
+		when(entity.isOnFire()).thenReturn(true);
+
+		ModBlocks.CLOUD.entityInside(state, level, pos, entity, InsideBlockEffectApplier.NOOP, false);
+
+		verify(entity).clearFire();
+		verify(level).setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+	}
+
+	@Test
+	void entityInsideWithoutFireKeepsCloud() {
+		Level level = mock(Level.class);
+		BlockPos pos = new BlockPos(1, 64, 1);
+		BlockState state = ModBlocks.CLOUD.defaultBlockState();
+		Entity entity = mock(Entity.class);
+		when(entity.isOnFire()).thenReturn(false);
+
+		ModBlocks.CLOUD.entityInside(state, level, pos, entity, InsideBlockEffectApplier.NOOP, false);
+
+		verify(entity, never()).clearFire();
+		verify(level, never()).setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
 	}
 
 	@Test

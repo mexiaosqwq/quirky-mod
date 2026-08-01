@@ -22,7 +22,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 public class CloudBlock extends Block {
 	public static final MapCodec<CloudBlock> CODEC = simpleCodec(CloudBlock::new);
 	private static final int LIFETIME_TICKS = 200;
-	private static final Vec3 STUCK_SPEED = new Vec3(0.9, 0.25, 0.9);
+	private static final Vec3 STUCK_SPEED = new Vec3(0.95, 0.6, 0.95);
 
 	public CloudBlock(BlockBehaviour.Properties properties) {
 		super(properties);
@@ -58,6 +58,12 @@ public class CloudBlock extends Block {
 		boolean isPrecise
 	) {
 		entity.makeStuckInBlock(state, STUCK_SPEED);
+		if (entity.isOnFire()) {
+			entity.clearFire();
+			if (!level.isClientSide()) {
+				level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+			}
+		}
 	}
 
 	@Override

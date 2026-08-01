@@ -20,7 +20,7 @@
 - 生成范围使用玩家原版方块交互距离（`Player.blockInteractionRange()`）。
 - 若准心范围内没有空气方块，则不消耗云瓶并返回失败。
 - 实际消耗时返还玻璃瓶；创造模式不消耗、不返还，但同样生成云团。
-- 云团为“细雪式”临时方块：可被普通方块原位替换，实体进入后会缓慢下落穿过，不会直接坠落。
+- 云团为“细雪式”临时方块：可被普通方块原位替换，实体进入后会缓慢下落穿过，不会直接坠落；着火的实体进入会被灭火，云团随之消失。
 - 云团持续 10 秒（200 tick）后自动消失；悬空云团下方持续生成白色云粒子。
 - 使用云瓶时播放 `minecraft:item.bottle.empty`，音源为玩家，服务端广播到附近玩家。
 - 物品必须显示真实贴图，不允许紫黑缺失模型。
@@ -33,7 +33,7 @@
   - 方块属性使用 `replaceable().noCollision().noLootTable().instabreak().sound(SoundType.POWDER_SNOW)`。
   - 重写 `canBeReplaced` 返回 `true`，普通方块可以直接替换云团。
   - 重写 `getEntityInsideCollisionShape` 返回完整方块形状，保证实体进入时触发 `entityInside`。
-  - 在 `entityInside` 中调用 `entity.makeStuckInBlock(state, new Vec3(0.9, 0.25, 0.9))`，实现缓慢下落穿过。
+  - 在 `entityInside` 中调用 `entity.makeStuckInBlock(state, new Vec3(0.95, 0.6, 0.95))`，实现缓慢下落穿过；若实体着火则 `entity.clearFire()` 并在服务端把云团替换为空气。
   - 在 `onPlace` 中 `level.scheduleTick(pos, this, 200)`，并在 `tick` 中把仍存在的云团替换为空气。
   - 在 `animateTick` 中于方块下方生成 `ParticleTypes.CLOUD` 粒子。
 - `BottledCloudItem.use` 服务端分支先调用 `CloudPlacement.findNearestAir`，成功后 `level.setBlock(pos, ModBlocks.CLOUD.defaultBlockState(), 3)`、播放 `BOTTLE_EMPTY`、消耗物品；失败时返回 `InteractionResult.FAIL`。
