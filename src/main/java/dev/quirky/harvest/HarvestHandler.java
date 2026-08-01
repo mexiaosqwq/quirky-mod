@@ -66,9 +66,12 @@ public final class HarvestHandler {
 			replant = removeOneFromInventory(player.getInventory(), seed)
 				|| removeOneFromDrops(drops, seed);
 		}
-		HarvestFx.play(level, player, hand, pos, state);
+		HarvestFx.playBreak(level, player, hand, pos, state);
 		spawnDrops(level, pos, drops, player);
 		level.setBlock(pos, replant ? crop.getStateForAge(0) : Blocks.AIR.defaultBlockState(), 3);
+		if (replant) {
+			HarvestFx.playReplant(level, pos, crop.getStateForAge(0));
+		}
 		return InteractionResult.SUCCESS;
 	}
 
@@ -81,9 +84,12 @@ public final class HarvestHandler {
 			replant = removeOneFromInventory(player.getInventory(), Items.NETHER_WART)
 				|| removeOneFromDrops(drops, Items.NETHER_WART);
 		}
-		HarvestFx.play(level, player, hand, pos, state);
+		HarvestFx.playBreak(level, player, hand, pos, state);
 		spawnDrops(level, pos, drops, player);
 		level.setBlock(pos, replant ? state.setValue(NetherWartBlock.AGE, 0) : Blocks.AIR.defaultBlockState(), 3);
+		if (replant) {
+			HarvestFx.playReplant(level, pos, state.setValue(NetherWartBlock.AGE, 0));
+		}
 		return InteractionResult.SUCCESS;
 	}
 
@@ -97,7 +103,7 @@ public final class HarvestHandler {
 		if (!fruitState.is(fruit)) {
 			return InteractionResult.PASS;
 		}
-		HarvestFx.play(level, player, hand, fruitPos, fruitState);
+		HarvestFx.playBreak(level, player, hand, fruitPos, fruitState);
 		spawnDrops(level, fruitPos, Block.getDrops(fruitState, level, fruitPos, null, player, ItemStack.EMPTY), player);
 		level.setBlock(fruitPos, Blocks.AIR.defaultBlockState(), 3);
 		return InteractionResult.SUCCESS;
@@ -106,7 +112,7 @@ public final class HarvestHandler {
 	private static InteractionResult harvestCocoa(
 		ServerLevel level, BlockPos pos, BlockState state, Player player, InteractionHand hand
 	) {
-		HarvestFx.play(level, player, hand, pos, state);
+		HarvestFx.playBreak(level, player, hand, pos, state);
 		spawnDrops(level, pos, Block.getDrops(state, level, pos, null, player, ItemStack.EMPTY), player);
 		level.setBlock(pos, state.setValue(CocoaBlock.AGE, 0), 3);
 		return InteractionResult.SUCCESS;
