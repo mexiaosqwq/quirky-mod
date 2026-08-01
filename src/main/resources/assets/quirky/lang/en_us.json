@@ -1,3 +1,6 @@
 {
-  "item.quirky.bottled_cloud": "Bottled Cloud"
+  "item.quirky.bottled_cloud": "Bottled Cloud",
+  "tooltip.quirky.clock": "Day %s",
+  "tooltip.quirky.compass": "Facing %s · Spawn %s, %s",
+  "tooltip.quirky.lodestone": "Lodestone %s, %s (%s)"
 }

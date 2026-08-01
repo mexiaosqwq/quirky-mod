@@ -1,9 +1,9 @@
 {
   "required": true,
   "minVersion": "0.8",
-  "package": "dev.quirky.client.mixin",
+  "package": "dev.quirky.client.tooltips",
   "compatibilityLevel": "JAVA_25",
-  "mixins": [],
+  "mixins": ["ClockCompassTooltipMixin"],
   "injectors": {
     "defaultRequire": 1
   }
