@@ -44,6 +44,7 @@ public class ClientMapTooltipComponent implements ClientTooltipComponent {
 		graphics.pose().pushMatrix();
 		graphics.pose().translate(x, y);
 		graphics.pose().scale(0.5F, 0.5F);
+		graphics.pose().translate(7, 7);
 		graphics.blit(RenderPipelines.GUI_TEXTURED, MAP_BACKGROUND, -7, -7, 0.0F, 0.0F, 142, 142, 64, 64, 64, 64);
 		graphics.map(renderState);
 		graphics.pose().popMatrix();
