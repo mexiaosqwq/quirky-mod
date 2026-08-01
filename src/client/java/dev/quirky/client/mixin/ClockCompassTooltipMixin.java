@@ -1,4 +1,4 @@
-package dev.quirky.client.tooltips;
+package dev.quirky.client.mixin;
 
 import java.util.List;
 
