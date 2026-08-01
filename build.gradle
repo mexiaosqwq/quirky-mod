@@ -39,6 +39,13 @@ dependencies {
 	testImplementation "org.mockito:mockito-core:5.15.2"
 }
 
+sourceSets {
+	test {
+		compileClasspath += sourceSets.client.output
+		runtimeClasspath += sourceSets.client.output
+	}
+}
+
 processResources {
 	def version = project.version
 	inputs.property "version", version
