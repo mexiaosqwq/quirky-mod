@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.inventory.Slot;
 
@@ -15,7 +16,8 @@ public final class EquipSwapClient {
 
 	public static void init() {
 		ScreenEvents.BEFORE_INIT.register((client, screen, width, height) -> {
-			if (screen instanceof AbstractContainerScreen<?> containerScreen) {
+			if (screen instanceof AbstractContainerScreen<?> containerScreen
+				&& !(screen instanceof CreativeModeInventoryScreen)) {
 				ScreenMouseEvents.allowMouseClick(screen).register((s, event) -> {
 					if (event.button() != 1) {
 						return true;

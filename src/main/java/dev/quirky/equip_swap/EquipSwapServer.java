@@ -37,6 +37,9 @@ public final class EquipSwapServer {
 			}
 
 			Slot source = menu.getSlot(payload.slotIndex());
+			if (source.isFake()) {
+				return;
+			}
 			ItemStack stack = source.getItem();
 			if (stack.isEmpty() || !stack.has(DataComponents.EQUIPPABLE)) {
 				return;
@@ -58,6 +61,9 @@ public final class EquipSwapServer {
 			if (!worn.isEmpty()
 				&& EnchantmentHelper.has(worn, EnchantmentEffectComponents.PREVENT_ARMOR_CHANGE)
 				&& !player.isCreative()) {
+				return;
+			}
+			if (!worn.isEmpty() && !source.mayPlace(worn)) {
 				return;
 			}
 
