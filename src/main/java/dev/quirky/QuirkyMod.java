@@ -1,5 +1,6 @@
 package dev.quirky;
 
+import dev.quirky.equip_swap.EquipSwapServer;
 import dev.quirky.harvest.HarvestHandler;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.resources.Identifier;
@@ -14,6 +15,7 @@ public class QuirkyMod implements ModInitializer {
 	public void onInitialize() {
 		ModItems.register();
 		HarvestHandler.init();
+		EquipSwapServer.init();
 		LOGGER.info("Quirky loaded");
 	}
 
