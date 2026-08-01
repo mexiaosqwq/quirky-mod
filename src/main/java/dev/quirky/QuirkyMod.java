@@ -1,5 +1,6 @@
 package dev.quirky;
 
+import dev.quirky.harvest.HarvestHandler;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.resources.Identifier;
 import org.slf4j.Logger;
@@ -12,6 +13,7 @@ public class QuirkyMod implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		ModItems.register();
+		HarvestHandler.init();
 		LOGGER.info("Quirky loaded");
 	}
 
