@@ -18,17 +18,18 @@ public class BottledCloudItem extends Item {
 
 	@Override
 	public InteractionResult use(Level level, Player player, InteractionHand hand) {
-		if (level.isClientSide()) {
-			return InteractionResult.SUCCESS;
-		}
 		BlockPos pos = CloudPlacement.findNearestAir(
 			level,
 			player.getEyePosition(),
 			player.getLookAngle(),
-			player.blockInteractionRange()
+			player.blockInteractionRange(),
+			player.getBoundingBox()
 		);
 		if (pos == null) {
 			return InteractionResult.FAIL;
+		}
+		if (level.isClientSide()) {
+			return InteractionResult.SUCCESS;
 		}
 		level.setBlock(pos, ModBlocks.CLOUD.defaultBlockState(), 3);
 		player.playSound(SoundEvents.BOTTLE_EMPTY, 1.0F, 1.0F);

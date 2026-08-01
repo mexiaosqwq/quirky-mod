@@ -10,6 +10,7 @@ import dev.quirky.TestBootstrap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -18,6 +19,26 @@ class CloudPlacementTest {
 	@BeforeAll
 	static void bootStrap() {
 		TestBootstrap.boot();
+	}
+
+	@Test
+	void skipsPlayerOccupiedBlockWhenPlacingCloud() {
+		Level level = mock(Level.class);
+		BlockPos eyeBlock = new BlockPos(0, 64, 0);
+		BlockPos far = new BlockPos(2, 64, 0);
+		when(level.getBlockState(any(BlockPos.class))).thenReturn(Blocks.STONE.defaultBlockState());
+		when(level.getBlockState(eyeBlock)).thenReturn(Blocks.AIR.defaultBlockState());
+		when(level.getBlockState(far)).thenReturn(Blocks.AIR.defaultBlockState());
+
+		BlockPos found = CloudPlacement.findNearestAir(
+			level,
+			new Vec3(0.5, 64.5, 0.5),
+			new Vec3(1.0, 0.0, 0.0),
+			4.5,
+			new AABB(0.25, 64.0, 0.25, 0.75, 65.8, 0.75)
+		);
+
+		assertEquals(far, found);
 	}
 
 	@Test
@@ -33,7 +54,8 @@ class CloudPlacementTest {
 			level,
 			new Vec3(0.5, 64.5, 0.5),
 			new Vec3(1.0, 0.0, 0.0),
-			4.5
+			4.5,
+			new AABB(0.25, 64.0, 0.25, 0.75, 65.8, 0.75)
 		);
 
 		assertEquals(far, found);
@@ -48,7 +70,8 @@ class CloudPlacementTest {
 			level,
 			new Vec3(0.5, 64.5, 0.5),
 			new Vec3(1.0, 0.0, 0.0),
-			4.5
+			4.5,
+			new AABB(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 		);
 
 		assertNull(found);

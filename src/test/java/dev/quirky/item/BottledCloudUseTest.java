@@ -21,6 +21,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -35,6 +36,7 @@ class BottledCloudUseTest {
 	void survivalUseConsumesCloudAndConvertsToGlassBottle() {
 		Player player = mock(Player.class);
 		when(player.hasInfiniteMaterials()).thenReturn(false);
+		when(player.getBoundingBox()).thenReturn(new AABB(0.25, 64.0, 0.25, 0.75, 65.8, 0.75));
 		when(player.getEyePosition()).thenReturn(new Vec3(0.5, 64.5, 0.5));
 		when(player.getLookAngle()).thenReturn(new Vec3(1.0, 0.0, 0.0));
 		when(player.blockInteractionRange()).thenReturn(4.5);
@@ -57,6 +59,7 @@ class BottledCloudUseTest {
 	void creativeUseDoesNotConsumeOrReturnGlassBottle() {
 		Player player = mock(Player.class);
 		when(player.hasInfiniteMaterials()).thenReturn(true);
+		when(player.getBoundingBox()).thenReturn(new AABB(0.25, 64.0, 0.25, 0.75, 65.8, 0.75));
 		when(player.getEyePosition()).thenReturn(new Vec3(0.5, 64.5, 0.5));
 		when(player.getLookAngle()).thenReturn(new Vec3(1.0, 0.0, 0.0));
 		when(player.blockInteractionRange()).thenReturn(4.5);
@@ -79,6 +82,7 @@ class BottledCloudUseTest {
 	void usePlacesCloudAndConsumesBottle() {
 		Player player = mock(Player.class);
 		when(player.hasInfiniteMaterials()).thenReturn(false);
+		when(player.getBoundingBox()).thenReturn(new AABB(0.25, 64.0, 0.25, 0.75, 65.8, 0.75));
 		when(player.getEyePosition()).thenReturn(new Vec3(0.5, 64.5, 0.5));
 		when(player.getLookAngle()).thenReturn(new Vec3(1.0, 0.0, 0.0));
 		when(player.blockInteractionRange()).thenReturn(4.5);
@@ -104,11 +108,33 @@ class BottledCloudUseTest {
 	void useFailsWithoutConsumingWhenNoAirIsInReach() {
 		Player player = mock(Player.class);
 		when(player.hasInfiniteMaterials()).thenReturn(false);
+		when(player.getBoundingBox()).thenReturn(new AABB(0.25, 64.0, 0.25, 0.75, 65.8, 0.75));
 		when(player.getEyePosition()).thenReturn(new Vec3(0.5, 64.5, 0.5));
 		when(player.getLookAngle()).thenReturn(new Vec3(1.0, 0.0, 0.0));
 		when(player.blockInteractionRange()).thenReturn(4.5);
 		Level level = mock(Level.class);
 		when(level.isClientSide()).thenReturn(false);
+		when(level.getBlockState(any(BlockPos.class))).thenReturn(Blocks.STONE.defaultBlockState());
+
+		ItemStack stack = new ItemStack(ModItems.BOTTLED_CLOUD);
+		when(player.getItemInHand(InteractionHand.MAIN_HAND)).thenReturn(stack);
+
+		InteractionResult result = stack.use(level, player, InteractionHand.MAIN_HAND);
+
+		assertInstanceOf(InteractionResult.Fail.class, result);
+		assertEquals(1, stack.getCount());
+	}
+
+	@Test
+	void clientFailsWithoutConsumingWhenNoAirIsInReach() {
+		Player player = mock(Player.class);
+		when(player.hasInfiniteMaterials()).thenReturn(false);
+		when(player.getBoundingBox()).thenReturn(new AABB(0.25, 64.0, 0.25, 0.75, 65.8, 0.75));
+		when(player.getEyePosition()).thenReturn(new Vec3(0.5, 64.5, 0.5));
+		when(player.getLookAngle()).thenReturn(new Vec3(1.0, 0.0, 0.0));
+		when(player.blockInteractionRange()).thenReturn(4.5);
+		Level level = mock(Level.class);
+		when(level.isClientSide()).thenReturn(true);
 		when(level.getBlockState(any(BlockPos.class))).thenReturn(Blocks.STONE.defaultBlockState());
 
 		ItemStack stack = new ItemStack(ModItems.BOTTLED_CLOUD);
