@@ -13,7 +13,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.LodestoneTracker;
-import net.minecraft.world.level.Level;
+import net.minecraft.world.item.component.TooltipDisplay;
 import org.jspecify.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -33,9 +33,14 @@ public abstract class ClockCompassTooltipMixin {
 		if (player == null) {
 			return;
 		}
+		TooltipDisplay display = stack.getOrDefault(DataComponents.TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT);
+		if (!flag.isCreative() && display.hideTooltip()) {
+			return;
+		}
 		if (stack.is(Items.CLOCK)) {
+			long dayTime = player.level().getDefaultClockTime();
 			cir.getReturnValue().add(
-				Component.translatable("tooltip.quirky.clock", formatTime(player.level()))
+				Component.translatable("tooltip.quirky.clock", dayTime / 24000L + 1L, formatTime(dayTime))
 					.withStyle(ChatFormatting.GRAY)
 			);
 		} else if (stack.is(Items.COMPASS)) {
@@ -65,12 +70,10 @@ public abstract class ClockCompassTooltipMixin {
 		}
 	}
 
-	private static String formatTime(Level level) {
-		long dayTime = level.getDefaultClockTime();
-		long day = dayTime / 24000L + 1L;
+	private static String formatTime(long dayTime) {
 		int ticks = (int) (dayTime % 24000L);
 		int hours = (ticks / 1000 + 6) % 24;
 		int minutes = (ticks % 1000) * 60 / 1000;
-		return day + " " + String.format("%02d:%02d", hours, minutes);
+		return String.format("%02d:%02d", hours, minutes);
 	}
 }
