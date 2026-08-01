@@ -90,10 +90,15 @@ public class CloudBlock extends Block {
 		if (!level.isClientSide()) {
 			level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
 			player.playSound(SoundEvents.BOTTLE_FILL, 1.0F, 1.0F);
+			ItemStack bottledCloud = new ItemStack(ModItems.BOTTLED_CLOUD);
 			if (!player.hasInfiniteMaterials()) {
 				itemStack.shrink(1);
 			}
-			player.getInventory().placeItemBackInInventory(new ItemStack(ModItems.BOTTLED_CLOUD));
+			if (itemStack.isEmpty()) {
+				player.setItemInHand(hand, bottledCloud);
+			} else {
+				player.getInventory().placeItemBackInInventory(bottledCloud);
+			}
 		}
 		return InteractionResult.SUCCESS;
 	}

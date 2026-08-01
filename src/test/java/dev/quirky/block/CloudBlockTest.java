@@ -2,6 +2,8 @@ package dev.quirky.block;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -16,7 +18,6 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityEquipment;
 import net.minecraft.world.entity.InsideBlockEffectApplier;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -30,6 +31,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 class CloudBlockTest {
 	@BeforeAll
@@ -112,13 +114,12 @@ class CloudBlockTest {
 	}
 
 	@Test
-	void useItemOnWithGlassBottleCollectsCloudIntoBottle() {
+	void useItemOnWithGlassBottleCollectsCloudIntoBottleInPlace() {
 		Level level = mock(Level.class);
 		BlockPos pos = new BlockPos(1, 64, 1);
 		BlockState state = ModBlocks.CLOUD.defaultBlockState();
 		Player player = mock(Player.class);
-		Inventory inventory = new Inventory(player, new EntityEquipment());
-		when(player.getInventory()).thenReturn(inventory);
+		when(player.getInventory()).thenReturn(mock(Inventory.class));
 		when(player.hasInfiniteMaterials()).thenReturn(false);
 		ItemStack bottle = new ItemStack(Items.GLASS_BOTTLE);
 
@@ -129,7 +130,55 @@ class CloudBlockTest {
 		assertTrue(result.consumesAction());
 		verify(level).setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
 		assertTrue(bottle.isEmpty());
-		assertTrue(inventory.hasAnyMatching(stack -> stack.is(ModItems.BOTTLED_CLOUD)));
+		ArgumentCaptor<ItemStack> captor = ArgumentCaptor.forClass(ItemStack.class);
+		verify(player).setItemInHand(eq(InteractionHand.MAIN_HAND), captor.capture());
+		assertTrue(captor.getValue().is(ModItems.BOTTLED_CLOUD));
+		assertEquals(1, captor.getValue().getCount());
+	}
+
+	@Test
+	void useItemOnWithStackedBottlesPutsCloudInInventory() {
+		Level level = mock(Level.class);
+		BlockPos pos = new BlockPos(1, 64, 1);
+		BlockState state = ModBlocks.CLOUD.defaultBlockState();
+		Player player = mock(Player.class);
+		Inventory inventory = mock(Inventory.class);
+		when(player.getInventory()).thenReturn(inventory);
+		when(player.hasInfiniteMaterials()).thenReturn(false);
+		ItemStack bottle = new ItemStack(Items.GLASS_BOTTLE, 2);
+
+		InteractionResult result = ModBlocks.CLOUD.useItemOn(
+			bottle, state, level, pos, player, InteractionHand.MAIN_HAND, mock(BlockHitResult.class)
+		);
+
+		assertTrue(result.consumesAction());
+		assertEquals(1, bottle.getCount());
+		ArgumentCaptor<ItemStack> captor = ArgumentCaptor.forClass(ItemStack.class);
+		verify(inventory).placeItemBackInInventory(captor.capture());
+		assertTrue(captor.getValue().is(ModItems.BOTTLED_CLOUD));
+		verify(player, never()).setItemInHand(any(), any());
+	}
+
+	@Test
+	void useItemOnInCreativeKeepsBottleAndGivesCloud() {
+		Level level = mock(Level.class);
+		BlockPos pos = new BlockPos(1, 64, 1);
+		BlockState state = ModBlocks.CLOUD.defaultBlockState();
+		Player player = mock(Player.class);
+		Inventory inventory = mock(Inventory.class);
+		when(player.getInventory()).thenReturn(inventory);
+		when(player.hasInfiniteMaterials()).thenReturn(true);
+		ItemStack bottle = new ItemStack(Items.GLASS_BOTTLE);
+
+		InteractionResult result = ModBlocks.CLOUD.useItemOn(
+			bottle, state, level, pos, player, InteractionHand.MAIN_HAND, mock(BlockHitResult.class)
+		);
+
+		assertTrue(result.consumesAction());
+		assertEquals(1, bottle.getCount());
+		ArgumentCaptor<ItemStack> captor = ArgumentCaptor.forClass(ItemStack.class);
+		verify(inventory).placeItemBackInInventory(captor.capture());
+		assertTrue(captor.getValue().is(ModItems.BOTTLED_CLOUD));
 	}
 
 	@Test
