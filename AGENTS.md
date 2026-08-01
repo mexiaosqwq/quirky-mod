@@ -22,7 +22,7 @@ PATH=/data/data/com.termux/files/usr/lib/jvm/java-25-openjdk/bin:$PATH \
 gradle build --no-daemon --console=plain
 ```
 
-`gradle genSources` generates decompiled 26.2 sources used for API verification. There is no automated test suite yet; `gradle test` reports `NO-SOURCE`.
+`gradle genSources` generates decompiled 26.2 sources used for API verification. Unit tests live under `src/test/java` and run with `gradle test`; game-dependent client behavior still needs manual verification.
 
 ## Coding Style & Naming Conventions
 
@@ -41,6 +41,15 @@ Verification is build-level plus review:
 - Check gameplay-dependent client features manually on a desktop client (map preview, tooltips, equip swap).
 - Check server mechanics with a dedicated server or in-game session.
 - Each task goes through spec-compliance and code-quality review before it is considered complete.
+
+## Mechanic Polish & Detail Requirements
+
+Small interactive mechanics must keep the hand-feel details that make them feel natural, not just work logically.
+
+- Add sounds for every user-facing action: use item, harvest/replant, eat/spit, open/close.
+- Show particles, swing, or other visible feedback when a block is harvested or destroyed.
+- Preserve physical details such as item-entity ejection, thrower, pickup delay, and the vanilla map parchment border.
+- List these details explicitly in specs and implementation plans; "the logic works" is not an acceptable substitute.
 
 ## Commit & Pull Request Guidelines
 
