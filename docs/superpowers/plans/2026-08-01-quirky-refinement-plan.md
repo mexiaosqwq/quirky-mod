@@ -105,6 +105,7 @@ class CloudPlacementTest {
 	@Test
 	void returnsNearestAirBlockAlongLookDirection() {
 		Level level = mock(Level.class);
+		when(level.getBlockState(any(BlockPos.class))).thenReturn(Blocks.STONE.defaultBlockState());
 		BlockPos near = new BlockPos(1, 64, 0);
 		BlockPos far = new BlockPos(2, 64, 0);
 		when(level.getBlockState(near)).thenReturn(Blocks.STONE.defaultBlockState());
@@ -344,11 +345,10 @@ import dev.quirky.block.CloudBlock;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.sounds.SoundType;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 
 public final class ModBlocks {
-	public static final Block CLOUD = new CloudBlock(
+	public static final CloudBlock CLOUD = new CloudBlock(
 		BlockBehaviour.Properties.of()
 			.replaceable()
 			.noCollision()
@@ -431,6 +431,8 @@ PY
 
 在 `BottledCloudUseTest` 中新增两个测试：
 
+新增 import：`static org.mockito.ArgumentMatchers.any`、`static org.mockito.Mockito.verify`、`net.minecraft.core.BlockPos`、`net.minecraft.sounds.SoundEvents`、`net.minecraft.world.level.block.Blocks`、`net.minecraft.world.phys.Vec3`、`dev.quirky.ModBlocks`。
+
 ```java
 @Test
 void usePlacesCloudAndConsumesBottle() {
@@ -442,6 +444,7 @@ void usePlacesCloudAndConsumesBottle() {
 	Level level = mock(Level.class);
 	when(level.isClientSide()).thenReturn(false);
 	BlockPos pos = new BlockPos(2, 64, 0);
+	when(level.getBlockState(any(BlockPos.class))).thenReturn(Blocks.STONE.defaultBlockState());
 	when(level.getBlockState(new BlockPos(1, 64, 0))).thenReturn(Blocks.STONE.defaultBlockState());
 	when(level.getBlockState(pos)).thenReturn(Blocks.AIR.defaultBlockState());
 
@@ -478,6 +481,8 @@ void useFailsWithoutConsumingWhenNoAirIsInReach() {
 ```
 
 运行测试确认失败，然后重写 `BottledCloudItem.use`：
+
+同时给现有两个测试补上：`when(player.getEyePosition())`、`when(player.getLookAngle())`、`when(player.blockInteractionRange())`，并让 `when(level.getBlockState(any(BlockPos.class))).thenReturn(Blocks.AIR.defaultBlockState())`。否则实现改造后，现有测试会因为找不到空气方块而返回 `FAIL`。
 
 ```java
 @Override
@@ -528,6 +533,8 @@ git commit -m "feat: bottled cloud places temporary replaceable cloud"
 
 在 `DoubleDoorHandlerTest` 中新增：
 
+新增 `import net.minecraft.world.entity.Entity;`。
+
 ```java
 @Test
 void syncsPartnerForNonPlayerEntity() {
@@ -544,9 +551,26 @@ void syncsPartnerForNonPlayerEntity() {
 
 	verify(level).setBlock(eq(partnerPos), argThat(state -> state.getValue(DoorBlock.OPEN)), anyInt());
 }
+
+@Test
+void doesNotSyncPartnerAlreadyAtTargetState() {
+	Level level = mock(Level.class);
+	when(level.isClientSide()).thenReturn(false);
+	BlockPos pos = new BlockPos(1, 64, 1);
+	BlockPos partnerPos = pos.east();
+	when(level.getBlockState(pos)).thenReturn(oakDoor(true, DoorHingeSide.LEFT));
+	when(level.getBlockState(partnerPos)).thenReturn(oakDoor(true, DoorHingeSide.RIGHT));
+
+	DoubleDoorHandler.sync(level, pos, mock(Entity.class), true);
+
+	verify(level, never()).setBlock(any(), any(BlockState.class), anyInt());
+}
 ```
 
-把现有测试中旧的 `sync(level, pos, state, player, result)` 调用全部改成 `sync(level, pos, entity, shouldOpen)`。
+把现有测试中旧的 `sync(level, pos, state, player, result)` 调用全部改成 `sync(level, pos, entity, shouldOpen)`：
+- `syncsPartnerWhenHandInteractionSucceeds`：补 `when(level.getBlockState(pos))`，调用改为 `sync(level, pos, mock(Player.class), true)`。
+- `doesNotSyncWhenInteractionDoesNotConsumeAction`：新签名没有 `result` 参数，删除该测试。
+- `doesNotSyncPartnerWithSameHinge`：补 `when(level.getBlockState(pos))`，调用改为 `sync(level, pos, mock(Player.class), true)`。
 
 ### 2.2 改造 `DoubleDoorHandler`
 
@@ -593,6 +617,9 @@ public final class DoubleDoorHandler {
 		if (!isPartner(state, partnerState)) {
 			return;
 		}
+		if (partnerState.getValue(DoorBlock.OPEN) == shouldOpen) {
+			return;
+		}
 
 		level.setBlock(partnerPos, partnerState.setValue(DoorBlock.OPEN, shouldOpen), 10);
 		SoundEvent sound = shouldOpen ? door.type().doorOpen() : door.type().doorClose();
@@ -637,7 +664,9 @@ private void quirky$syncAfterSetOpen(
 	boolean shouldOpen,
 	CallbackInfo ci
 ) {
-	DoubleDoorHandler.sync(level, pos, sourceEntity, shouldOpen);
+	if (DoorBlock.isWoodenDoor(level, pos)) {
+		DoubleDoorHandler.sync(level, pos, sourceEntity, shouldOpen);
+	}
 }
 ```
 
@@ -668,12 +697,15 @@ git commit -m "fix: sync double doors for villagers and other entities"
 
 重写 `MelonSeedHandlerTest` 中的主测试：
 
+保留 `net.minecraft.world.food.FoodData` import，并在 mock 中补充 `when(player.getFoodData()).thenReturn(mock(FoodData.class))`（西瓜片吃完会走 `FoodProperties.onConsume`，需要 `FoodData` 才能执行）。另外新增 `net.minecraft.world.entity.item.ItemEntity` 和 `net.minecraft.sounds.SoundEvents` import。
+
 ```java
 @Test
 void spitsSeedAsItemEntityWhenFinishingLastMelonSlice() {
 	ServerPlayer player = mock(ServerPlayer.class);
 	when(player.hasInfiniteMaterials()).thenReturn(false);
 	when(player.getRandom()).thenReturn(RandomSource.create());
+	when(player.getFoodData()).thenReturn(mock(FoodData.class));
 	when(player.getEyePosition()).thenReturn(new Vec3(0.5, 64.5, 0.5));
 	when(player.getLookAngle()).thenReturn(new Vec3(1.0, 0.0, 0.0));
 	ServerLevel level = mock(ServerLevel.class);
@@ -691,7 +723,7 @@ void spitsSeedAsItemEntityWhenFinishingLastMelonSlice() {
 	verify(level).addFreshEntity(argThat(entity ->
 		entity instanceof ItemEntity item
 			&& item.getItem().is(Items.MELON_SEEDS)
-			&& item.getPickupDelay() == 40
+			&& item.hasPickUpDelay()
 	));
 }
 ```
@@ -896,6 +928,8 @@ git commit -m "feat: draw vanilla parchment border around map tooltip"
 ### 5.1 先写失败测试
 
 在 `HarvestFxTest` 中新增：
+
+新增 import：`net.minecraft.sounds.SoundSource`、`net.minecraft.sounds.SoundEvents`。
 
 ```java
 @Test

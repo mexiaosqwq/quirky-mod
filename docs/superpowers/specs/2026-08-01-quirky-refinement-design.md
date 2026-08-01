@@ -52,7 +52,7 @@
 
 - 在 `DoorBlock.setOpen` 尾部注入同步逻辑。
 - 玩家点击路径在 `DoorBlock.useWithoutItem` 开头预同步，避免 `useWithoutItem` 直接改状态时漏掉 `setOpen`。
-- `DoubleDoorHandler` 增加重入保护（如同一线程正在同步则直接返回），防止 A 门同步 B 门、B 门又同步 A 门的死循环。
+- `DoubleDoorHandler` 直接设置伙伴门状态，不再调用 `DoorBlock.setOpen`，避免 A 门同步 B 门、B 门又同步 A 门的递归；伙伴门已处于目标状态时直接跳过，避免重复设置与重复音效。
 - 归一化到下半块，按 `FACING` 与 `HINGE` 计算伙伴门。
 
 ### 2.3 吃西瓜吐籽
