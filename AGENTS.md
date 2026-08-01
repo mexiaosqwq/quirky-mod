@@ -26,7 +26,7 @@ gradle build --no-daemon --console=plain
 
 ## Coding Style & Naming Conventions
 
-- Use tabs for indentation in Java and JSON.
+- Use tabs for indentation in Java; keep JSON files in the repository's existing 2-space style.
 - Use 26.2 official mapping names; verify APIs against `$HOME/.cache/mcsrc` before use.
 - Name mixin classes `XxxMixin` and client mixin accessors `XxxAccessor`.
 - Use `lower_snake_case` for resource paths and `tooltip.quirky.*` for tooltip language keys.
@@ -40,7 +40,7 @@ Verification is build-level plus review:
 - Every task must end with a passing `gradle build`.
 - Check gameplay-dependent client features manually on a desktop client (map preview, tooltips, equip swap).
 - Check server mechanics with a dedicated server or in-game session.
-- Each task goes through spec-compliance and code-quality review before it is considered complete.
+- Each task goes through spec-compliance and code-quality review before it is considered complete; review findings are triaged before merge.
 
 ## Mechanic Polish & Detail Requirements
 
@@ -57,10 +57,18 @@ Use conventional commit prefixes from this repository's history: `feat:`, `fix:`
 
 - Keep one logical change per commit.
 - Include the build result in task reports.
+- Update README and user-facing docs in the same change when behavior changes; stale docs are incomplete work.
 - For a pull request, summarize the change, link the related issue, and include a manual verification checklist.
 
 This environment does not push to remote repositories; merge and publish locally or through the host UI.
 
+## Known Quirky Pitfalls
+
+- Cloud placement must skip blocks intersecting the player's own bounding box; otherwise the cloud can spawn inside the player.
+- Instant-use items must run the same reach/validity check on client and server before returning success, so a failed use cannot consume the item locally.
+- Map tooltip drawing must stay inside the reported `getWidth`/`getHeight` bounds; the parchment border and map content must align to the component origin.
+- Client visuals still require desktop-client manual verification; build success alone does not prove hand-feel details.
+
 ## Agent-Specific Instructions
 
-Agents must follow the root `AGENTS.md` constraints and the Superpowers subagent workflow. Dispatched agents must not create nested agents, must report `Status`, build output, and file changes, and must not modify files outside their assigned task scope.
+Agents must follow the root `AGENTS.md` constraints and the Superpowers subagent workflow. Dispatched agents must not create nested agents, must report `Status`, build output, and file changes, and must not modify files outside their assigned task scope. External review feedback is verified against the code before being implemented; reviewer suggestions are not applied blindly.
