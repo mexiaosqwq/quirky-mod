@@ -50,9 +50,26 @@ class QuirkyConfigDefaultsTest {
 	}
 
 	@Test
-	void holderDefaultsToFreshConfig() {
-		QuirkyConfig c = QuirkyConfigHolder.get();
-		assertTrue(c.melonSeed);
-		assertEquals(3, c.hitsToRetrieve);
+	void clientQolTogglesDefaultOn() {
+		QuirkyConfig c = new QuirkyConfig();
+		assertTrue(c.soulLighting && c.greenerGrass && c.shulkerTooltip
+			&& c.foodTooltip && c.attributeTooltip && c.usageTicker
+			&& c.deathCam && c.longPick && c.ladderSnap && c.offhandSwap
+			&& c.goldButton && c.ironButton && c.obsidianPlate
+			&& c.torchArrow && c.woodenHopper);
+		assertEquals(100, c.pickRangeCreative);
+		assertEquals(12, c.pickRangeSurvival);
+		assertEquals(50, c.deathCamDuration);
+	}
+
+	@Test
+	void clientQolParamsWithinBounds() {
+		QuirkyConfig c = new QuirkyConfig();
+		assertTrue(c.grassMultiplier >= 0.5F && c.grassMultiplier <= 1.5F);
+		assertTrue(c.ladderSnapStrength >= 0.1F && c.ladderSnapStrength <= 1.0F);
+		assertTrue(c.tickerHoldTicks >= 20 && c.tickerHoldTicks <= 200);
+		assertTrue(c.deathCamDuration >= 40 && c.deathCamDuration <= 100);
+		assertTrue(c.pickRangeCreative >= 16 && c.pickRangeCreative <= 256);
+		assertTrue(c.pickRangeSurvival >= 4 && c.pickRangeSurvival <= 64);
 	}
 }

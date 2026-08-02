@@ -41,6 +41,66 @@ public class QuirkyConfig implements ConfigData {
 	@ConfigEntry.Gui.Tooltip
 	public boolean totemOfHolding = true;
 
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean soulLighting = true;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean greenerGrass = true;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean shulkerTooltip = true;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean foodTooltip = true;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean attributeTooltip = true;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean usageTicker = true;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean deathCam = true;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean longPick = true;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean ladderSnap = true;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean offhandSwap = true;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean goldButton = true;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean ironButton = true;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean obsidianPlate = true;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean torchArrow = true;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean woodenHopper = true;
+
 	// ==== 图腾手感参数（服务端）====
 
 	@ConfigEntry.Category("totem")
@@ -119,4 +179,43 @@ public class QuirkyConfig implements ConfigData {
 	@ConfigEntry.BoundedDiscrete(min = 4, max = 60)
 	@ConfigEntry.Gui.Tooltip
 	public int swayPeriod = 20;
+
+	// ==== 客户端实用功能参数 ====
+
+	@ConfigEntry.Category("client_qol")
+	@ConfigEntry.Gui.Tooltip
+	public float grassMultiplier = 1.0F;
+
+	@ConfigEntry.Category("client_qol")
+	@ConfigEntry.Gui.Tooltip
+	public boolean grassAffectLeaves = true;
+
+	@ConfigEntry.Category("client_qol")
+	@ConfigEntry.BoundedDiscrete(min = 20, max = 200)
+	@ConfigEntry.Gui.Tooltip
+	public int tickerHoldTicks = 50;
+
+	@ConfigEntry.Category("client_qol")
+	@ConfigEntry.BoundedDiscrete(min = 2, max = 20)
+	@ConfigEntry.Gui.Tooltip
+	public int tickerAnimTicks = 5;
+
+	@ConfigEntry.Category("client_qol")
+	@ConfigEntry.BoundedDiscrete(min = 40, max = 100)
+	@ConfigEntry.Gui.Tooltip
+	public int deathCamDuration = 50;
+
+	@ConfigEntry.Category("client_qol")
+	@ConfigEntry.BoundedDiscrete(min = 16, max = 256)
+	@ConfigEntry.Gui.Tooltip
+	public int pickRangeCreative = 100;
+
+	@ConfigEntry.Category("client_qol")
+	@ConfigEntry.BoundedDiscrete(min = 4, max = 64)
+	@ConfigEntry.Gui.Tooltip
+	public int pickRangeSurvival = 12;
+
+	@ConfigEntry.Category("client_qol")
+	@ConfigEntry.Gui.Tooltip
+	public float ladderSnapStrength = 0.5F;
 }
