@@ -1,10 +1,15 @@
 package dev.quirky.mixin;
 
+import java.util.List;
 import java.util.Optional;
 
 import dev.quirky.config.QuirkyConfigHolder;
+import dev.quirky.tooltips.AttributeTooltipComponent.AttributeLine;
+import dev.quirky.tooltips.AttributeLineCollector;
+import dev.quirky.tooltips.AttributeTooltipComponent;
 import dev.quirky.tooltips.FoodTooltipComponent;
 import dev.quirky.tooltips.ShulkerTooltipComponent;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.Item;
@@ -27,6 +32,18 @@ public abstract class TooltipDetailsMixin {
 		}
 		if (stack.has(DataComponents.CONTAINER)) {
 			cir.setReturnValue(Optional.of(new ShulkerTooltipComponent(stack.get(DataComponents.CONTAINER))));
+		}
+	}
+
+	@Inject(method = "getTooltipImage", at = @At("HEAD"), cancellable = true)
+	private void quirky$attributeTooltip(ItemStack stack, CallbackInfoReturnable<Optional<TooltipComponent>> cir) {
+		if (!QuirkyConfigHolder.get().attributeTooltip) {
+			return;
+		}
+		// 26.2 中 ENCHANTMENT 为数据包注册表，tooltip 调用路径无注册表访问，传 EMPTY 走栈上附魔组件读取
+		List<AttributeLine> lines = AttributeLineCollector.collect(stack, RegistryAccess.EMPTY);
+		if (!lines.isEmpty()) {
+			cir.setReturnValue(Optional.of(new AttributeTooltipComponent(lines)));
 		}
 	}
 
