@@ -46,6 +46,11 @@ public class QuirkyConfig implements ConfigData {
 	@ConfigEntry.Category("totem")
 	@ConfigEntry.BoundedDiscrete(min = 1, max = 10)
 	@ConfigEntry.Gui.Tooltip
+	public int spawnHeightOffset = 1;
+
+	@ConfigEntry.Category("totem")
+	@ConfigEntry.BoundedDiscrete(min = 1, max = 10)
+	@ConfigEntry.Gui.Tooltip
 	public int hitsToRetrieve = 3;
 
 	@ConfigEntry.Category("totem")

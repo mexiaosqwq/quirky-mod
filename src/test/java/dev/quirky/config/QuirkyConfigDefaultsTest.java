@@ -24,6 +24,7 @@ class QuirkyConfigDefaultsTest {
 	void totemParamsMatchCurrentHardcodedConstants() {
 		QuirkyConfig c = new QuirkyConfig();
 		assertEquals(3, c.hitsToRetrieve);
+		assertEquals(1, c.spawnHeightOffset);
 		assertEquals(1.0F, c.hitSoundVolume);
 		assertEquals(1.0F, c.hitSoundPitch);
 		assertEquals(0.5F, c.retrieveSoundVolume);

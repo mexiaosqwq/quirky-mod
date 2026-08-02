@@ -152,16 +152,28 @@ class TotemOfHoldingLogicTest {
 		assertTrue(overflow.getFirst().is(Items.DIAMOND_SWORD));
 	}
 
-	// ---- findSpawnPosition 自适应高度 ----
+	// ---- findSpawnPosition 高度配置（offset 固定目标 + 空气兜底）----
 
 	@Test
-	void findSpawnPosition_usesLowestFreeSpotAboveDeath() {
+	void findSpawnPosition_usesOffsetTargetWhenAir() {
 		Level level = mock(Level.class);
 		when(level.getBlockState(any())).thenReturn(Blocks.AIR.defaultBlockState());
 
-		BlockPos result = TotemOfHoldingLogic.findSpawnPosition(level, new BlockPos(1, 64, 1));
+		// offset=3：目标格 = 死亡点上方 3 格
+		BlockPos result = TotemOfHoldingLogic.findSpawnPosition(level, new BlockPos(1, 64, 1), 3);
 
-		assertEquals(65, result.getY()); // 死亡点上方 1 格
+		assertEquals(67, result.getY());
+	}
+
+	@Test
+	void findSpawnPosition_offset1MatchesLegacyDefault() {
+		Level level = mock(Level.class);
+		when(level.getBlockState(any())).thenReturn(Blocks.AIR.defaultBlockState());
+
+		// 默认 offset=1 与旧版自适应行为完全一致（死亡点上方 1 格）
+		BlockPos result = TotemOfHoldingLogic.findSpawnPosition(level, new BlockPos(1, 64, 1), 1);
+
+		assertEquals(65, result.getY());
 	}
 
 	@Test
@@ -172,9 +184,22 @@ class TotemOfHoldingLogicTest {
 		when(level.getBlockState(new BlockPos(1, 66, 1))).thenReturn(Blocks.AIR.defaultBlockState());
 		when(level.getBlockState(new BlockPos(1, 67, 1))).thenReturn(Blocks.AIR.defaultBlockState());
 
-		BlockPos result = TotemOfHoldingLogic.findSpawnPosition(level, new BlockPos(1, 64, 1));
+		BlockPos result = TotemOfHoldingLogic.findSpawnPosition(level, new BlockPos(1, 64, 1), 1);
 
 		assertEquals(66, result.getY()); // 跳过被挡的 y=65，落在 y=66
+	}
+
+	@Test
+	void findSpawnPosition_risesPastObstacleAtOffsetTarget() {
+		Level level = mock(Level.class);
+		// offset=3：目标格 y=67 有方块，向上找 y=68
+		when(level.getBlockState(new BlockPos(1, 67, 1))).thenReturn(Blocks.STONE.defaultBlockState());
+		when(level.getBlockState(new BlockPos(1, 68, 1))).thenReturn(Blocks.AIR.defaultBlockState());
+		when(level.getBlockState(new BlockPos(1, 69, 1))).thenReturn(Blocks.AIR.defaultBlockState());
+
+		BlockPos result = TotemOfHoldingLogic.findSpawnPosition(level, new BlockPos(1, 64, 1), 3);
+
+		assertEquals(68, result.getY());
 	}
 
 	@Test
@@ -182,9 +207,19 @@ class TotemOfHoldingLogicTest {
 		Level level = mock(Level.class);
 		when(level.getBlockState(any())).thenReturn(Blocks.STONE.defaultBlockState());
 
-		BlockPos result = TotemOfHoldingLogic.findSpawnPosition(level, new BlockPos(1, 64, 1));
+		BlockPos result = TotemOfHoldingLogic.findSpawnPosition(level, new BlockPos(1, 64, 1), 1);
 
-		assertEquals(65, result.getY()); // 全堵时兜底死亡点上方 1 格
+		assertEquals(65, result.getY()); // 全堵时兜底目标格
+	}
+
+	@Test
+	void findSpawnPosition_fallsBackAtOffsetWhenFullyBlocked() {
+		Level level = mock(Level.class);
+		when(level.getBlockState(any())).thenReturn(Blocks.STONE.defaultBlockState());
+
+		BlockPos result = TotemOfHoldingLogic.findSpawnPosition(level, new BlockPos(1, 64, 1), 3);
+
+		assertEquals(67, result.getY()); // 全堵时兜底目标格（offset 生效）
 	}
 
 	// ---- raiseSpawnBase 非整高方块基准修正（土径贴地 bug 回归）----

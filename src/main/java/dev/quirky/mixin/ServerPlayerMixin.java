@@ -53,7 +53,8 @@ public class ServerPlayerMixin {
 			// 土径/耕地等非整高方块顶部死亡：blockPosition() floor 取整使基准低 1 格，图腾贴地——上移一格修正
 			pos = TotemOfHoldingLogic.raiseSpawnBase(player.getY(), pos);
 		}
-		BlockPos totemSpot = TotemOfHoldingLogic.findSpawnPosition(player.level(), pos);
+		int offset = QuirkyConfigHolder.get().spawnHeightOffset;
+		BlockPos totemSpot = TotemOfHoldingLogic.findSpawnPosition(player.level(), pos, offset);
 		totem.setPos(pos.getX() + 0.5, totemSpot.getY() + 0.5, pos.getZ() + 0.5);
 		totem.initStored(player.getUUID(), stored);
 		player.level().addFreshEntity(totem);
@@ -80,6 +81,10 @@ public class ServerPlayerMixin {
 		} else {
 			player.sendSystemMessage(Component.translatable("message.quirky.totem_spawned_cross",
 				dimensionName, pos.getX(), pos.getY(), pos.getZ()));
+		}
+		if (offset >= 5) {
+			// 超过徒手攻击范围（眼睛 1.62 + 3 格射线 ≈ 4.6 格）：提示需搭方块取回
+			player.sendSystemMessage(Component.translatable("message.quirky.totem_spawned_high", offset));
 		}
 		player.getInventory().clearContent();
 	}
