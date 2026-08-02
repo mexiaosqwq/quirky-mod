@@ -54,6 +54,11 @@ public class TotemEntity extends Entity {
 	}
 
 	@Override
+	public boolean isPickable() {
+		return true;
+	}
+
+	@Override
 	public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
 		if (!this.level().isClientSide()
 			&& source.getEntity() instanceof Player player

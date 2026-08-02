@@ -119,6 +119,12 @@ class TotemEntityTest {
 	}
 
 	@Test
+	void isPickable_allowsClientRayPickForAttacks() {
+		// 根因回归：Entity 基类 isPickable 默认 false，客户端射线拾取跳过图腾导致无法攻击
+		assertTrue(newTotem().isPickable());
+	}
+
+	@Test
 	void hurtServer_ignoresNonPlayerAndNonMeleeDamage() {
 		TotemEntity totem = newTotem();
 		DamageSource fire = mock(DamageSource.class);
