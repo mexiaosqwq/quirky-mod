@@ -61,6 +61,8 @@ public class TotemEntity extends Entity {
 			int count = this.hits.merge(player.getUUID(), 1, Integer::sum);
 			if (count >= HITS_TO_RETRIEVE) {
 				this.retrieveFor(player);
+			} else {
+				this.playSound(SoundEvents.STONE_HIT, 0.5F, 1.4F);
 			}
 		}
 		return false;
