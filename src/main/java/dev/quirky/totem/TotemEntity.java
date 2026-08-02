@@ -125,7 +125,7 @@ public class TotemEntity extends Entity {
 				);
 			}
 			if (this.random.nextInt(100) == 0) {
-				this.playSound(SoundEvents.AMETHYST_BLOCK_CHIME, 2.4F, 1.3F);
+				this.playSound(SoundEvents.AMETHYST_BLOCK_CHIME, 4.8F, 1.3F);
 			}
 		}
 	}
