@@ -6,6 +6,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -70,6 +71,7 @@ public class CloudBlock extends Block {
 			entity.clearFire();
 			if (!level.isClientSide()) {
 				level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+				level.playSound(null, pos, SoundEvents.GENERIC_EXTINGUISH_FIRE, SoundSource.BLOCKS, 1.0F, 1.0F);
 			}
 		}
 	}
@@ -114,6 +116,7 @@ public class CloudBlock extends Block {
 	protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
 		if (level.getBlockState(pos).is(this)) {
 			level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+			level.playSound(null, pos, SoundEvents.WOOL_BREAK, SoundSource.BLOCKS, 0.8F, 1.0F);
 		}
 	}
 

@@ -4,6 +4,7 @@ import dev.quirky.ModBlocks;
 import dev.quirky.cloud.CloudPlacement;
 import net.minecraft.core.BlockPos;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
@@ -33,6 +34,7 @@ public class BottledCloudItem extends Item {
 		}
 		level.setBlock(pos, ModBlocks.CLOUD.defaultBlockState(), 3);
 		player.playSound(SoundEvents.BOTTLE_EMPTY, 1.0F, 1.0F);
+		level.playSound(null, pos, SoundEvents.WOOL_PLACE, SoundSource.BLOCKS, 0.8F, 1.0F);
 		if (!player.hasInfiniteMaterials()) {
 			player.getItemInHand(hand).consume(1, player);
 		}
