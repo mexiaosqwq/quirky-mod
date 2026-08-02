@@ -21,12 +21,13 @@ class ClientShulkerTooltipComponentTest {
 	}
 
 	@Test
-	void layoutIsThreeByNine() {
+	void layoutIsNineByThree() {
+		// 与原版潜影盒 UI 一致：9 列 x 3 行（宽 > 高），不是竖长条
 		ShulkerTooltipComponent component = new ShulkerTooltipComponent(ItemContainerContents.EMPTY);
 		ClientShulkerTooltipComponent client = new ClientShulkerTooltipComponent(component);
 		Font font = mock(Font.class);
-		assertEquals(3 * 16 + 8, client.getWidth(font));
-		assertEquals(9 * 16 + 8, client.getHeight(font));
+		assertEquals(9 * 16 + 8, client.getWidth(font));
+		assertEquals(3 * 16 + 8, client.getHeight(font));
 	}
 
 	@Test

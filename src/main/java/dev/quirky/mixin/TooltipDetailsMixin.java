@@ -11,9 +11,11 @@ import dev.quirky.tooltips.FoodTooltipComponent;
 import dev.quirky.tooltips.ShulkerTooltipComponent;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ItemContainerContents;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -30,8 +32,12 @@ public abstract class TooltipDetailsMixin {
 		if (!QuirkyConfigHolder.get().shulkerTooltip) {
 			return;
 		}
-		if (stack.has(DataComponents.CONTAINER)) {
-			cir.setReturnValue(Optional.of(new ShulkerTooltipComponent(stack.get(DataComponents.CONTAINER))));
+		// 只对潜影盒生效：箱子/熔炉等其他容器物品也可能带 CONTAINER 组件，
+		// 不限定 tag 会把它们也渲染成潜影盒网格
+		if (stack.is(ItemTags.SHULKER_BOXES)) {
+			// 空盒无 CONTAINER 组件，用空内容兜底（仍显示 9x3 空网格）
+			ItemContainerContents contents = stack.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
+			cir.setReturnValue(Optional.of(new ShulkerTooltipComponent(contents)));
 		}
 	}
 

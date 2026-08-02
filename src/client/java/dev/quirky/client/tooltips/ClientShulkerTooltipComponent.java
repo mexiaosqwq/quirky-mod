@@ -8,13 +8,13 @@ import net.minecraft.core.NonNullList;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * 潜影盒内容 tooltip 的客户端绘制组件：3x9 网格逐格绘制物品与数量。
+ * 潜影盒内容 tooltip 的客户端绘制组件：9x3 网格逐格绘制物品与数量。
  */
 public class ClientShulkerTooltipComponent implements ClientTooltipComponent {
 	private static final int SLOT_SIZE = 16;
 	private static final int PADDING = 4;
-	private static final int COLS = 3;
-	private static final int ROWS = 9;
+	private static final int COLS = 9;
+	private static final int ROWS = 3;
 
 	private final NonNullList<ItemStack> items;
 
