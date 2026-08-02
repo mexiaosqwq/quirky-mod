@@ -47,18 +47,18 @@ public abstract class LocalPlayerAIStepMixin {
 	 */
 	private static BlockPos findClimbableBlock(LocalPlayer player) {
 		BlockPos pos = player.blockPosition();
-		if (isClimbable(player, pos)) {
+		if (isClimbable(pos, player)) {
 			return pos;
 		}
 		for (BlockPos neighbor : new BlockPos[] { pos.north(), pos.south(), pos.east(), pos.west() }) {
-			if (isClimbable(player, neighbor)) {
+			if (isClimbable(neighbor, player)) {
 				return neighbor;
 			}
 		}
 		return null;
 	}
 
-	private static boolean isClimbable(LocalPlayer player, BlockPos pos) {
+	private static boolean isClimbable(BlockPos pos, LocalPlayer player) {
 		BlockState state = player.level().getBlockState(pos);
 		return state.is(BlockTags.CLIMBABLE);
 	}

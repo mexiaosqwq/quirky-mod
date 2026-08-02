@@ -1,0 +1,62 @@
+[mcp-bridge] connected exa
+[mcp-bridge] connected codegraph
+[mcp-bridge] connected context7
+[mcp-bridge] connected Sequential_Thinking
+[mcp-bridge] connected github
+[mcp-bridge] connected antv-chart
+审查完成。所有 API 均已对照 `$HOME/.cache/mcsrc`（26.2 反编译源码）与 Fabric API 0.155.2+26.2 jar 逐项核实。
+
+---
+
+## Files Reviewed
+
+**Tooltip 三件**：`src/main/java/dev/quirky/mixin/TooltipDetailsMixin.java`、`src/main/java/dev/quirky/tooltips/{AttributeTooltipComponent,AttributeLineCollector,EnchantedDamageCalculator,FoodTooltipComponent,ShulkerTooltipComponent}.java`、`src/client/java/dev/quirky/client/tooltips/Client{Attribute,Food,Shulker}TooltipComponent.java`
+**使用量挂件**：`src/client/java/dev/quirky/client/usage_ticker/{UsageTickerHud,ArmorTicker,TickerElement,TickerSnapshot}.java`
+**死亡电影镜头**：`src/client/java/dev/quirky/client/deathcam/{DeathCamClient,DeathCamTimeline}.java`、`src/main/java/dev/quirky/deathcam/{DeathCamPayload,DeathCamServer}.java`、`src/main/java/dev/quirky/mixin/DeathCamServerMixin.java`、`src/client/java/dev/quirky/client/mixin/{CameraSetupMixin,CameraAccessor,DeathScreenDelayMixin,GuiDeathScreenDelayMixin,DeathCamSkipMixin}.java`
+**测试**：`DeathCamTimelineTest`、`TickerElementTest`、`TickerSnapshotTest`、`AttributeLineCollectorTest`、`EnchantedDamageCalculatorTest`、`ClientFoodTooltipComponentTest`、`ClientShulkerTooltipComponentTest`
+**接线**：`QuirkyModClient.java`、`QuirkyMod.java`、`QuirkyConfig.java`、`quirky.client.mixins.json`、`quirky.mixins.json`、spec `2026-08-02-quirky-client-qol-design.md`
+
+---
+
+## Critical (must fix)
+
+1. **`AttributeLineCollector.java:29-34` + `ClientAttributeTooltipComponent.java:53` — 属性图标 sprite 不在 GUI 图集，将渲染为紫黑棋盘格**
+   26.2 的 GUI 图集定义（`assets/minecraft/atlases/gui.json`）只含两个 directory source：`gui/sprites`（prefix 空）和 `mob_effect`。mod 把图标放在 `assets/quirky/textures/gui/quirky/attribute/*.png`（不在 `gui/sprites/` 树下），且**没有** `assets/quirky/atlases/gui.json` 追加 source，也没用 Fabric `SpriteRegistryCallback` → `GuiGraphicsExtractor.blitSprite`（底层 `TextureAtlas.getSprite` 返回 missingSprite）渲染 missing texture。spec 5.3 验收"钻石剑显示 7 攻击伤害…"整行图标都会是棋盘格——这正是项目反复踩过的"资源缺失 → 棋盘格"类坑（AGENTS.md 已知陷阱）。修复二选一：① 新增 `assets/quirky/atlases/gui.json`（`{"type":"minecraft:directory","prefix":"gui/quirky/attribute/","source":"gui/quirky/attribute"}`），保持现有 id；② 图标移入 `textures/gui/sprites/quirky/attribute/` 并把 id 改为 `quirky/attribute/...`。顺带：spec 5.3 的路径约定本身就需要改（spec 是"行为约束"而此处与 26.2 机制冲突，需在 spec 备注）。
+
+2. **`DeathCamTimeline.java:46-48` — 死亡镜头一半时间背对死亡点，"始终朝向锚点"的 javadoc 恒假**
+   经 `Camera.setRotation`（`rotationYXZ(π−yaw, −xRot, 0)`）与 `Vec3.directionFromRotation` 验证，26.2 实际视线方向 = `(-sin(yaw), cos(yaw))`。代码偏移 = `(sin(yaw+180), cos(yaw+180))·R = (-sin(yaw), -cos(yaw))·R`，指向锚点的方向 = `(sin(yaw), cos(yaw))`——二者仅在 yaw≡0/180°（t=0、0.5、1）重合；t≈0.25/0.75 时相机位于尸体西/东侧却朝西/东看，尸体在正后方，spec 5.5 验收"镜头内掉落物可见"约一半时长不成立。**测试 `DeathCamTimelineTest.java:56` 用了错误的视线约定 `(sin(yaw), cos(yaw))`，所以绿着通过了 bug**（dot 恒为 -R）。修复：`position()` 的 x 分量取反——`new Vec3(-Math.sin(rad) * radius, ...)`（等价于偏移角 180°−yaw），测试断言改为 `(-sin(yaw), cos(yaw)) · offset < 0`。
+
+---
+
+## Warnings (should fix)
+
+3. **`TooltipDetailsMixin.java:33` — 潜影盒分支误伤 26.2 书架（shelf）**
+   分支只判 `stack.has(DataComponents.CONTAINER)`；26.2 的书架（`Items.java:364` 起 acacia/bamboo/birch/cherry 等 `*_shelf`）同样带 `CONTAINER` 组件且**不覆写** `getTooltipImage`（26.2 仅 MapItem/BundleItem 覆写）→ 书架物品 tooltip 会出现 3x9 潜影盒网格（书架只有 9 格），违反验收"悬停任意潜影盒……其他物品 tooltip 不变"。修复：加 `stack.is(ItemTags.SHULKER_BOXES)`（26.2 存在该 tag，`ItemTags.java:63`）再判 CONTAINER。
+
+4. **`UsageTickerHud.java:64-68` — 玩家切换（死亡重生/换世界）时物品挂件状态未复位**
+   `player != lastPlayer` 分支只重置 `lastSnapshot` 和 `ArmorTicker`，`itemElement`/`currentEvent` 保留 → 重生后最多 holdTicks+animTicks（约 2.75s）内挂件显示上一世的物品图标。应在该分支补 `itemElement.reset(); currentEvent = null;`。
+
+5. **`DeathCamClient.java:130` — `finish()` 对已复活玩家无条件开死亡界面**
+   `message != null && mc.player != null` 时直接 `new DeathScreen(...)`；若镜头播放期间玩家被服务端强制复活（插件/指令，vanilla 流程不会但 spec 第 9 节要求"异常安全退出"），会对活着的玩家弹出死亡界面。建议 `finish()` 先查 `mc.player.isDeadOrDying()`（或 `shouldShowDeathScreen()`），不满足则走 `setScreen(null)` 兜底分支。
+
+6. **spec 与实现的数值偏差需回写 spec（实现均正确）**
+   - spec 5.3 验收"锋利 V 9.5（7+2.5）"vs 实现 10.0（26.2 bootstrap 实测 `perLevel(1.0F, 0.5F)` = 锋利 V +3.0，测试已断言并注明"9.5 按 1.20 时代公式估算"）——spec 验收数字已过时；
+   - spec 5.5 "pitch 缓慢 -10°→-25°" vs 实现 +10→+25（代码注释已说明正值 = 俯视语义，修正正确）；
+   - spec 5.4 "持续约 2.5 秒" vs 同 spec 的"60 tick（5+50+5）"= 3.0s，自相矛盾。
+   按 13.4 两阶段审查惯例，应把 spec 的验收期望同步为实测值，避免后续照旧验收误判。
+
+---
+
+## Suggestions (consider)
+
+7. **`AttributeLineCollector.java:72-95`** — `total()`/`hasEntry()` 未按 `EquipmentSlotGroup` 过滤：原版 tooltip 按 "When in Main Hand / When in Off Hand" 分组展示；若物品同时带主手+副手修饰符会重复合计。当前 vanilla 武器/盔甲均为单一槽组，无实际影响。
+8. **`ArmorTicker.java:15`** — `HOLD_TICKS = 60` 硬编码，与 config `tickerHoldTicks`（默认 50）不一致；spec 5.4 行为文案（3s）与 config（默认 50）也不一致，建议统一或注释说明"护甲固定 3s 为有意为之"。
+9. **`DeathCamSkipMixin.java`** — 拦截 `pauseGame` 同时覆盖失焦暂停（`pauseIfInactive`）：窗口失焦也会跳过镜头并直接进死亡界面。可接受，建议注释说明。
+10. **`UsageTickerHud.java:117-128`** — `totalCount` 每 tick 构造 reference `ItemStack`，微分配；每 tick 一次可忽略，不必改。
+11. **`TickerSnapshot.java:69`** — `b.slot() != a.slot()` 是结构性恒等的防御检查（两列表同构），无害可留。
+
+---
+
+## Summary
+
+整体质量高：附魔公式（锋利 `perLevel(1.0,0.5)`、亡灵/节肢 `perLevel(2.5)`）、Player 基础属性（攻击 1.0/攻速 4.0）、挂件 41 槽快照 + `Inventory.getItem` 36-40 槽位映射、同帧多槽抑制、ease-out 曲线 `-p(p-2)*20`、死亡流程 mixin 链（kill packet 拦截 → `Gui.tick` 兜底拦截 → `pauseGame` Esc 跳过 → `setScreen(null)` 兜底）与 26.2 源码路径逐一核实一致，Fabric API 签名（`HudElementRegistry.addLast`、`ClientTooltipComponentCallback`、payload 收发）与 0.155.2+26.2 jar 吻合，测试覆盖充分。**不符合 spec 之处有二**：① 属性图标 sprite 未进 26.2 GUI 图集（必现棋盘格，spec 5.3 验收失败）；② 死亡镜头因 `position()` 的 x 符号错误导致一半时间背对死亡点（spec 5.5 验收"掉落物可见"不满足），且配套测试沿用了错误视线约定而未拦截。另有书架被 CONTAINER 分支误伤、重生后挂件残留两个中等问题，建议修复后再进入手动验证清单。

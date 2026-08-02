@@ -17,9 +17,11 @@ public final class GrassColorMatrix {
 	private final float blueScale;
 
 	public GrassColorMatrix(float multiplier) {
-		this.redScale = RED_FACTOR * multiplier;
-		this.greenScale = GREEN_FACTOR * multiplier;
-		this.blueScale = BLUE_FACTOR * multiplier;
+		// config 输入无边界校验（26.2 cloth-config 无 float 边界注解），运行时 clamp 到 0.5~1.5
+		float clamped = Math.max(0.5F, Math.min(1.5F, multiplier));
+		this.redScale = RED_FACTOR * clamped;
+		this.greenScale = GREEN_FACTOR * clamped;
+		this.blueScale = BLUE_FACTOR * clamped;
 	}
 
 	/**

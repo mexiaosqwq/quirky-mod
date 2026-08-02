@@ -50,6 +50,8 @@ public final class GreenerGrassClient {
 	);
 
 	private static boolean registered;
+	/** 上次注册时的 BlockColors 实例：资源重载/换世界后实例变化，需重注册（review B3） */
+	private static Object registeredBlockColors;
 
 	/** 强度变化时才重建矩阵，避免热路径逐像素分配 */
 	private static float lastMultiplier = Float.NaN;
@@ -60,10 +62,16 @@ public final class GreenerGrassClient {
 
 	public static void init() {
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
-			if (registered) {
+			if (client.level == null) {
 				return;
 			}
+			Object colors = client.getBlockColors();
+			if (registered && colors == registeredBlockColors) {
+				return;
+			}
+			// 首帧注册（等其他 mod 注册完）+ 资源重载/重进世界后 BlockColors 实例变化时重注册
 			registered = true;
+			registeredBlockColors = colors;
 			registerTints();
 		});
 	}

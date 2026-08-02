@@ -23,10 +23,11 @@ class LadderSnapHelperTest {
 	}
 
 	@Test
-	void zeroStrengthGetsNoCorrection() {
+	void zeroStrengthGetsClampedToMinimum() {
+		// config 范围 0.1~1.0：0 被 clamp 到 0.1，仍产生修正（偏移 0.2 × 0.1 = 0.02）
 		Vec2 correction = LadderSnapHelper.correction(0.3, 0.0, 0.5, 0.5, 0.0F);
-		assertEquals(0.0, correction.x, 1e-6);
-		assertEquals(0.0, correction.y, 1e-6);
+		assertEquals(0.2 * 0.1F, correction.x, 1e-6);
+		assertEquals(0.5 * 0.1F, correction.y, 1e-6);
 	}
 
 	@Test

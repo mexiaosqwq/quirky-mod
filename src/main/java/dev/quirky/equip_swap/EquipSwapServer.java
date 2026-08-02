@@ -52,10 +52,9 @@ public final class EquipSwapServer {
 		if (stack.isEmpty()) {
 			return false;
 		}
-		boolean offhandItem = isOffhandSwapItem(stack);
-		if (offhandItem && !QuirkyConfigHolder.get().offhandSwap) {
-			return false;
-		}
+		// 副手交换仅在开关开启时生效；关闭时盾牌（带 EQUIPPABLE）回退原版装备路径，
+		// 火把无 EQUIPPABLE 组件则被拒（火把装副手是 mod 专属行为）。
+		boolean offhandItem = isOffhandSwapItem(stack) && QuirkyConfigHolder.get().offhandSwap;
 		if (!offhandItem && !stack.has(DataComponents.EQUIPPABLE)) {
 			return false;
 		}

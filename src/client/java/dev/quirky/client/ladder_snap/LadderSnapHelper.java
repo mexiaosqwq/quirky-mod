@@ -24,9 +24,11 @@ public final class LadderSnapHelper {
 	 * @return 修正向量；单轴偏移 &lt; 0.01 时该分量为 0，两轴都居中时为 (0, 0)
 	 */
 	public static Vec2 correction(double playerX, double playerZ, double centerX, double centerZ, double strength) {
+		// config 输入无边界校验（26.2 cloth-config 无 float 边界注解），运行时 clamp 到 0.1~1.0
+		double clamped = Math.max(0.1, Math.min(1.0, strength));
 		return new Vec2(
-			component(centerX - playerX, strength),
-			component(centerZ - playerZ, strength)
+			component(centerX - playerX, clamped),
+			component(centerZ - playerZ, clamped)
 		);
 	}
 

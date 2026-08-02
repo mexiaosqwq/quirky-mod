@@ -74,6 +74,8 @@ public class TorchArrowEntity extends AbstractArrow {
 				serverLevel.setBlockAndUpdate(placePos, torch);
 				serverLevel.playSound(null, placePos, SoundEvents.WOOD_PLACE, SoundSource.BLOCKS, 1.0F, 1.0F);
 			} else {
+				// super.onHitBlock 已把箭卡入方块（卡住的箭可被拾取），先移除避免双回收
+				this.discard();
 				this.spawnAtLocation(serverLevel, this.getPickupItem(), 0.1F);
 			}
 		}

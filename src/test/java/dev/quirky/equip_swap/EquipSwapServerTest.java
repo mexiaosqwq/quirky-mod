@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import dev.quirky.TestBootstrap;
 import dev.quirky.config.QuirkyConfig;
 import dev.quirky.config.QuirkyConfigHolder;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityEquipment;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -18,6 +19,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.equipment.Equippable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -157,12 +159,35 @@ class EquipSwapServerTest {
 	}
 
 	@Test
-	void offhandSwapDisabledByConfigRejects() {
+	void offhandSwapDisabledFallsBackToEquippablePath() {
 		QuirkyConfigHolder.set(new QuirkyConfig());
 		try {
 			QuirkyConfigHolder.get().offhandSwap = false;
+			// 盾牌带 EQUIPPABLE：开关关闭时回退原版装备路径（盾牌原版即副手槽）
 			ServerPlayer player = creativePlayer();
-			player.getInventory().setItem(9, new ItemStack(Items.SHIELD));
+			ItemStack shield = new ItemStack(Items.SHIELD);
+			// 测试环境无法完整初始化盾牌组件，手动附加 EQUIPPABLE（主手/副手皆可装备）
+			shield.set(DataComponents.EQUIPPABLE, Equippable.builder(EquipmentSlot.OFFHAND).build());
+			player.getInventory().setItem(9, shield);
+			when(player.getEquipmentSlotForItem(shield)).thenReturn(EquipmentSlot.OFFHAND);
+			when(player.isEquippableInSlot(shield, EquipmentSlot.OFFHAND)).thenReturn(true);
+
+			assertTrue(EquipSwapServer.trySwap(player, 0, 9));
+
+			assertEquals(shield, player.getInventory().getItem(40));
+		} finally {
+			QuirkyConfigHolder.set(new QuirkyConfig());
+		}
+	}
+
+	@Test
+	void torchRejectedWhenOffhandSwapDisabled() {
+		QuirkyConfigHolder.set(new QuirkyConfig());
+		try {
+			QuirkyConfigHolder.get().offhandSwap = false;
+			// 火把无 EQUIPPABLE：开关关闭时被拒（火把装副手是 mod 专属行为）
+			ServerPlayer player = creativePlayer();
+			player.getInventory().setItem(9, new ItemStack(Items.TORCH));
 
 			assertFalse(EquipSwapServer.trySwap(player, 0, 9));
 

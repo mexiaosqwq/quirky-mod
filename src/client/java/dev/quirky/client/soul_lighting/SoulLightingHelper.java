@@ -65,7 +65,7 @@ public final class SoulLightingHelper {
 	@Nullable
 	public static Identifier soulTextureFor(Identifier sprite) {
 		String path = sprite.getPath();
-		if (path.startsWith("block/") && (path.equals("block/candle_lit") || path.endsWith("_candle_lit"))) {
+		if (path.startsWith("block/") && path.endsWith("candle_lit")) {
 			return Identifier.fromNamespaceAndPath("quirky", "block/quirky_soul_candle_flame");
 		}
 		return null;
