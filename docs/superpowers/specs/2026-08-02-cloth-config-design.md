@@ -13,7 +13,7 @@
 - Cloth Config API（AutoConfig + Jankson）配置系统：`config/quirky.json5`
 - 配置 GUI（ModMenu 集成，ModMenu 为可选依赖）
 - 8 个机制开关（全部机制可禁用）
-- 图腾 8 个服务端手感参数 + 2 个客户端渲染参数
+- 图腾 8 个服务端手感参数 + 6 个客户端渲染参数
 - `/quirky reload` 命令（服务端热重载，权限等级 2）
 - 配置默认值对照测试（防行为漂移）
 - README / features 文档同步
@@ -56,7 +56,7 @@ Quirky 是**双端 mod**（客户端渲染/交互 + 服务端机制逻辑），A
 - 装备替换开关在服务端 `handle` 入口检查（权威，对所有玩家统一）；客户端发包前不检查（省流量优化非必要，保持简单）
 - 开关检查放在 mixin/入口薄层，纯逻辑类（`TotemOfHoldingLogic` 等）不感知配置
 
-### 4.2 totem 分类（图腾手感参数，10 项）
+### 4.2 totem 分类（图腾手感参数，8 服务端 + 6 客户端 = 14 项）
 
 | 字段 | 默认 | 范围 | 类型 | 说明 |
 |---|---|---|---|---|
@@ -71,7 +71,18 @@ Quirky 是**双端 mod**（客户端渲染/交互 + 服务端机制逻辑），A
 | floatHeight | 0.15 | 0–1 | FloatSlider | 客户端渲染：浮动基准高度（振幅固定 0.1） |
 | spinSpeed | 0.05 | 0–0.5 | FloatSlider | 客户端渲染：旋转角速度（rad/tick） |
 
-默认值与现有硬编码常量一一对应（3 / 1.0 / 1.0 / 0.5 / 4 / 12 / 0.45 / 0.55）。
+**注：以上 floatHeight/spinSpeed 为过时认知，实际代码（`TotemEntityRenderer`，git 151f226 后演进）为 6 个参数：**
+
+| 字段 | 默认 | 范围 | 类型 | 说明 |
+|---|---|---|---|---|
+| modelScale | 1.8 | 0.5–4 | FloatSlider | 图腾显示倍率（尺寸） |
+| bobAmplitude | 0.25 | 0–1 | FloatSlider | 上下浮动幅度（格） |
+| bobPeriod | 12 | 4–60 | IntSlider | 浮动周期（tick，越大越慢） |
+| spinPeriod | 8 | 4–60 | IntSlider | 旋转周期（tick，越大越慢） |
+| swayAmplitude | 0.08 | 0–0.5 | FloatSlider | 左右摇摆幅度（弧度） |
+| swayPeriod | 20 | 4–60 | IntSlider | 摇摆周期（tick） |
+
+默认值与现有硬编码常量一一对应（服务端 8 个：3 / 1.0 / 1.0 / 0.5 / 4 / 12 / 0.45 / 0.55；客户端 6 个：1.8 / 0.25 / 12 / 8 / 0.08 / 20）。
 
 ## 5. 技术实现
 
@@ -107,7 +118,7 @@ dependencies {
 - `QuirkyMod.java` — 注册 AutoConfig + holder 注入 + reload 命令
 - 8 个机制入口加开关检查（见 4.1 表）
 - `TotemEntity.java` — 8 个常量改读 `QuirkyConfigHolder.get()`（每次使用处读取，天然支持热重载）
-- `TotemEntityRenderer.java` — 浮动/旋转硬编码改读配置（`floatHeight` / `spinSpeed`）
+- `TotemEntityRenderer.java` — 6 个常量改读配置（`modelScale` / `bobAmplitude` / `bobPeriod` / `spinPeriod` / `swayAmplitude` / `swayPeriod`）
 - `README.md` / `features.md` — 配置说明章节
 - `docs/26.2-mechanics-notes.md` — 补充 Cloth Config 26.2 适配结论（AutoConfig 双端注册、无 @ServerConfig 注解、reload 必要性）
 
@@ -126,7 +137,7 @@ dependencies {
   3. 关掉 totemOfHolding → 死亡不生成图腾；已有图腾仍可击打取回
   4. 调 hitsToRetrieve=1 → 一击取回；hitsToRetrieve=10 → 十击取回
   5. 调粒子频率/散布 → 图腾粒子密度变化
-  6. 调 floatHeight/spinSpeed → 渲染浮动/旋转变化
+  6. 调 modelScale/bob/spin/sway → 渲染尺寸/浮动/旋转/摇摆变化
   7. `/quirky reload` 改配置文件后热重载生效
   8. dedicated server：服主改配置文件 → reload → 服务端行为变化；客户端 GUI 改动不影响服务器行为
 
