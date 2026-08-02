@@ -1,7 +1,6 @@
 package dev.quirky.totem;
 
 import com.mojang.serialization.Codec;
-import dev.quirky.ModSounds;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
@@ -38,15 +37,10 @@ public class TotemEntity extends Entity {
 	private static final float HIT_SOUND_VOLUME = 1.0F;          // 击打反馈音音量（>1 只拉长衰减距离，响度 clamp 1.0）
 	private static final float HIT_SOUND_PITCH = 1.0F;            // 击打反馈音高
 	private static final float RETRIEVE_SOUND_VOLUME = 0.5F;      // 取回音效音量
-	private static final float AMBIENT_CHIME_VOLUME = 2.0F;       // 环境叮声音量：衰减距离 = 音量×定义衰减(64) = 128 格（自定义音效，定义音量 1.0 无折减）
-	private static final float AMBIENT_CHIME_PITCH = 1.3F;        // 环境叮声音高（高=更清脆）
-	private static final int AMBIENT_CHIME_INTERVAL = 100;        // 环境音间隔 tick（100 ≈ 5 秒一次，调大更稀）
 	private static final int ENCHANT_PARTICLE_CHANCE = 4;         // 紫符文粒子：每 tick 1/N 概率（调大更稀）
 	private static final int END_ROD_PARTICLE_CHANCE = 12;        // 白光点粒子：每 tick 1/N 概率
 	private static final double PARTICLE_XZ_SPREAD = 0.45;        // 紫符文散布半径（格）
 	private static final double PARTICLE_Y_SPREAD = 0.55;         // 紫符文散布高度（格）
-
-	private int chimeTicks;
 
 	private UUID owner;
 	private List<ItemStackWithSlot> stored = List.of();
@@ -138,10 +132,6 @@ public class TotemEntity extends Entity {
 					0.35,
 					0.01
 				);
-			}
-			if (++this.chimeTicks >= AMBIENT_CHIME_INTERVAL) {
-				this.chimeTicks = 0;
-				this.playSound(ModSounds.TOTEM_CHIME, AMBIENT_CHIME_VOLUME, AMBIENT_CHIME_PITCH);
 			}
 		}
 	}
