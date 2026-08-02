@@ -67,7 +67,7 @@ public class TotemEntity extends Entity {
 			if (count >= HITS_TO_RETRIEVE) {
 				this.retrieveFor(player);
 			} else {
-				this.playSound(SoundEvents.STONE_HIT, 1.0F, 1.0F);
+				this.playSound(SoundEvents.AMETHYST_BLOCK_HIT, 1.0F, 1.0F);
 			}
 		}
 		return false;
@@ -77,7 +77,7 @@ public class TotemEntity extends Entity {
 		for (ItemStack stack : TotemOfHoldingLogic.restoreToPlayer(player, this.stored)) {
 			this.spawnAtLocation((ServerLevel) this.level(), stack);
 		}
-		this.playSound(SoundEvents.TOTEM_USE, 1.0F, 1.0F);
+		this.playSound(SoundEvents.TOTEM_USE, 0.5F, 1.0F);
 		this.discard();
 	}
 
