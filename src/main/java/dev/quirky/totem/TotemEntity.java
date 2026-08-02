@@ -1,6 +1,8 @@
 package dev.quirky.totem;
 
 import com.mojang.serialization.Codec;
+import dev.quirky.config.QuirkyConfig;
+import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
@@ -28,19 +30,9 @@ public class TotemEntity extends Entity {
 	private static final String TAG_OWNER_LEAST = "OwnerLeast";
 	private static final String TAG_ITEMS = "Items";
 	private static final String TAG_HITS = "Hits";
-	private static final int HITS_TO_RETRIEVE = 3;
 	// UUIDUtil.CODEC encodes UUIDs as int arrays; NbtOps compound keys must be strings,
 	// so the map key uses UUIDUtil.STRING_CODEC (UUID.toString / UUID.fromString).
 	private static final Codec<Map<UUID, Integer>> HITS_CODEC = Codec.unboundedMap(UUIDUtil.STRING_CODEC, Codec.INT);
-
-	// ==== 手感参数区（集中调参）====
-	private static final float HIT_SOUND_VOLUME = 1.0F;          // 击打反馈音音量（>1 只拉长衰减距离，响度 clamp 1.0）
-	private static final float HIT_SOUND_PITCH = 1.0F;            // 击打反馈音高
-	private static final float RETRIEVE_SOUND_VOLUME = 0.5F;      // 取回音效音量
-	private static final int ENCHANT_PARTICLE_CHANCE = 4;         // 紫符文粒子：每 tick 1/N 概率（调大更稀）
-	private static final int END_ROD_PARTICLE_CHANCE = 12;        // 白光点粒子：每 tick 1/N 概率
-	private static final double PARTICLE_XZ_SPREAD = 0.45;        // 紫符文散布半径（格）
-	private static final double PARTICLE_Y_SPREAD = 0.55;         // 紫符文散布高度（格）
 
 	private UUID owner;
 	private List<ItemStackWithSlot> stored = List.of();
@@ -73,11 +65,12 @@ public class TotemEntity extends Entity {
 		if (!this.level().isClientSide()
 			&& source.getEntity() instanceof Player player
 			&& source.is(DamageTypes.PLAYER_ATTACK)) {
+			QuirkyConfig config = QuirkyConfigHolder.get();
 			int count = this.hits.merge(player.getUUID(), 1, Integer::sum);
-			if (count >= HITS_TO_RETRIEVE) {
+			if (count >= config.hitsToRetrieve) {
 				this.retrieveFor(player);
 			} else {
-				this.playSound(SoundEvents.AMETHYST_BLOCK_HIT, HIT_SOUND_VOLUME, HIT_SOUND_PITCH);
+				this.playSound(SoundEvents.AMETHYST_BLOCK_HIT, config.hitSoundVolume, config.hitSoundPitch);
 			}
 		}
 		return false;
@@ -87,7 +80,7 @@ public class TotemEntity extends Entity {
 		for (ItemStack stack : TotemOfHoldingLogic.restoreToPlayer(player, this.stored)) {
 			this.spawnAtLocation((ServerLevel) this.level(), stack);
 		}
-		this.playSound(SoundEvents.TOTEM_USE, RETRIEVE_SOUND_VOLUME, 1.0F);
+		this.playSound(SoundEvents.TOTEM_USE, QuirkyConfigHolder.get().retrieveSoundVolume, 1.0F);
 		this.discard();
 	}
 
@@ -106,21 +99,23 @@ public class TotemEntity extends Entity {
 	public void tick() {
 		super.tick();
 		if (this.level() instanceof ServerLevel serverLevel) {
-			// 26.2 服务端粒子必须用 sendParticles（Level.addParticle 是空实现，仅 ClientLevel 覆盖）
-			if (this.random.nextInt(ENCHANT_PARTICLE_CHANCE) == 0) {
+			QuirkyConfig config = QuirkyConfigHolder.get();
+			int enchantChance = Math.max(1, config.enchantParticleChance);
+			int endRodChance = Math.max(1, config.endRodParticleChance);
+			if (this.random.nextInt(enchantChance) == 0) {
 				serverLevel.sendParticles(
 					ParticleTypes.ENCHANT,
 					this.getX(),
 					this.getY() + 0.3,
 					this.getZ(),
 					1,
-					PARTICLE_XZ_SPREAD,
-					PARTICLE_Y_SPREAD,
-					PARTICLE_XZ_SPREAD,
+					config.particleXzSpread,
+					config.particleYSpread,
+					config.particleXzSpread,
 					0.02
 				);
 			}
-			if (this.random.nextInt(END_ROD_PARTICLE_CHANCE) == 0) {
+			if (this.random.nextInt(endRodChance) == 0) {
 				serverLevel.sendParticles(
 					ParticleTypes.END_ROD,
 					this.getX(),

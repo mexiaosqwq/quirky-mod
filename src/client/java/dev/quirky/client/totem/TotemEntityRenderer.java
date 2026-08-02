@@ -3,6 +3,8 @@ package dev.quirky.client.totem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import dev.quirky.ModItems;
+import dev.quirky.config.QuirkyConfig;
+import dev.quirky.config.QuirkyConfigHolder;
 import dev.quirky.totem.TotemEntity;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.EntityRenderer;
@@ -14,14 +16,6 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 
 public class TotemEntityRenderer extends EntityRenderer<TotemEntity, TotemEntityRenderState> {
-	// ==== 手感参数区（集中调参）====
-	private static final float MODEL_SCALE = 1.8F;          // 图腾显示倍率（1.0 = 原物品大小）
-	private static final float BOB_AMPLITUDE = 0.25F;       // 上下浮动幅度（格）
-	private static final float BOB_PERIOD = 12.0F;          // 浮动周期（tick，数值越大越慢）
-	private static final float SPIN_PERIOD = 8.0F;          // 旋转周期（tick，数值越大越慢）
-	private static final float SWAY_AMPLITUDE = 0.08F;      // 左右摇摆幅度（弧度）
-	private static final float SWAY_PERIOD = 20.0F;         // 摇摆周期（tick）
-
 	private final ItemModelResolver itemModelResolver;
 
 	public TotemEntityRenderer(EntityRendererProvider.Context context) {
@@ -45,12 +39,13 @@ public class TotemEntityRenderer extends EntityRenderer<TotemEntity, TotemEntity
 	@Override
 	public void submit(TotemEntityRenderState state, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState camera) {
 		if (!state.item.isEmpty()) {
+			QuirkyConfig config = QuirkyConfigHolder.get();
 			poseStack.pushPose();
-			float bob = Mth.sin(state.ageInTicks / BOB_PERIOD) * BOB_AMPLITUDE;
+			float bob = Mth.sin(state.ageInTicks / config.bobPeriod) * config.bobAmplitude;
 			poseStack.translate(0.0F, bob, 0.0F);
-			poseStack.scale(MODEL_SCALE, MODEL_SCALE, MODEL_SCALE);
-			poseStack.mulPose(Axis.YP.rotation(state.ageInTicks / SPIN_PERIOD));
-			poseStack.mulPose(Axis.XP.rotation(Mth.sin(state.ageInTicks / SWAY_PERIOD) * SWAY_AMPLITUDE));
+			poseStack.scale(config.modelScale, config.modelScale, config.modelScale);
+			poseStack.mulPose(Axis.YP.rotation(state.ageInTicks / config.spinPeriod));
+			poseStack.mulPose(Axis.XP.rotation(Mth.sin(state.ageInTicks / config.swayPeriod) * config.swayAmplitude));
 			state.item.submit(poseStack, submitNodeCollector, 0xF000F0, OverlayTexture.NO_OVERLAY, state.outlineColor);
 			poseStack.popPose();
 			super.submit(state, poseStack, submitNodeCollector, camera);
