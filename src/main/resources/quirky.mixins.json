@@ -3,7 +3,7 @@
   "minVersion": "0.8",
   "package": "dev.quirky.mixin",
   "compatibilityLevel": "JAVA_25",
-  "mixins": ["DoubleDoorMixin", "MapTooltipMixin", "MelonSeedMixin", "ServerPlayerMixin"],
+  "mixins": ["DoubleDoorMixin", "MapTooltipMixin", "MelonSeedMixin", "ServerPlayerMixin", "TooltipDetailsMixin"],
   "client": [],
   "injectors": {
     "defaultRequire": 1
