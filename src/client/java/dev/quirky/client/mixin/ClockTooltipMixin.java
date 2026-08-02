@@ -19,7 +19,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(ItemStack.class)
-public abstract class ClockCompassTooltipMixin {
+public abstract class ClockTooltipMixin {
 	@Inject(method = "getTooltipLines", at = @At("RETURN"))
 	private void quirky$appendTooltip(
 		Item.TooltipContext context,

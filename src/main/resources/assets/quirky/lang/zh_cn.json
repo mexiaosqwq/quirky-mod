@@ -14,7 +14,7 @@
   "text.autoconfig.quirky.option.doubleDoor": "双开门联动",
   "text.autoconfig.quirky.option.doubleDoor.@Tooltip": "打开一扇门时联动打开旁边的门。",
   "text.autoconfig.quirky.option.clockTooltip": "时钟悬浮信息",
-  "text.autoconfig.quirky.option.clockTooltip.@Tooltip": "悬停时钟或指南针时显示当前天数和时间。",
+  "text.autoconfig.quirky.option.clockTooltip.@Tooltip": "悬停时钟时显示当前天数和时间。",
   "text.autoconfig.quirky.option.cloudBottle": "云瓶",
   "text.autoconfig.quirky.option.cloudBottle.@Tooltip": "手持玻璃瓶对云块使用，将云收集进瓶子。",
   "text.autoconfig.quirky.option.equipSwap": "装备替换",

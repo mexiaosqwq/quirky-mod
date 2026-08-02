@@ -44,7 +44,7 @@ Quirky 是**双端 mod**（客户端渲染/交互 + 服务端机制逻辑），A
 | mapPreview | 地图悬浮预览（客户端） | `MapTooltipMixin` 不附加 tooltip |
 | harvestReplant | 右键收割补种（服务端） | `HarvestHandler` 回调直接 return |
 | doubleDoor | 双开门联动（服务端） | `DoubleDoorMixin` 直接 return |
-| clockTooltip | 时钟/指南针悬浮信息（客户端） | `ClockCompassTooltipMixin` 直接 return |
+| clockTooltip | 时钟悬浮信息（客户端） | `ClockTooltipMixin` 直接 return |
 | cloudBottle | 云瓶（服务端） | `BottledCloudItem.use` 返回失败（不放置） |
 | equipSwap | 背包右键装备替换（服务端权威） | `EquipSwapServer.handle` 收到包直接忽略 |
 | melonSeed | 吃西瓜吐籽（服务端） | `MelonSeedMixin` 直接 return |

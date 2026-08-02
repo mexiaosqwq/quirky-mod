@@ -14,7 +14,7 @@
   "text.autoconfig.quirky.option.doubleDoor": "Double Door Linking",
   "text.autoconfig.quirky.option.doubleDoor.@Tooltip": "Opening one door also opens the matching door next to it.",
   "text.autoconfig.quirky.option.clockTooltip": "Clock Tooltip",
-  "text.autoconfig.quirky.option.clockTooltip.@Tooltip": "Show the day and time when hovering a clock or compass.",
+  "text.autoconfig.quirky.option.clockTooltip.@Tooltip": "Show the day and time when hovering a clock.",
   "text.autoconfig.quirky.option.cloudBottle": "Bottled Cloud",
   "text.autoconfig.quirky.option.cloudBottle.@Tooltip": "Use a glass bottle on a cloud block to collect it into a bottle.",
   "text.autoconfig.quirky.option.equipSwap": "Equip Swap",
