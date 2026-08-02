@@ -41,6 +41,8 @@ public final class TestBootstrap {
 		bindInitializer(Items.MELON_SLICE, registries);
 		bindMinimalComponents(Items.MELON_SEEDS);
 		bindMinimalComponents(Items.GLASS_BOTTLE);
+		// TorchArrowEntity's constructor builds its default pickup ItemStack immediately.
+		bindMinimalComponents(ModItems.TORCH_ARROW);
 		initialized = true;
 	}
 

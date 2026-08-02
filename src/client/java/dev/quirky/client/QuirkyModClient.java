@@ -9,6 +9,7 @@ import dev.quirky.client.tooltips.ClientFoodTooltipComponent;
 import dev.quirky.client.tooltips.ClientMapTooltipComponent;
 import dev.quirky.client.tooltips.ClientShulkerTooltipComponent;
 import dev.quirky.client.totem.TotemEntityRenderer;
+import dev.quirky.client.torch_arrow.TorchArrowRenderer;
 import dev.quirky.client.usage_ticker.UsageTickerHud;
 import dev.quirky.tooltips.AttributeTooltipComponent;
 import dev.quirky.tooltips.FoodTooltipComponent;
@@ -41,5 +42,6 @@ public class QuirkyModClient implements ClientModInitializer {
 			return null;
 		});
 		EntityRenderers.register(ModEntities.TOTEM, TotemEntityRenderer::new);
+		EntityRenderers.register(ModEntities.TORCH_ARROW, TorchArrowRenderer::new);
 	}
 }

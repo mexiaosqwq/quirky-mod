@@ -1,6 +1,7 @@
 package dev.quirky;
 
 import dev.quirky.item.BottledCloudItem;
+import dev.quirky.torch_arrow.TorchArrowItem;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -17,6 +18,7 @@ public final class ModItems {
 	private static final ResourceKey<Item> GOLD_BUTTON_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("gold_button"));
 	private static final ResourceKey<Item> IRON_BUTTON_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("iron_button"));
 	private static final ResourceKey<Item> OBSIDIAN_PRESSURE_PLATE_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("obsidian_pressure_plate"));
+	private static final ResourceKey<Item> TORCH_ARROW_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("torch_arrow"));
 
 	public static final Item BOTTLED_CLOUD = new BottledCloudItem(
 		new Item.Properties().stacksTo(1).craftRemainder(Items.GLASS_BOTTLE).usingConvertsTo(Items.GLASS_BOTTLE).setId(BOTTLED_CLOUD_ID)
@@ -39,6 +41,8 @@ public final class ModItems {
 	public static final Item OBSIDIAN_PRESSURE_PLATE = new BlockItem(
 		ModBlocks.OBSIDIAN_PRESSURE_PLATE,
 		new Item.Properties().setId(OBSIDIAN_PRESSURE_PLATE_ID)
+	public static final Item TORCH_ARROW = new TorchArrowItem(
+		new Item.Properties().setId(TORCH_ARROW_ID)
 	);
 
 	private ModItems() {
@@ -58,6 +62,11 @@ public final class ModItems {
 				output.accept(IRON_BUTTON);
 				output.accept(OBSIDIAN_PRESSURE_PLATE);
 			});
+		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("torch_arrow"), TORCH_ARROW);
+		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES)
+			.register(output -> output.accept(BOTTLED_CLOUD));
+		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.COMBAT)
+			.register(output -> output.accept(TORCH_ARROW));
 		// TOTEM_OF_HOLDING 不进创造页签：纯内部渲染素材（死亡点图腾实体显示用），玩家不应拿到
 	}
 }

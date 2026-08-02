@@ -4,6 +4,7 @@
   "item.quirky.gold_button": "金按钮",
   "item.quirky.iron_button": "铁按钮",
   "item.quirky.obsidian_pressure_plate": "黑曜石压力板",
+  "item.quirky.torch_arrow": "火把箭",
   "message.quirky.totem_spawned": "你的保留图腾生成于 %s (%s, %s, %s)，距你的出生点 %s 格",
   "message.quirky.totem_spawned_cross": "你的保留图腾生成于 %s (%s, %s, %s)，与你的出生点不在同一维度",
   "tooltip.quirky.clock": "第 %s 天 · %s",
