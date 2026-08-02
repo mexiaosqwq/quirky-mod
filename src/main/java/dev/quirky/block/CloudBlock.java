@@ -2,6 +2,7 @@ package dev.quirky.block;
 
 import com.mojang.serialization.MapCodec;
 import dev.quirky.ModItems;
+import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
@@ -86,6 +87,9 @@ public class CloudBlock extends Block {
 		InteractionHand hand,
 		BlockHitResult hitResult
 	) {
+		if (!QuirkyConfigHolder.get().cloudBottle) {
+			return InteractionResult.PASS; // 开关关闭：收回机制一并禁用（与放置侧一致，关掉即恢复原版）
+		}
 		if (!itemStack.is(Items.GLASS_BOTTLE)) {
 			return InteractionResult.PASS;
 		}

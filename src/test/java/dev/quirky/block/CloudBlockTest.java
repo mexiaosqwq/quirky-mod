@@ -12,6 +12,8 @@ import static org.mockito.Mockito.when;
 import dev.quirky.ModBlocks;
 import dev.quirky.ModItems;
 import dev.quirky.TestBootstrap;
+import dev.quirky.config.QuirkyConfig;
+import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
@@ -194,5 +196,32 @@ class CloudBlockTest {
 
 		assertEquals(InteractionResult.PASS, result);
 		verify(level, never()).setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+	}
+
+	@Test
+	void useItemOnWithCloudBottleToggleOffPasses() {
+		// 开关关闭 = 物品（放置）与机制（收回）全链路禁用，关掉即恢复原版
+		QuirkyConfig config = new QuirkyConfig();
+		config.cloudBottle = false;
+		QuirkyConfigHolder.set(config);
+		try {
+			Level level = mock(Level.class);
+			BlockPos pos = new BlockPos(1, 64, 1);
+			BlockState state = ModBlocks.CLOUD.defaultBlockState();
+			Player player = mock(Player.class);
+			when(player.getInventory()).thenReturn(mock(Inventory.class));
+			when(player.hasInfiniteMaterials()).thenReturn(false);
+			ItemStack bottle = new ItemStack(Items.GLASS_BOTTLE);
+
+			InteractionResult result = ModBlocks.CLOUD.useItemOn(
+				bottle, state, level, pos, player, InteractionHand.MAIN_HAND, mock(BlockHitResult.class)
+			);
+
+			assertEquals(InteractionResult.PASS, result);
+			verify(level, never()).setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+			assertEquals(1, bottle.getCount()); // 玻璃瓶不消耗
+		} finally {
+			QuirkyConfigHolder.set(new QuirkyConfig());
+		}
 	}
 }
