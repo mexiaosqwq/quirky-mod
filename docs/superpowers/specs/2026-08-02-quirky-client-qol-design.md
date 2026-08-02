@@ -157,17 +157,19 @@
 
 验收：创造模式中键可拾取 100 格外的方块；生存模式中键可拾取 12 格外背包已有的同种方块；config 生效。
 
-### 5.9 爬梯吸附（客户端）
+### 5.9 爬梯吸附·自动上梯（客户端）
 
-行为：
-- 玩家在梯子/藤蔓上爬行且未按左右键时，身体自动平滑吸附到梯子所在方块中心线（x/z 向），不再歪着爬。
-- 按住左右键时以手动控制优先，不干预。
+行为（用户定制：基岩版式自动爬梯）：
+- 玩家在梯子/藤蔓上时，身体自动平滑吸附到梯子所在方块中心线（x/z 向），不再歪着爬。
+- **自动攀爬**：未按 W/S/空格/Shift 时，**抬头（pitch < -30°）自动上升、低头（pitch > 30°）自动下降、平视悬停**——爬梯只需抬头。
+- 按住左右键以手动控制优先，不干预；脚手架不吸附、不自动爬（玩家在其上自由走动）。
 
 实现：
-- mixin `LocalPlayer.aiStep`（或移动 tick）：`climbing()` 为真且左右输入为 0 时，计算与所在方块中心偏移，给 deltaMovement 施加指向中心的修正分量（修正强度 config 可调）。
-- config：`ladderSnap` 开关、`ladderSnapStrength`。
+- mixin `LocalPlayer.aiStep` TAIL：居中吸附（`LadderSnapHelper.correction`）。
+- mixin `LocalPlayer.travel` HEAD：自动攀爬（`LadderSnapHelper.climbVelocity(pitch, manual)`，速度 0.15 对齐原版爬梯上限；travel 内 `handleOnClimbable` 保留 delta.y）。
+- config：`ladderSnap` 开关（同时控制吸附与自动爬）。
 
-验收：爬梯时松左右键自动居中；按左/右仍可正常移动离开梯子；不影响非爬梯状态。
+验收：爬上梯子后松手身体自动居中；抬头自动上升、低头下降、平视停住；按 W/S 仍可手动爬；脚手架行走不受影响。
 
 ### 5.10 装备替换·副手扩展（客户端 + 服务端）
 

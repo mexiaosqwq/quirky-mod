@@ -12,8 +12,30 @@ import net.minecraft.world.phys.Vec2;
 public final class LadderSnapHelper {
 	/** 偏移低于该值（格）视为已居中，不再修正。 */
 	private static final double CENTERED_THRESHOLD = 0.01;
+	/** 自动攀爬：抬头/低头触发阈值（度），平视区间内悬停 */
+	public static final float CLIMB_PITCH_UP = -30.0F;
+	public static final float CLIMB_PITCH_DOWN = 30.0F;
+	/** 自动攀爬垂直速度（对齐原版爬梯最大速度 0.15） */
+	public static final double CLIMB_SPEED = 0.15;
 
 	private LadderSnapHelper() {
+	}
+
+	/**
+	 * 自动攀爬垂直速度（基岩版式）：未按手动键时，抬头（pitch &lt; -30°）上升、
+	 * 低头（pitch &gt; 30°）下降、平视悬停；手动按键时返回 NaN（不干预）。
+	 */
+	public static double climbVelocity(float pitch, boolean manualInput) {
+		if (manualInput) {
+			return Double.NaN;
+		}
+		if (pitch < CLIMB_PITCH_UP) {
+			return CLIMB_SPEED;
+		}
+		if (pitch > CLIMB_PITCH_DOWN) {
+			return -CLIMB_SPEED;
+		}
+		return 0.0;
 	}
 
 	/**

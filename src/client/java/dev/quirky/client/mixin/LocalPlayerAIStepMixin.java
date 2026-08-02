@@ -6,6 +6,7 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec2;
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -18,6 +19,26 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(LocalPlayer.class)
 public abstract class LocalPlayerAIStepMixin {
+	/**
+	 * 自动上梯（基岩版式）：爬梯时未按手动键（W/S/空格/Shift）则按视角控制垂直速度——
+	 * 抬头自动上升、低头下降、平视悬停。注入 travel HEAD，本 tick 移动即生效。
+	 */
+	@Inject(method = "travel", at = @At("HEAD"))
+	private void quirky$autoClimb(Vec3 input, CallbackInfo ci) {
+		LocalPlayer player = (LocalPlayer) (Object) this;
+		if (!QuirkyConfigHolder.get().ladderSnap || !player.onClimbable()) {
+			return;
+		}
+		boolean manual = player.input.keyPresses.forward()
+			|| player.input.keyPresses.backward()
+			|| player.input.keyPresses.jump()
+			|| player.input.keyPresses.shift();
+		double vy = LadderSnapHelper.climbVelocity(player.getXRot(), manual);
+		if (!Double.isNaN(vy)) {
+			player.setDeltaMovement(player.getDeltaMovement().x, vy, player.getDeltaMovement().z);
+		}
+	}
+
 	@Inject(method = "aiStep", at = @At("TAIL"))
 	private void quirky$snapToLadderCenter(CallbackInfo ci) {
 		LocalPlayer player = (LocalPlayer) (Object) this;

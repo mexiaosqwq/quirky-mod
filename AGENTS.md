@@ -94,6 +94,12 @@ This environment does not push to remote repositories; merge and publish locally
 - **渲染层数据源差异（灵魂光源根因，mcsrc 验证）**：同一判定对“粒子替换”生效、对“模型替换”失效时，差异在数据源：粒子用 `ClientLevel.getBlockState()`（实时）；区块编译期模型替换（SectionCompilerMixin）读 `RenderSectionRegion.getBlockState()`，后者来自 `SectionCopy`——构造时对 `LevelChunk.getStates()` 做 `PalettedContainer.copy()` 快照拷贝（静态数据）并经 `RenderRegionCache`（key=sectionCoord）缓存。改方块后不丢区块缓存（F3+A/移动重建）就一直用旧快照。RenderSectionRegion 是 3×3×3 邻居 section 缓存（RADIUS=1），越界一格查询有效。
 - **26.2 popResource 依赖 `block_drops` 规则**：`Block.popResource` 内部走私有重载，条件是 `level instanceof ServerLevel && getGameRules().get(GameRules.BLOCK_DROPS)`，规则关闭时掉落物不生成。凡“先 removeItem 再 popResource 漏出”的代码规则关闭时会永久吞物品——**移除前先 instanceof ServerLevel 检查规则**（26.2 `Level` 基类无 `getGameRules()`，仅在 `ServerLevel`）。GameRules mock：`new GameRules(FeatureFlags.DEFAULT_FLAGS)`。
 
+- **爬梯吸附必须限定梯子单方块**：26.2 `Player.onClimbable()` 判定 = `state.is(#minecraft:climbable)`，该 tag 含**脚手架(scaffolding)+全部藤蔓(vine/weeping/twisting/cave_vines)+梯子**——直接复用会把玩家吸到脚手架/藤蔓格中心。修复：吸附目标限定为 `Blocks.LADDER` 单方块判定（spec §5.9）。单测环境无数据包 tag 数据（`state.is(tag)` 恒 false），`is(tag)` 的分支无法用 tag 单测覆盖，只验证辅助函数。
+
+- **死亡镜头（基岩版式）教训**：① **环绕(orbit)是“雷霆运镜”元凶**——2.5s 转 360°（144°/s）即眩晕；正确做法是贴脸(0.8格/眼睛高/水平视角) → 前25%快拉出 → 后75%缓慢拉远到 6 格正后方略高俯视，**镜头朝向恒定（保持死亡朝向），不转圈**。② 播放期间重复 `start()` 会重建 timeline，两次 yaw 不同（客户端/服务端死亡朝向差异）→ 镜头随机跳向；已播放时只刷新锚点、不重建时间轴。③ 结束瞬间“闪回+红屏”根因：`finish()` 立即 restoreCameraType+清 timeline → 相机弹回第一人称再开红屏；改为**冻结镜头最后视角进死亡界面**（frozen 状态：DeathScreen 期间保持最后位置/旋转，重生后解除）。④ 26.2 `screen` 在 `Minecraft` 的访问器是 `screen()` 方法（字段在 `Gui`），非 `Minecraft.screen` 直接属性。
+
+- **草地增绿不可用则整体删除**（静态链路全验证仍无效 → 无法可靠定位）：26.2 `BlockColors` 是 Minecraft **final 单例**（构造时 `createDefault()` 一次）；fabric `BlockColorRegistry.register` 走 `blockColors.register(...)` 实例方法**替换语义**（替换既有 tint source，非叠加）；渲染 tint 走 `BlockTintSource.colorInWorld(state,level,pos)`。静态验证全对仍运行时无效 → fabric BlockColorRegistry 思路弃用，整功能删除（commit 2bb31cd）。
+
 ## Agent-Specific Instructions
 
 - **子代理派发使用 pi-subagents**（根 AGENTS.md §13.6）：主对话说“用 scout/worker/... 做 X”或调用 `Agent` 工具（`subagent_type`/`prompt`/`description`/`run_in_background` 等）；后台 agent 用 `get_subagent_result` 取结果、`steer_subagent` 中途转向、`/agents` FleetView 管理。项目级 agent 定义放 `.pi/agents/*.md`（优先于全局 `~/.pi/agent/agents/`），本仓库的 Quirky 特化 agent（scout/planner/reviewer/worker 全部内置 26.2 API 实测要求与项目坑位，worker/reviewer 另有构建命令/陷阱清单）见 `.pi/agents/`。
