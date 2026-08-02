@@ -66,6 +66,8 @@ Quirky 是**双端 mod**（客户端渲染/交互 + 服务端机制逻辑），A
 | retrieveSoundVolume | 0.5 | 0–2 | FloatSlider | 取回音效音量 |
 | enchantParticleChance | 4 | **1–100** | IntSlider | 紫符文粒子每 tick 1/N 概率（调大更稀）；**min=1：`random.nextInt(0)` 抛异常** |
 | endRodParticleChance | 12 | **1–100** | IntSlider | 白光点粒子每 tick 1/N 概率；同上 |
+| endRodParticleXzSpread | 0.35 | 0–2 | FloatSlider | 白光点 XZ 散布半径（格） |
+| endRodParticleYSpread | 0.3 | 0–2 | FloatSlider | 白光点 Y 散布高度（格） |
 | particleXzSpread | 0.45 | 0–2 | FloatSlider | 紫符文 XZ 散布半径（格） |
 | particleYSpread | 0.55 | 0–2 | FloatSlider | 紫符文 Y 散布高度（格） |
 | floatHeight | 0.15 | 0–1 | FloatSlider | 客户端渲染：浮动基准高度（振幅固定 0.1） |

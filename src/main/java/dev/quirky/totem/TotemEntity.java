@@ -122,9 +122,9 @@ public class TotemEntity extends Entity {
 					this.getY() + 0.5,
 					this.getZ(),
 					1,
-					0.35,
-					0.3,
-					0.35,
+					config.endRodParticleXzSpread,
+					config.endRodParticleYSpread,
+					config.endRodParticleXzSpread,
 					0.01
 				);
 			}

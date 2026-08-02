@@ -30,6 +30,8 @@ class QuirkyConfigDefaultsTest {
 		assertEquals(0.5F, c.retrieveSoundVolume);
 		assertEquals(4, c.enchantParticleChance);
 		assertEquals(12, c.endRodParticleChance);
+		assertEquals(0.35F, c.endRodParticleXzSpread);
+		assertEquals(0.3F, c.endRodParticleYSpread);
 		assertEquals(0.45F, c.particleXzSpread);
 		assertEquals(0.55F, c.particleYSpread);
 		assertEquals(1.8F, c.modelScale);

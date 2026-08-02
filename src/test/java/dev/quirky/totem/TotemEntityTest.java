@@ -2,13 +2,17 @@ package dev.quirky.totem;
 
 import dev.quirky.ModEntities;
 import dev.quirky.TestBootstrap;
+import dev.quirky.config.QuirkyConfig;
+import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.ProblemReporter;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.ItemStackWithSlot;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageTypes;
@@ -28,8 +32,11 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.mockito.ArgumentCaptor;
 
 class TotemEntityTest {
 
@@ -132,5 +139,38 @@ class TotemEntityTest {
 
 		assertFalse(totem.hurtServer(level, fire, 5.0F));
 		assertFalse(totem.isRemoved());
+	}
+
+	@Test
+	void tick_endRodParticlesUseConfiguredSpread() {
+		// 规格外固定值 0.35/0.3 接上配置：默认值保持现状，改配置后散布跟随
+		TotemEntity totem = newTotem();
+		when(level.getRandom()).thenReturn(RandomSource.create());
+		QuirkyConfig config = new QuirkyConfig();
+		config.endRodParticleXzSpread = 1.5F;
+		config.endRodParticleYSpread = 0.75F;
+		config.endRodParticleChance = 1; // 每 tick 必发，保证测试确定
+		config.enchantParticleChance = Integer.MAX_VALUE; // 关掉紫符文，避免干扰
+		QuirkyConfigHolder.set(config);
+		try {
+			totem.tick();
+
+			ArgumentCaptor<Double> captor = ArgumentCaptor.forClass(Double.class);
+			verify(level).sendParticles(
+				eq(ParticleTypes.END_ROD),
+				eq(totem.getX()),
+				eq(totem.getY() + 0.5),
+				eq(totem.getZ()),
+				eq(1),
+				captor.capture(),
+				eq(0.75),
+				captor.capture(),
+				eq(0.01)
+			);
+			assertEquals(1.5, captor.getAllValues().get(0));
+			assertEquals(1.5, captor.getAllValues().get(1));
+		} finally {
+			QuirkyConfigHolder.set(new QuirkyConfig());
+		}
 	}
 }

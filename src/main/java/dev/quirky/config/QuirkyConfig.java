@@ -77,6 +77,14 @@ public class QuirkyConfig implements ConfigData {
 
 	@ConfigEntry.Category("totem")
 	@ConfigEntry.Gui.Tooltip
+	public float endRodParticleXzSpread = 0.35F;
+
+	@ConfigEntry.Category("totem")
+	@ConfigEntry.Gui.Tooltip
+	public float endRodParticleYSpread = 0.3F;
+
+	@ConfigEntry.Category("totem")
+	@ConfigEntry.Gui.Tooltip
 	public float particleXzSpread = 0.45F;
 
 	@ConfigEntry.Category("totem")
