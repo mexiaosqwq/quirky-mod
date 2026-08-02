@@ -5,6 +5,8 @@ import dev.quirky.totem.TotemEntity;
 import dev.quirky.totem.TotemOfHoldingLogic;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.ItemStackWithSlot;
 import net.minecraft.world.level.gamerules.GameRules;
@@ -44,6 +46,7 @@ public class ServerPlayerMixin {
 		totem.setPos(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
 		totem.initStored(player.getUUID(), stored);
 		player.level().addFreshEntity(totem);
+		player.level().playSound(null, totem.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS, 1.0F, 1.0F);
 		player.getInventory().clearContent();
 	}
 }
