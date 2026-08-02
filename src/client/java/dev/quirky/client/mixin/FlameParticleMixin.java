@@ -29,7 +29,12 @@ public abstract class FlameParticleMixin {
 	@Shadow
 	protected abstract void setSprite(TextureAtlasSprite icon);
 
-	@Inject(method = "<init>", at = @At("TAIL"))
+	/**
+	 * 只注入 FlameParticle 使用的 7 参构造器（{@code (ClientLevel, double×6, TextureAtlasSprite)}）。
+	 * 必须用完整描述符限定：@Inject(method="<init>") 会应用到目标类所有构造器，
+	 * handler 与 4 参构造器（其他粒子使用）不匹配会在 APPLY 阶段抛 InvalidInjectionException。
+	 */
+	@Inject(method = "<init>(Lnet/minecraft/client/multiplayer/ClientLevel;DDDDDDLnet/minecraft/client/renderer/texture/TextureAtlasSprite;)V", at = @At("TAIL"))
 	private void quirky$soulFlame(
 		ClientLevel level,
 		double x,
