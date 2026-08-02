@@ -46,7 +46,8 @@ public class ServerPlayerMixin {
 		if (pos.getY() < 0) {
 			pos = pos.atY(0);
 		}
-		totem.setPos(pos.getX() + 0.5, pos.getY() + 1.5, pos.getZ() + 0.5);
+		BlockPos totemSpot = TotemOfHoldingLogic.findSpawnPosition(player.level(), pos);
+		totem.setPos(pos.getX() + 0.5, totemSpot.getY() + 0.5, pos.getZ() + 0.5);
 		totem.initStored(player.getUUID(), stored);
 		player.level().addFreshEntity(totem);
 		player.level().playSound(null, totem.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS, 1.0F, 1.0F);

@@ -1,6 +1,7 @@
 package dev.quirky.totem;
 
 import dev.quirky.TestBootstrap;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.component.DataComponentMap;
@@ -15,6 +16,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentEffectComponents;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -23,6 +26,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -146,5 +150,40 @@ class TotemOfHoldingLogicTest {
 
 		assertEquals(1, overflow.size());
 		assertTrue(overflow.getFirst().is(Items.DIAMOND_SWORD));
+	}
+
+	// ---- findSpawnPosition 自适应高度 ----
+
+	@Test
+	void findSpawnPosition_usesLowestFreeSpotAboveDeath() {
+		Level level = mock(Level.class);
+		when(level.getBlockState(any())).thenReturn(Blocks.AIR.defaultBlockState());
+
+		BlockPos result = TotemOfHoldingLogic.findSpawnPosition(level, new BlockPos(1, 64, 1));
+
+		assertEquals(65, result.getY()); // 死亡点上方 1 格（头顶附近）
+	}
+
+	@Test
+	void findSpawnPosition_risesPastObstacles() {
+		Level level = mock(Level.class);
+		// y=65 有方块（低顶），y=66 起为空
+		when(level.getBlockState(new BlockPos(1, 65, 1))).thenReturn(Blocks.STONE.defaultBlockState());
+		when(level.getBlockState(new BlockPos(1, 66, 1))).thenReturn(Blocks.AIR.defaultBlockState());
+		when(level.getBlockState(new BlockPos(1, 67, 1))).thenReturn(Blocks.AIR.defaultBlockState());
+
+		BlockPos result = TotemOfHoldingLogic.findSpawnPosition(level, new BlockPos(1, 64, 1));
+
+		assertEquals(66, result.getY()); // 跳过被挡的 y=65，落在 y=66
+	}
+
+	@Test
+	void findSpawnPosition_fallsBackWhenFullyBlocked() {
+		Level level = mock(Level.class);
+		when(level.getBlockState(any())).thenReturn(Blocks.STONE.defaultBlockState());
+
+		BlockPos result = TotemOfHoldingLogic.findSpawnPosition(level, new BlockPos(1, 64, 1));
+
+		assertEquals(65, result.getY()); // 全堵时兜底死亡点上方 1 格
 	}
 }

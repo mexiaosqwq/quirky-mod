@@ -2,6 +2,7 @@ package dev.quirky.totem;
 
 import com.mojang.serialization.Codec;
 import net.minecraft.core.UUIDUtil;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -88,6 +89,27 @@ public class TotemEntity extends Entity {
 					totem.spawnAtLocation(level, entry.stack());
 				}
 				totem.discard();
+			}
+		}
+	}
+
+	@Override
+	public void tick() {
+		super.tick();
+		if (this.level() instanceof ServerLevel serverLevel) {
+			if (this.random.nextInt(6) == 0) {
+				serverLevel.addParticle(
+					ParticleTypes.ENCHANT,
+					this.getX() + (this.random.nextDouble() - 0.5) * 0.6,
+					this.getY() + this.random.nextDouble() * 0.8,
+					this.getZ() + (this.random.nextDouble() - 0.5) * 0.6,
+					0.0,
+					0.05,
+					0.0
+				);
+			}
+			if (this.random.nextInt(160) == 0) {
+				this.playSound(SoundEvents.AMETHYST_BLOCK_CHIME, 0.15F, 1.3F);
 			}
 		}
 	}

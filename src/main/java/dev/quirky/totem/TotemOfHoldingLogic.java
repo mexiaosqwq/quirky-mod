@@ -1,5 +1,6 @@
 package dev.quirky.totem;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.ItemStackWithSlot;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.player.Inventory;
@@ -7,11 +8,14 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.EnchantmentEffectComponents;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.level.Level;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public final class TotemOfHoldingLogic {
+	private static final int MAX_RAISE = 6;
+
 	private TotemOfHoldingLogic() {
 	}
 
@@ -33,6 +37,20 @@ public final class TotemOfHoldingLogic {
 			stored.add(new ItemStackWithSlot(i, stack.copy()));
 		}
 		return stored;
+	}
+
+	/**
+	 * 自适应悬浮位置：从死亡点上方 1 格起向上找 2 格连续空气（图腾本身 + 上方空间），
+	 * 低顶/遮挡时自动升高；全部被堵时兜底死亡点上方 1 格。
+	 */
+	public static BlockPos findSpawnPosition(Level level, BlockPos deathPos) {
+		for (int i = 1; i <= MAX_RAISE; i++) {
+			BlockPos candidate = deathPos.above(i);
+			if (level.getBlockState(candidate).isAir() && level.getBlockState(candidate.above()).isAir()) {
+				return candidate;
+			}
+		}
+		return deathPos.above(1);
 	}
 
 	public static List<ItemStack> restoreToPlayer(Player player, List<ItemStackWithSlot> stored) {
