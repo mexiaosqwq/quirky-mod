@@ -1,20 +1,38 @@
 {
   "variants": {
-    "facing=down": {
+    "facing=down,enabled=false": {
       "model": "quirky:block/wooden_hopper"
     },
-    "facing=east": {
+    "facing=down,enabled=true": {
+      "model": "quirky:block/wooden_hopper"
+    },
+    "facing=east,enabled=false": {
       "model": "quirky:block/wooden_hopper_side",
       "y": 90
     },
-    "facing=north": {
+    "facing=east,enabled=true": {
+      "model": "quirky:block/wooden_hopper_side",
+      "y": 90
+    },
+    "facing=north,enabled=false": {
       "model": "quirky:block/wooden_hopper_side"
     },
-    "facing=south": {
+    "facing=north,enabled=true": {
+      "model": "quirky:block/wooden_hopper_side"
+    },
+    "facing=south,enabled=false": {
       "model": "quirky:block/wooden_hopper_side",
       "y": 180
     },
-    "facing=west": {
+    "facing=south,enabled=true": {
+      "model": "quirky:block/wooden_hopper_side",
+      "y": 180
+    },
+    "facing=west,enabled=false": {
+      "model": "quirky:block/wooden_hopper_side",
+      "y": 270
+    },
+    "facing=west,enabled=true": {
       "model": "quirky:block/wooden_hopper_side",
       "y": 270
     }

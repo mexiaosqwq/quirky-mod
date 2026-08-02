@@ -16,18 +16,34 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 /**
  * 远距中键拾取：26.2 中键拾取入口为 {@code Minecraft#pickBlockOrEntity()}，
  * 它直接消费每 tick 缓存的 {@code Minecraft#hitResult}（按原版交互距离计算）。
- * 这里把该方法内的 hitResult 读取重定向为扩展距离的方块射线结果：
+ * 这里把该方法内 hitResult 的两处"决定性"读取重定向为扩展距离的方块射线结果：
  * 原版范围内已有目标（方块或实体）时保持原样，只有原版未命中（MISS）时才用
  * 扩展距离重新对 level 做方块 clip（忽略流体，同原版），命中的方块结果替换后
  * 继续原逻辑走 {@code gameMode.handlePickItemFromBlock}。
+ * <p>
+ * 注入范围（review W4）：getType() 检查（ordinal 1）与 switch 分发（ordinal 2）
+ * 必须重定向；null 检查（ordinal 0）保持原版字段——{@link #quirky$extendedHit}
+ * 对 null/非 MISS 幂等返回原值，语义等价且不依赖无 ordinal 的全量重定向行为。
  */
 @Mixin(Minecraft.class)
 public abstract class PickBlockMixin {
 	@Redirect(
 		method = "pickBlockOrEntity",
-		at = @At(value = "FIELD", target = "Lnet/minecraft/client/Minecraft;hitResult:Lnet/minecraft/world/phys/HitResult;")
+		at = @At(value = "FIELD", target = "Lnet/minecraft/client/Minecraft;hitResult:Lnet/minecraft/world/phys/HitResult;", ordinal = 1)
 	)
-	private HitResult quirky$extendedPickHitResult(Minecraft minecraft) {
+	private HitResult quirky$extendedPickType(Minecraft minecraft) {
+		return quirky$extendedHit(minecraft);
+	}
+
+	@Redirect(
+		method = "pickBlockOrEntity",
+		at = @At(value = "FIELD", target = "Lnet/minecraft/client/Minecraft;hitResult:Lnet/minecraft/world/phys/HitResult;", ordinal = 2)
+	)
+	private HitResult quirky$extendedPickSwitch(Minecraft minecraft) {
+		return quirky$extendedHit(minecraft);
+	}
+
+	private static HitResult quirky$extendedHit(Minecraft minecraft) {
 		HitResult original = minecraft.hitResult;
 		// 原版范围内已有目标：实体拾取、近距离方块拾取等行为一律保持原版。
 		if (original == null || original.getType() != HitResult.Type.MISS) {

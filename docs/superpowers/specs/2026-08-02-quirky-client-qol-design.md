@@ -223,6 +223,7 @@
 实现：
 - 物品：`ArrowItem` 子类（createArrow 返回自定义实体）。
 - 实体：`TorchArrowEntity extends Arrow`（ModEntities 注册）；覆写 `onHitBlock`（`level.setBlockAndUpdate` 火把 or `spawnAtLocation`）与 `onHitEntity`（`entity.igniteForSeconds(3)`）；基础伤害低于普通箭（如 1.0，实施时校准）；飞行轨迹粒子复用箭。
+- 边界（review S4）：空覆写 `setBaseDamageFromMob`——生物（如骷髅）与发射器射出的火把箭伤害不随拉弓力量缩放，恒为基础伤害 1.0，属设计选择，勿改。
 - 渲染：客户端 `TorchArrowRenderer extends ArrowRenderer`，箭杆 + 箭头处叠加火把 item 渲染（`ItemRenderer`），验证 26.2 渲染 API。
 - 资源：items/ + models/item/ + textures/item/（自绘箭+火把图标）、lang。
 

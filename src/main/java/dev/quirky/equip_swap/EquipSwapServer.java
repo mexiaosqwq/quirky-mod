@@ -12,7 +12,6 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.EnchantmentEffectComponents;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 
@@ -54,7 +53,7 @@ public final class EquipSwapServer {
 		}
 		// 副手交换仅在开关开启时生效；关闭时盾牌（带 EQUIPPABLE）回退原版装备路径，
 		// 火把无 EQUIPPABLE 组件则被拒（火把装副手是 mod 专属行为）。
-		boolean offhandItem = isOffhandSwapItem(stack) && QuirkyConfigHolder.get().offhandSwap;
+		boolean offhandItem = OffhandSwapItems.isOffhandSwapItem(stack) && QuirkyConfigHolder.get().offhandSwap;
 		if (!offhandItem && !stack.has(DataComponents.EQUIPPABLE)) {
 			return false;
 		}
@@ -94,14 +93,6 @@ public final class EquipSwapServer {
 		}
 		menu.broadcastChanges();
 		return true;
-	}
-
-	/**
-	 * 副手交换物品：右键背包中的盾牌或火把时直接与副手槽互换。
-	 * 火把无 EQUIPPABLE 组件，因此走独立判定。
-	 */
-	public static boolean isOffhandSwapItem(ItemStack stack) {
-		return stack.is(Items.SHIELD) || stack.is(Items.TORCH);
 	}
 
 	private static int inventoryIndexFor(EquipmentSlot slot) {

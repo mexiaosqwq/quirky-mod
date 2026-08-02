@@ -80,10 +80,9 @@ public final class GreenerGrassClient {
 		for (Block block : GRASS_BLOCKS) {
 			registerWrapped(block);
 		}
-		if (QuirkyConfigHolder.get().grassAffectLeaves) {
-			for (Block block : LEAF_BLOCKS) {
-				registerWrapped(block);
-			}
+		// 树叶/藤蔓也总是注册包装，开关在取色时判断（S1：游戏内热切换，无需重进世界）
+		for (Block block : LEAF_BLOCKS) {
+			registerWrapped(block);
 		}
 	}
 
@@ -96,16 +95,21 @@ public final class GreenerGrassClient {
 		if (originals.isEmpty()) {
 			return;
 		}
-		List<BlockTintSource> wrapped = originals.stream().<BlockTintSource>map(GrassTintSourceWrapper::new).toList();
+		List<BlockTintSource> wrapped = originals.stream()
+			.<BlockTintSource>map(delegate -> new GrassTintSourceWrapper(delegate, block))
+			.toList();
 		BlockColorRegistry.register(wrapped, block);
 	}
 
 	/** 包装原 tint source：取色后按配置开关与强度做颜色矩阵卷积。 */
 	private static final class GrassTintSourceWrapper implements BlockTintSource {
 		private final BlockTintSource delegate;
+		/** 所属方块：树叶/藤蔓在 grassAffectLeaves 关闭时不过卷积 */
+		private final Block block;
 
-		private GrassTintSourceWrapper(BlockTintSource delegate) {
+		private GrassTintSourceWrapper(BlockTintSource delegate, Block block) {
 			this.delegate = delegate;
+			this.block = block;
 		}
 
 		@Override
@@ -131,6 +135,9 @@ public final class GreenerGrassClient {
 		private int convolveIfEnabled(int color) {
 			// -1 是"不着色"哨兵（如草方块碎裂粒子、甘蔗手中渲染），保持原样
 			if (color == -1 || !QuirkyConfigHolder.get().greenerGrass) {
+				return color;
+			}
+			if (LEAF_BLOCKS.contains(this.block) && !QuirkyConfigHolder.get().grassAffectLeaves) {
 				return color;
 			}
 			return matrix().convolve(color);
