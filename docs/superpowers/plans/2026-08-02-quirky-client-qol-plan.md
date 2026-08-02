@@ -85,9 +85,8 @@ git commit -m "feat: add config toggles and params for client QoL features"
 **Files:**
 - Create: `src/main/java/dev/quirky/tooltips/ShulkerTooltipComponent.java`
 - Create: `src/client/java/dev/quirky/client/tooltips/ClientShulkerTooltipComponent.java`
-- Modify: `src/main/java/dev/quirky/mixin/MapTooltipMixin.java`（或新增 `ShulkerTooltipMixin.java`，见下）
-- Modify: `src/client/java/dev/quirky/client/QuirkyModClient.java`
-- Modify: `src/main/resources/quirky.mixins.json`、`src/client/resources/quirky.client.mixins.json`（如需新增 mixin）
+- Create: `src/main/java/dev/quirky/mixin/TooltipDetailsMixin.java`（`@Mixin(Item.class)`，`getTooltipImage` HEAD 注入——与 MapTooltipMixin 同模式，独立 mixin 负责潜影盒/食物/属性三分支，MapTooltipMixin 保持地图专属）
+- Modify: `src/main/resources/quirky.mixins.json`（`mixins` 数组追加 `TooltipDetailsMixin`）
 - Test: `src/test/java/dev/quirky/client/tooltips/ClientShulkerTooltipComponentTest.java`
 
 **Interfaces:**
@@ -125,7 +124,7 @@ Expected: FAIL（类不存在）
 
 - [ ] **Step 4: 实现**
 
-服务端 `ShulkerTooltipComponent`（record + `ContainerComponent`）；mixin：`Item.getTooltipImage` 注入——当 `stack` 有 `DataComponents.CONTAINER` 且开关开时返回 `ShulkerTooltipComponent`（同时保留地图分支）；客户端转换注册进 `QuirkyModClient` 的 `ClientTooltipComponentCallback`；`ClientShulkerTooltipComponent.extractImage` 遍历容器槽，空格跳过，非空 `renderItem(stack)` + 数量绘制。
+服务端 `ShulkerTooltipComponent`（record + `ContainerComponent`）；`TooltipDetailsMixin`：`Item.getTooltipImage` HEAD 注入（MapTooltipMixin 同款签名 `(ItemStack, CallbackInfoReturnable<Optional<TooltipComponent>>)`），开关 `shulkerTooltip` 开且 `stack.get(DataComponents.CONTAINER)` 非空 → 返回 `ShulkerTooltipComponent`；客户端转换注册进 `QuirkyModClient` 的 `ClientTooltipComponentCallback`；`ClientShulkerTooltipComponent.extractImage` 遍历容器槽，空格跳过，非空 `renderItem(stack)` + 数量绘制。
 
 - [ ] **Step 5: 运行测试确认通过**
 
@@ -146,7 +145,7 @@ git commit -m "feat: show shulker box contents in tooltip"
 **Files:**
 - Create: `src/main/java/dev/quirky/tooltips/FoodTooltipComponent.java`
 - Create: `src/client/java/dev/quirky/client/tooltips/ClientFoodTooltipComponent.java`
-- Modify: Task 2 的 `getTooltipImage` mixin（追加食物分支）
+- Modify: `src/main/java/dev/quirky/mixin/TooltipDetailsMixin.java`（Task 2 创建，追加食物分支）
 - Modify: `src/client/java/dev/quirky/client/QuirkyModClient.java`
 - Test: `src/test/java/dev/quirky/client/tooltips/ClientFoodTooltipComponentTest.java`
 
@@ -180,7 +179,7 @@ void foodValuesReadFromComponent() {
 - Create: `src/main/java/dev/quirky/tooltips/EnchantedDamageCalculator.java`（纯逻辑，可单测）
 - Create: `src/client/java/dev/quirky/client/tooltips/ClientAttributeTooltipComponent.java`
 - Create: 6 张图标：`src/main/resources/assets/quirky/textures/gui/quirky/attribute/{attack_damage,attack_speed,armor,toughness,knockback,movement}.png`（16x16，金色系 Quark 风格）
-- Modify: Task 2 的 `getTooltipImage` mixin（属性分支）
+- Modify: `src/main/java/dev/quirky/mixin/TooltipDetailsMixin.java`（追加属性分支）
 - Modify: `src/client/java/dev/quirky/client/QuirkyModClient.java`
 - Test: `src/test/java/dev/quirky/tooltips/EnchantedDamageCalculatorTest.java`
 
@@ -217,7 +216,7 @@ void sharpnessAddsPerLevel() {
 - Create: `src/client/java/dev/quirky/client/usage_ticker/UsageTickerHud.java`（渲染 + tick 驱动）
 - Create: `src/client/java/dev/quirky/client/usage_ticker/ArmorTicker.java`（护甲耐久检测）
 - Create: `src/client/java/dev/quirky/client/mixin/GuiRenderMixin.java`（或走 `HudRenderCallback`，以 Fabric API 26.2 可用性为准）
-- Modify: `src/client/java/dev/quirky/client/QuirkyModClient.java`、`src/client/resources/quirky.client.mixins.json`
+- Modify: `src/client/java/dev/quirky/client/QuirkyModClient.java`、`src/main/resources/quirky.client.mixins.json`（`mixins` 数组追加新 mixin）
 - Test: `src/test/java/dev/quirky/client/usage_ticker/TickerSnapshotTest.java`、`TickerElementTest.java`
 
 **Interfaces:**
@@ -262,11 +261,11 @@ void multiSlotChangeIsInventoryShuffle() {
 **Files:**
 - Create: `src/main/java/dev/quirky/deathcam/DeathCamPayload.java`
 - Create: `src/main/java/dev/quirky/deathcam/DeathCamServer.java`
-- Modify: `src/main/java/dev/quirky/mixin/ServerPlayerMixin.java`（`die` 后发 payload）
+- Create: `src/main/java/dev/quirky/mixin/DeathCamServerMixin.java`（`@Mixin(ServerPlayer.class)`，`die` 方法 `@At("RETURN")` 注入——与现有 ServerPlayerMixin（totem，`dropAllDeathLoot` BEFORE 注入）互不干扰；quirky.mixins.json 追加）
 - Create: `src/client/java/dev/quirky/client/deathcam/DeathCamClient.java`（状态机：`start(pos, yaw) / tick / active() / skip()`）
 - Create: `src/client/java/dev/quirky/client/deathcam/DeathCamTimeline.java`（纯逻辑：t → 相机位置/旋转插值，可单测）
 - Create: `src/client/java/dev/quirky/client/mixin/CameraSetupMixin.java`、`src/client/java/dev/quirky/client/mixin/DeathScreenDelayMixin.java`（`LocalPlayer.die`/死亡界面路径，注入点以 mcsrc 为准）
-- Modify: `src/main/java/dev/quirky/QuirkyMod.java`、`src/client/java/dev/quirky/client/QuirkyModClient.java`、两个 mixins.json
+- Modify: `src/main/java/dev/quirky/QuirkyMod.java`（`DeathCamServer.init()` 追加进 `onInitialize`，EquipSwapServer.init 同款：payload 注册 + receiver）、`src/client/java/dev/quirky/client/QuirkyModClient.java`、`src/main/resources/quirky.mixins.json`、`src/main/resources/quirky.client.mixins.json`
 - Test: `src/test/java/dev/quirky/client/deathcam/DeathCamTimelineTest.java`
 
 **Interfaces:**
@@ -310,7 +309,7 @@ void timelineCirclesDeathPoint() {
 - Create: `src/client/java/dev/quirky/client/mixin/FlameParticleMixin.java`（火焰粒子换 sprite）
 - Create: `src/main/resources/assets/quirky/models/block/soul_candle.json`、`soul_candle_lit.json`（复制原版蜡烛模型 + 火焰纹理换 `textures/block/quirky_soul_candle_flame.png`）
 - Create: `src/main/resources/assets/quirky/textures/block/quirky_soul_candle_flame.png`（16x16 青色火焰，自绘）
-- Modify: `src/client/resources/quirky.client.mixins.json`
+- Modify: `src/main/resources/quirky.client.mixins.json`
 - Test: `src/test/java/dev/quirky/client/soul_lighting/SoulLightingHelperTest.java`
 
 **Interfaces:**
@@ -383,7 +382,7 @@ void defaultMatrixGreensUp() {
 **Files:**
 - Create: `src/client/java/dev/quirky/client/pick_range/PickRangeHelper.java`（纯逻辑：距离选择 + 射线，可单测距离部分）
 - Create: `src/client/java/dev/quirky/client/mixin/PickBlockMixin.java`（`Minecraft.pickBlock`，注入点以 mcsrc 为准）
-- Modify: `src/client/resources/quirky.client.mixins.json`
+- Modify: `src/main/resources/quirky.client.mixins.json`
 - Test: `src/test/java/dev/quirky/client/pick_range/PickRangeHelperTest.java`
 
 **Interfaces:**
@@ -411,7 +410,7 @@ void creativeRangeIsConfigValue() {
 **Files:**
 - Create: `src/client/java/dev/quirky/client/ladder_snap/LadderSnapHelper.java`（纯逻辑：吸附修正向量，可单测）
 - Create: `src/client/java/dev/quirky/client/mixin/LocalPlayerAIStepMixin.java`（`LocalPlayer.aiStep`，注入点以 mcsrc 为准）
-- Modify: `src/client/resources/quirky.client.mixins.json`
+- Modify: `src/main/resources/quirky.client.mixins.json`
 - Test: `src/test/java/dev/quirky/client/ladder_snap/LadderSnapHelperTest.java`
 
 **Interfaces:**
@@ -554,7 +553,7 @@ void onlyPlayersTrigger() {
 **Files:**
 - Create: `src/main/java/dev/quirky/torch_arrow/TorchArrowEntity.java`（extends `Arrow`）
 - Create: `src/main/java/dev/quirky/torch_arrow/TorchArrowItem.java`（extends `ArrowItem`）
-- Modify: `src/main/java/dev/quirky/ModEntities.java`、`ModItems.java`
+- Modify: `src/main/java/dev/quirky/ModEntities.java`（追加 `TORCH_ARROW`：`EntityType.Builder.of(TorchArrowEntity::new, MobCategory.MISC).sized(0.5F, 0.5F).build(TORCH_ARROW_ID)`，ModEntities 现有 TOTEM 同款模式）、`ModItems.java`
 - Create: `src/client/java/dev/quirky/client/torch_arrow/TorchArrowRenderer.java`（extends `ArrowRenderer`，箭头处叠加火把渲染）
 - Create: `src/main/resources/data/quirky/recipe/torch_arrow.json`
 - Create: 资源：`items/torch_arrow.json`、`models/item/torch_arrow.json`、`textures/item/torch_arrow.png`（自绘箭+火把）
