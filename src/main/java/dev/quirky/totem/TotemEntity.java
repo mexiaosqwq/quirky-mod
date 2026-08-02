@@ -46,6 +46,8 @@ public class TotemEntity extends Entity {
 	private static final double PARTICLE_XZ_SPREAD = 0.45;        // 紫符文散布半径（格）
 	private static final double PARTICLE_Y_SPREAD = 0.55;         // 紫符文散布高度（格）
 
+	private int chimeTicks;
+
 	private UUID owner;
 	private List<ItemStackWithSlot> stored = List.of();
 	private final Map<UUID, Integer> hits = new HashMap<>();
@@ -137,7 +139,8 @@ public class TotemEntity extends Entity {
 					0.01
 				);
 			}
-			if (this.random.nextInt(AMBIENT_CHIME_INTERVAL) == 0) {
+			if (++this.chimeTicks >= AMBIENT_CHIME_INTERVAL) {
+				this.chimeTicks = 0;
 				this.playSound(ModSounds.TOTEM_CHIME, AMBIENT_CHIME_VOLUME, AMBIENT_CHIME_PITCH);
 			}
 		}
