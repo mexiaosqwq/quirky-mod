@@ -52,7 +52,7 @@ class QuirkyConfigDefaultsTest {
 	@Test
 	void clientQolTogglesDefaultOn() {
 		QuirkyConfig c = new QuirkyConfig();
-		assertTrue(c.soulLighting && c.greenerGrass && c.shulkerTooltip
+		assertTrue(c.soulLighting && c.shulkerTooltip
 			&& c.foodTooltip && c.attributeTooltip && c.usageTicker
 			&& c.deathCam && c.longPick && c.ladderSnap && c.offhandSwap
 			&& c.goldButton && c.ironButton && c.obsidianPlate
@@ -65,7 +65,6 @@ class QuirkyConfigDefaultsTest {
 	@Test
 	void clientQolParamsWithinBounds() {
 		QuirkyConfig c = new QuirkyConfig();
-		assertTrue(c.grassMultiplier >= 0.5F && c.grassMultiplier <= 1.5F);
 		assertTrue(c.ladderSnapStrength >= 0.1F && c.ladderSnapStrength <= 1.0F);
 		assertTrue(c.tickerHoldTicks >= 20 && c.tickerHoldTicks <= 200);
 		assertTrue(c.deathCamDuration >= 40 && c.deathCamDuration <= 100);

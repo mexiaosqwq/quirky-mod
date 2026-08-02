@@ -47,10 +47,6 @@ public class QuirkyConfig implements ConfigData {
 
 	@ConfigEntry.Category("toggles")
 	@ConfigEntry.Gui.Tooltip
-	public boolean greenerGrass = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
 	public boolean shulkerTooltip = true;
 
 	@ConfigEntry.Category("toggles")
@@ -181,14 +177,6 @@ public class QuirkyConfig implements ConfigData {
 	public int swayPeriod = 20;
 
 	// ==== 客户端实用功能参数 ====
-
-	@ConfigEntry.Category("client_qol")
-	@ConfigEntry.Gui.Tooltip
-	public float grassMultiplier = 1.0F;
-
-	@ConfigEntry.Category("client_qol")
-	@ConfigEntry.Gui.Tooltip
-	public boolean grassAffectLeaves = true;
 
 	@ConfigEntry.Category("client_qol")
 	@ConfigEntry.BoundedDiscrete(min = 20, max = 200)

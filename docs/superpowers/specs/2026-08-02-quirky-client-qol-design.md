@@ -16,7 +16,7 @@
 |---|---|
 | Tooltip 扩展 | 潜影盒 tooltip、食物 tooltip、属性图标 tooltip |
 | HUD 交互 | 使用量挂件、死亡电影镜头 |
-| 渲染 tweak | 灵魂光源、草地增绿 |
+| 渲染 tweak | 灵魂光源（仅粒子） |
 | 交互 tweak | 远距中键拾取、爬梯吸附、装备替换·副手扩展 |
 | 新方块/物品 | 金按钮、铁按钮、黑曜石压力板、火把箭、木漏斗 |
 
@@ -138,19 +138,11 @@
 
 验收：火把插在灵魂沙上火焰粒子青色；敲掉后恢复橙色；方块本体贴图保持原版（不替换）。
 
-### 5.7 草地增绿（客户端）
+### 5.7 草地增绿（客户端）——已移除
 
-行为（对齐 Quark GreenerGrass 源码）：
-- 对草地相关方块的颜色做 3x3 颜色矩阵卷积（Quark 同款：默认对角矩阵 R×0.89、G×1.11、B×0.89——压红蓝提绿，恢复 Alpha/Beta 鲜艳风）。
-- 作用方块：草方块、短草、蕨、大型蕨、甘蔗、盆栽蕨 + 树叶/藤蔓（affectLeaves 开关）。
-- 强度滑块（0.5~1.5，默认 1.0）缩放矩阵对角强度；1.0 = Quark 默认效果，拉低趋近原版。
-- 只影响渲染着色，不改数据。
-
-实现：
-- Fabric `ClientBlockColorProviderCallback` 事件：对目标方块注册包装 provider（委托原 provider 取色 + 矩阵卷积），26.2 对应 API 以本地反编译源码为准。
-- config：`greenerGrass` 开关、`grassMultiplier`（滑条 0.5~1.5，默认 1.0）、`grassAffectLeaves`（默认 true）。
-
-验收：滑块拉高后草地/丛林树叶更鲜艳；1.0 时呈现 Quark 默认增绿；0.5 时接近原版；不影响水色/天空；只改渲染不改存档。
+> 2026-08-02 用户验收：功能无效，放弃排查直接移除（注册链路静态验证正确但运行时未生效，
+> 无日志可定位）。已删除 GreenerGrassClient/GrassColorMatrix 及 config 字段
+> （greenerGrass/grassMultiplier/grassAffectLeaves）与 lang 键。如需恢复可从 git 历史找回。
 
 ### 5.8 远距中键拾取（客户端）
 
@@ -252,10 +244,9 @@
 
 ## 6. 配置项（QuirkyConfig 新增）
 
-toggles 分类新增布尔开关：`soulLighting`、`greenerGrass`、`shulkerTooltip`、`foodTooltip`、`attributeTooltip`、`usageTicker`、`deathCam`、`longPick`、`ladderSnap`、`offhandSwap`、`goldButton`、`ironButton`、`obsidianPlate`、`torchArrow`、`woodenHopper`。
+toggles 分类新增布尔开关：`soulLighting`、`shulkerTooltip`、`foodTooltip`、`attributeTooltip`、`usageTicker`、`deathCam`、`longPick`、`ladderSnap`、`offhandSwap`、`goldButton`、`ironButton`、`obsidianPlate`、`torchArrow`、`woodenHopper`。
 
 参数分类（按功能分组，附 tooltip）：
-- `grassMultiplier`：滑条 0.5~1.5，默认 1.0（Quark 默认增绿强度）；`grassAffectLeaves`：默认 true。
 - `tickerHoldTicks`（20~200，默认 50）、`tickerAnimTicks`（2~20，默认 5）。
 - `deathCamDuration`（40~100 tick，默认 50）。
 - `pickRangeCreative`（16~256，默认 100）、`pickRangeSurvival`（4~64，默认 12）。
@@ -280,7 +271,6 @@ toggles 分类新增布尔开关：`soulLighting`、`greenerGrass`、`shulkerToo
   - 使用量挂件滑入滑出动画流畅、护甲耐久停止后收回；
   - 死亡镜头播放与跳过；
   - 灵魂光源四类方块表现正确、破坏还原；
-  - 草地增绿滑块效果；
   - 远距拾取、爬梯吸附手感。
 
 ## 9. 风险与边界
