@@ -40,7 +40,7 @@ public class TotemEntityRenderer extends EntityRenderer<TotemEntity, TotemEntity
 			poseStack.pushPose();
 			float bob = Mth.sin(state.ageInTicks / 12.0F) * 0.25F;
 			poseStack.translate(0.0F, bob, 0.0F);
-			poseStack.scale(2.0F, 2.0F, 2.0F);
+			poseStack.scale(1.8F, 1.8F, 1.8F);
 			poseStack.mulPose(Axis.YP.rotation(state.ageInTicks / 8.0F));
 			poseStack.mulPose(Axis.XP.rotation(Mth.sin(state.ageInTicks / 20.0F) * 0.08F));
 			state.item.submit(poseStack, submitNodeCollector, 0xF000F0, OverlayTexture.NO_OVERLAY, state.outlineColor);

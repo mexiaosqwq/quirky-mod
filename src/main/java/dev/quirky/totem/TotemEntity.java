@@ -97,19 +97,30 @@ public class TotemEntity extends Entity {
 	public void tick() {
 		super.tick();
 		if (this.level() instanceof ServerLevel serverLevel) {
-			if (this.random.nextInt(6) == 0) {
+			if (this.random.nextInt(4) == 0) {
 				serverLevel.addParticle(
 					ParticleTypes.ENCHANT,
-					this.getX() + (this.random.nextDouble() - 0.5) * 0.8,
-					this.getY() + this.random.nextDouble() * 0.9,
-					this.getZ() + (this.random.nextDouble() - 0.5) * 0.8,
+					this.getX() + (this.random.nextDouble() - 0.5) * 0.9,
+					this.getY() - 0.2 + this.random.nextDouble() * 1.1,
+					this.getZ() + (this.random.nextDouble() - 0.5) * 0.9,
 					0.0,
 					0.05,
 					0.0
 				);
 			}
-			if (this.random.nextInt(160) == 0) {
-				this.playSound(SoundEvents.AMETHYST_BLOCK_CHIME, 0.35F, 1.3F);
+			if (this.random.nextInt(12) == 0) {
+				serverLevel.addParticle(
+					ParticleTypes.END_ROD,
+					this.getX() + (this.random.nextDouble() - 0.5) * 0.7,
+					this.getY() + 0.2 + this.random.nextDouble() * 0.6,
+					this.getZ() + (this.random.nextDouble() - 0.5) * 0.7,
+					0.0,
+					0.02,
+					0.0
+				);
+			}
+			if (this.random.nextInt(100) == 0) {
+				this.playSound(SoundEvents.AMETHYST_BLOCK_CHIME, 0.6F, 1.3F);
 			}
 		}
 	}
