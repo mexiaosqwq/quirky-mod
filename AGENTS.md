@@ -31,7 +31,7 @@ gradle build --no-daemon --console=plain
 - Name mixin classes `XxxMixin` and client mixin accessors `XxxAccessor`.
 - Use `lower_snake_case` for resource paths and `tooltip.quirky.*` for tooltip language keys.
 - Prefer Fabric API events over custom hooks when the API already provides one.
-- Edit files with `apply_patch`; do not use shell redirection to write files.
+- Use the pi `edit`/`write` tools for file edits; do not use shell redirection to write files.
 
 ## Testing Guidelines
 
@@ -81,5 +81,6 @@ This environment does not push to remote repositories; merge and publish locally
 ## Agent-Specific Instructions
 
 - **写实现计划（`docs/superpowers/plans/`）必须过 CodeGraph**：计划中引用的每个项目符号（类名、方法、mixin 注入点、注册模式、资源/配置文件路径）都必须先用 `codegraph explore` 验证与当前代码库一致（`.codegraph/` 存在时），发现不符立即修正计划，不得凭记忆写路径或签名。
+- **项目知识沉淀**：Quirky 特有的教训/机制结论（26.2 API 实测、bug 根因、构建坑）写入 `~/.learnings/LEARNINGS.md`（根 AGENTS.md 约定），不另建记忆目录。
 
 Agents must follow the root `AGENTS.md` constraints and the Superpowers subagent workflow. Dispatched agents must not create nested agents, must report `Status`, build output, and file changes, and must not modify files outside their assigned task scope. External review feedback is verified against the code before being implemented; reviewer suggestions are not applied blindly.
