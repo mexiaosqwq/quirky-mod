@@ -2,6 +2,21 @@
   "totem_chime": {
     "sounds": [
       {
+        "name": "block/amethyst_block/chime1",
+        "volume": 1.0,
+        "attenuation_distance": 64
+      },
+      {
+        "name": "block/amethyst_block/chime2",
+        "volume": 1.0,
+        "attenuation_distance": 64
+      },
+      {
+        "name": "block/amethyst_block/chime3",
+        "volume": 1.0,
+        "attenuation_distance": 64
+      },
+      {
         "name": "block/amethyst_block/chime",
         "volume": 1.0,
         "attenuation_distance": 64
