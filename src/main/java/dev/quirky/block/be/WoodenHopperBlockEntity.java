@@ -6,6 +6,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Container;
 import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.WorldlyContainer;
@@ -16,11 +17,13 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.HopperMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.HopperBlock;
 import net.minecraft.world.level.block.entity.Hopper;
 import net.minecraft.world.level.block.entity.HopperBlockEntity;
 import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 
@@ -132,10 +135,28 @@ public class WoodenHopperBlockEntity extends RandomizableContainerBlockEntity im
 		}
 	}
 
-	/** 把物品吐向 facing 方向的容器（等价原版 {@code HopperBlockEntity.ejectItems}）。 */
+	/** 把物品吐向 facing 方向的容器（等价原版 {@code HopperBlockEntity.ejectItems}）；
+	 *  下方为空且无容器时（仅朝下）把物品从漏斗口漏出为掉落物。 */
 	private static boolean ejectItems(final Level level, final BlockPos blockPos, final WoodenHopperBlockEntity self) {
 		Container container = HopperBlockEntity.getContainerAt(level, blockPos.relative(self.facing));
 		if (container == null) {
+			// 原版铁漏斗无容器方向不排物品；木漏斗朝下且下方为空时漏出成掉落物。
+			// 条件收紧：① 下方必须是空气（否则物品实体会卡进实心方块内部）；
+			// ② block_drops 规则开启（popResource 内部会再次检查该规则并拒绝生成，
+			//    必须先判断，否则物品已被移除却不会生成掉落物——永久吞物）。
+			if (self.facing == Direction.DOWN
+				&& level.isEmptyBlock(blockPos.below())
+				&& level instanceof ServerLevel serverLevel
+				&& serverLevel.getGameRules().get(GameRules.BLOCK_DROPS)) {
+				for (int slot = 0; slot < self.getContainerSize(); slot++) {
+					ItemStack itemStack = self.getItem(slot);
+					if (!itemStack.isEmpty()) {
+						ItemStack drop = self.removeItem(slot, 1);
+						Block.popResourceFromFace(level, blockPos, Direction.DOWN, drop);
+						return true;
+					}
+				}
+			}
 			return false;
 		}
 		Direction direction = self.facing.getOpposite();

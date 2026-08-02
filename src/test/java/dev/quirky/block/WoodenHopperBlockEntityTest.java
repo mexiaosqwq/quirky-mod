@@ -16,7 +16,11 @@ import dev.quirky.block.be.WoodenHopperBlockEntity;
 import dev.quirky.config.QuirkyConfig;
 import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
@@ -24,10 +28,16 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.HopperBlock;
 import net.minecraft.world.level.block.entity.HopperBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.gamerules.GameRules;
+import net.minecraft.world.flag.FeatureFlags;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
+
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.any;
 
 /**
  * 木漏斗行为单测：4 倍慢传输（32 tick 冷却）与红石锁定无效。
@@ -135,6 +145,108 @@ class WoodenHopperBlockEntityTest {
 
 		assertEquals(1, vanilla.getItem(0).getCount());
 		assertEquals(0, vanillaCooldownOf(vanilla));
+	}
+
+	@Test
+	void ejectsItemsAsDropsWhenNoContainerBelow() throws Exception {
+		// 下方无容器（空气）时，木漏斗把物品从漏斗口漏出为掉落物，而不是永远积在漏斗里
+		BlockPos pos = new BlockPos(1, 64, 1);
+		WoodenHopperBlockEntity hopper = hopperWithItems(pos, new ItemStack(Items.STONE, 2));
+		ServerLevel level = mock(ServerLevel.class);
+		when(level.getBlockState(any())).thenReturn(Blocks.AIR.defaultBlockState());
+		when(level.getBlockEntity(any())).thenReturn(null);
+		when(level.isEmptyBlock(any())).thenReturn(true);
+		when(level.getRandom()).thenReturn(RandomSource.create());
+		when(level.getGameRules()).thenReturn(new GameRules(FeatureFlags.DEFAULT_FLAGS));
+
+		WoodenHopperBlockEntity.pushItemsTick(level, pos, ModBlocks.WOODEN_HOPPER.defaultBlockState(), hopper);
+
+		// 移除 1 个物品弹出为掉落物，进入 32 tick 冷却
+		assertEquals(1, hopper.getItem(0).getCount());
+		assertEquals(32, cooldownOf(hopper));
+		verify(level).addFreshEntity(any(ItemEntity.class));
+	}
+
+	@Test
+	void doesNotEjectIntoSolidBlockBelow() throws Exception {
+		// 下方是实心方块（非空气）时不应漏出：掉落物会卡进方块内部不可见
+		BlockPos pos = new BlockPos(1, 64, 1);
+		WoodenHopperBlockEntity hopper = hopperWithItems(pos, new ItemStack(Items.STONE, 2));
+		ServerLevel level = mock(ServerLevel.class);
+		when(level.getBlockState(any())).thenReturn(Blocks.STONE.defaultBlockState());
+		when(level.getBlockEntity(any())).thenReturn(null);
+		when(level.getRandom()).thenReturn(RandomSource.create());
+		when(level.getGameRules()).thenReturn(new GameRules(FeatureFlags.DEFAULT_FLAGS));
+
+		WoodenHopperBlockEntity.pushItemsTick(level, pos, ModBlocks.WOODEN_HOPPER.defaultBlockState(), hopper);
+
+		assertEquals(2, hopper.getItem(0).getCount());
+		verify(level, never()).addFreshEntity(any(ItemEntity.class));
+	}
+
+	@Test
+	void doesNotEjectWhenFacingSideways() throws Exception {
+		// 只有朝下（DOWN）漏出；侧面/上方无容器时保持原版行为（不排物品）
+		BlockPos pos = new BlockPos(1, 64, 1);
+		BlockState facingNorth = ModBlocks.WOODEN_HOPPER.defaultBlockState().setValue(HopperBlock.FACING, Direction.NORTH);
+		WoodenHopperBlockEntity hopper = new WoodenHopperBlockEntity(pos, facingNorth);
+		hopper.setItem(0, new ItemStack(Items.STONE));
+		ServerLevel level = mock(ServerLevel.class);
+		when(level.getBlockState(any())).thenReturn(Blocks.AIR.defaultBlockState());
+		when(level.getBlockEntity(any())).thenReturn(null);
+		when(level.isEmptyBlock(any())).thenReturn(true);
+		when(level.getRandom()).thenReturn(RandomSource.create());
+		when(level.getGameRules()).thenReturn(new GameRules(FeatureFlags.DEFAULT_FLAGS));
+
+		WoodenHopperBlockEntity.pushItemsTick(level, pos, facingNorth, hopper);
+
+		assertEquals(1, hopper.getItem(0).getCount());
+		verify(level, never()).addFreshEntity(any(ItemEntity.class));
+	}
+
+	@Test
+	void doesNotEjectWhenBlockDropsDisabled() throws Exception {
+		// block_drops 游戏规则关闭时：popResource 不会生成掉落物，若先移除物品会造成永久吞物
+		BlockPos pos = new BlockPos(1, 64, 1);
+		WoodenHopperBlockEntity hopper = hopperWithItems(pos, new ItemStack(Items.STONE, 2));
+		ServerLevel level = mock(ServerLevel.class);
+		when(level.getBlockState(any())).thenReturn(Blocks.AIR.defaultBlockState());
+		when(level.getBlockEntity(any())).thenReturn(null);
+		when(level.isEmptyBlock(any())).thenReturn(true);
+		when(level.getRandom()).thenReturn(RandomSource.create());
+		GameRules rules = mock(GameRules.class);
+		when(rules.get(GameRules.BLOCK_DROPS)).thenReturn(Boolean.FALSE);
+		when(level.getGameRules()).thenReturn(rules);
+
+		WoodenHopperBlockEntity.pushItemsTick(level, pos, ModBlocks.WOODEN_HOPPER.defaultBlockState(), hopper);
+
+		assertEquals(2, hopper.getItem(0).getCount());
+		verify(level, never()).addFreshEntity(any(ItemEntity.class));
+	}
+
+	@Test
+	void doesNotEjectWhenContainerBelowIsFull() throws Exception {
+		// 下方是容器但已满：走原版 isFullContainer 分支，不漏出
+		BlockPos pos = new BlockPos(1, 64, 1);
+		WoodenHopperBlockEntity hopper = hopperWithItems(pos, new ItemStack(Items.STONE));
+		WoodenHopperBlockEntity target = emptyTarget(pos.below());
+		for (int i = 0; i < target.getContainerSize(); i++) {
+			target.setItem(i, new ItemStack(Items.STONE, 64));
+		}
+		ServerLevel level = mock(ServerLevel.class);
+		when(level.getBlockState(any())).thenReturn(Blocks.AIR.defaultBlockState());
+		BlockState targetState = mock(BlockState.class);
+		when(targetState.hasBlockEntity()).thenReturn(true);
+		when(targetState.getBlock()).thenReturn(ModBlocks.WOODEN_HOPPER);
+		when(level.getBlockState(pos.below())).thenReturn(targetState);
+		when(level.getBlockEntity(pos.below())).thenReturn(target);
+		when(level.getRandom()).thenReturn(RandomSource.create());
+		when(level.getGameRules()).thenReturn(new GameRules(FeatureFlags.DEFAULT_FLAGS));
+
+		WoodenHopperBlockEntity.pushItemsTick(level, pos, ModBlocks.WOODEN_HOPPER.defaultBlockState(), hopper);
+
+		assertEquals(1, hopper.getItem(0).getCount());
+		verify(level, never()).addFreshEntity(any(ItemEntity.class));
 	}
 
 	private static WoodenHopperBlockEntity hopperWithItems(BlockPos pos, ItemStack... stacks) {
