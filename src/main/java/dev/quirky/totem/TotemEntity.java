@@ -97,30 +97,35 @@ public class TotemEntity extends Entity {
 	public void tick() {
 		super.tick();
 		if (this.level() instanceof ServerLevel serverLevel) {
+			// 26.2 服务端粒子必须用 sendParticles（Level.addParticle 是空实现，仅 ClientLevel 覆盖）
 			if (this.random.nextInt(4) == 0) {
-				serverLevel.addParticle(
+				serverLevel.sendParticles(
 					ParticleTypes.ENCHANT,
-					this.getX() + (this.random.nextDouble() - 0.5) * 0.9,
-					this.getY() - 0.2 + this.random.nextDouble() * 1.1,
-					this.getZ() + (this.random.nextDouble() - 0.5) * 0.9,
-					0.0,
-					0.05,
-					0.0
+					this.getX(),
+					this.getY() + 0.3,
+					this.getZ(),
+					1,
+					0.45,
+					0.55,
+					0.45,
+					0.02
 				);
 			}
 			if (this.random.nextInt(12) == 0) {
-				serverLevel.addParticle(
+				serverLevel.sendParticles(
 					ParticleTypes.END_ROD,
-					this.getX() + (this.random.nextDouble() - 0.5) * 0.7,
-					this.getY() + 0.2 + this.random.nextDouble() * 0.6,
-					this.getZ() + (this.random.nextDouble() - 0.5) * 0.7,
-					0.0,
-					0.02,
-					0.0
+					this.getX(),
+					this.getY() + 0.5,
+					this.getZ(),
+					1,
+					0.35,
+					0.3,
+					0.35,
+					0.01
 				);
 			}
 			if (this.random.nextInt(100) == 0) {
-				this.playSound(SoundEvents.AMETHYST_BLOCK_CHIME, 0.6F, 1.3F);
+				this.playSound(SoundEvents.AMETHYST_BLOCK_CHIME, 1.2F, 1.3F);
 			}
 		}
 	}
