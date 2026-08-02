@@ -84,7 +84,7 @@ Mixin 注入 `ServerPlayer.die` 中 `dropAllDeathLoot(...)` 调用**之前**：�
 
 ### 4.4 物品与贴图
 
-- `quirky:totem_of_holding` 物品（用于实体渲染，也进创造页签供演示）
+- `quirky:totem_of_holding` 物品（**纯内部渲染素材**：死亡点图腾实体显示用，不进创造页签，玩家正常游玩拿不到）
 - 贴图 16x16，**先出预览图经用户确认后再落地**
 - 渲染：实体渲染器直接渲染该物品的 ItemStack 模型，带浮动/旋转
 
