@@ -502,7 +502,7 @@ git commit -m "feat: add toggle checks to all server-side mechanics"
 
 **Files:**
 - Modify: `src/main/java/dev/quirky/mixin/MapTooltipMixin.java`（quirky$mapTooltip 开头）
-- Modify: `src/client/java/dev/quirky/client/mixin/ClockCompassTooltipMixin.java`（quirky$appendTooltip 开头）
+- Modify: `src/client/java/dev/quirky/client/mixin/ClockTooltipMixin.java`（quirky$appendTooltip 开头）
 - Create: `src/client/java/dev/quirky/client/config/ModMenuIntegration.java`
 
 **Interfaces:**
@@ -518,7 +518,7 @@ git commit -m "feat: add toggle checks to all server-side mechanics"
 		}
 ```
 
-- [ ] **Step 2: ClockCompassTooltipMixin 加开关**
+- [ ] **Step 2: ClockTooltipMixin 加开关**
 
 `quirky$appendTooltip` 方法开头（`ItemStack stack = ...` 之前）加：
 ```java
@@ -553,7 +553,7 @@ Expected: BUILD SUCCESSFUL（modmenu 为 compileOnly，编译期有类即可）
 - [ ] **Step 5: 提交**
 
 ```bash
-git add src/main/java/dev/quirky/mixin/MapTooltipMixin.java src/client/java/dev/quirky/client/mixin/ClockCompassTooltipMixin.java src/client/java/dev/quirky/client/config/ModMenuIntegration.java
+git add src/main/java/dev/quirky/mixin/MapTooltipMixin.java src/client/java/dev/quirky/client/mixin/ClockTooltipMixin.java src/client/java/dev/quirky/client/config/ModMenuIntegration.java
 git commit -m "feat: add client mechanic toggles and modmenu integration"
 ```
 
@@ -689,7 +689,7 @@ git commit -m "feat: read totem tuning params from config instead of constants"
 ### 9. 所有机制可开关、图腾手感可调
 
 接入 Cloth Config API。游戏内 ModMenu → Quirky 配置界面（或编辑 `config/quirky.json5`）：
-- **机制开关**：8 个机制全部可独立禁用（地图预览、收割补种、双开门、时钟信息、云瓶、背包装备替换、吃瓜吐籽、保留图腾），关掉即恢复原版行为
+- **机制开关**：8 个机制全部可独立禁用（地图预览、收割补种、双开门、时钟信息、云瓶、快速装备、吃瓜吐籽、保留图腾），关掉即恢复原版行为
 - **图腾参数**：击打次数、音效音量/音高、粒子频率与散布、渲染尺寸/浮动/旋转/摇摆
 - 专用服务器：服主编辑服务器目录 `config/quirky.json5` 后 `/quirky reload` 热重载（需要权限等级 2）；客户端玩家修改只影响自己本地的渲染参数
 ```

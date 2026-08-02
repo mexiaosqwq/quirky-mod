@@ -46,14 +46,14 @@ Quirky 是**双端 mod**（客户端渲染/交互 + 服务端机制逻辑），A
 | doubleDoor | 双开门联动（服务端） | `DoubleDoorMixin` 直接 return |
 | clockTooltip | 时钟悬浮信息（客户端） | `ClockTooltipMixin` 直接 return |
 | cloudBottle | 云瓶（服务端） | `BottledCloudItem.use` 返回失败（不放置） |
-| equipSwap | 背包右键装备替换（服务端权威） | `EquipSwapServer.handle` 收到包直接忽略 |
+| equipSwap | 背包右键快速装备（服务端权威） | `EquipSwapServer.handle` 收到包直接忽略 |
 | melonSeed | 吃西瓜吐籽（服务端） | `MelonSeedMixin` 直接 return |
 | totemOfHolding | 保留图腾（服务端） | `ServerPlayerMixin` 死亡拦截直接 return（不生成） |
 
 **开关语义（边界明确）**：
 - 图腾开关只影响"死亡时是否生成"；**已存在的图腾实体照常可击打取回**（不困死玩家物品）
 - 云瓶开关影响"能否放置"；已存在的云块不处理
-- 装备替换开关在服务端 `handle` 入口检查（权威，对所有玩家统一）；客户端发包前不检查（省流量优化非必要，保持简单）
+- 快速装备开关在服务端 `handle` 入口检查（权威，对所有玩家统一）；客户端发包前不检查（省流量优化非必要，保持简单）
 - 开关检查放在 mixin/入口薄层，纯逻辑类（`TotemOfHoldingLogic` 等）不感知配置
 
 ### 4.2 totem 分类（图腾手感参数，8 服务端 + 6 客户端 = 14 项）
