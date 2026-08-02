@@ -67,7 +67,7 @@ public class TotemEntity extends Entity {
 			if (count >= HITS_TO_RETRIEVE) {
 				this.retrieveFor(player);
 			} else {
-				this.playSound(SoundEvents.STONE_HIT, 0.5F, 1.4F);
+				this.playSound(SoundEvents.STONE_HIT, 1.0F, 1.0F);
 			}
 		}
 		return false;

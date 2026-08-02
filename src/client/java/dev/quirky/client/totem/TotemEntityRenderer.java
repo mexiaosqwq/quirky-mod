@@ -38,7 +38,7 @@ public class TotemEntityRenderer extends EntityRenderer<TotemEntity, TotemEntity
 	public void submit(TotemEntityRenderState state, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState camera) {
 		if (!state.item.isEmpty()) {
 			poseStack.pushPose();
-			float bob = Mth.sin(state.ageInTicks / 12.0F) * 0.25F + 0.5F;
+			float bob = Mth.sin(state.ageInTicks / 12.0F) * 0.25F + 2.5F;
 			poseStack.translate(0.0F, bob, 0.0F);
 			poseStack.mulPose(Axis.YP.rotation(state.ageInTicks / 8.0F));
 			poseStack.mulPose(Axis.XP.rotation(Mth.sin(state.ageInTicks / 20.0F) * 0.08F));
