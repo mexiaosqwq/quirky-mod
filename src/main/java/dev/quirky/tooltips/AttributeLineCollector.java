@@ -26,12 +26,14 @@ public final class AttributeLineCollector {
 	/** 玩家基础攻击速度（Attributes.DEFAULT_ATTACK_SPEED） */
 	private static final double PLAYER_BASE_ATTACK_SPEED = 4.0;
 
-	private static final Identifier ATTACK_DAMAGE_ICON = QuirkyMod.id("gui/quirky/attribute/attack_damage");
-	private static final Identifier ATTACK_SPEED_ICON = QuirkyMod.id("gui/quirky/attribute/attack_speed");
-	private static final Identifier ARMOR_ICON = QuirkyMod.id("gui/quirky/attribute/armor");
-	private static final Identifier TOUGHNESS_ICON = QuirkyMod.id("gui/quirky/attribute/toughness");
-	private static final Identifier KNOCKBACK_ICON = QuirkyMod.id("gui/quirky/attribute/knockback");
-	private static final Identifier MOVEMENT_ICON = QuirkyMod.id("gui/quirky/attribute/movement");
+	// 26.2 GUI sprite 系统：sprite id 路径映射到 textures/gui/sprites/<path>.png
+	// （atlases/gui.json 只扫描 gui/sprites 目录，id 不能带 gui/ 前缀）
+	private static final Identifier ATTACK_DAMAGE_ICON = QuirkyMod.id("attribute/attack_damage");
+	private static final Identifier ATTACK_SPEED_ICON = QuirkyMod.id("attribute/attack_speed");
+	private static final Identifier ARMOR_ICON = QuirkyMod.id("attribute/armor");
+	private static final Identifier TOUGHNESS_ICON = QuirkyMod.id("attribute/toughness");
+	private static final Identifier KNOCKBACK_ICON = QuirkyMod.id("attribute/knockback");
+	private static final Identifier MOVEMENT_ICON = QuirkyMod.id("attribute/movement");
 
 	private AttributeLineCollector() {
 	}

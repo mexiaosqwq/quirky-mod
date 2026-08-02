@@ -87,6 +87,6 @@ class AttributeLineCollectorTest {
 	}
 
 	private static AttributeLine line(String icon, String text) {
-		return new AttributeLine(QuirkyMod.id("gui/quirky/attribute/" + icon), text);
+		return new AttributeLine(QuirkyMod.id("attribute/" + icon), text);
 	}
 }
