@@ -14,6 +14,14 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 
 public class TotemEntityRenderer extends EntityRenderer<TotemEntity, TotemEntityRenderState> {
+	// ==== 手感参数区（集中调参）====
+	private static final float MODEL_SCALE = 1.8F;          // 图腾显示倍率（1.0 = 原物品大小）
+	private static final float BOB_AMPLITUDE = 0.25F;       // 上下浮动幅度（格）
+	private static final float BOB_PERIOD = 12.0F;          // 浮动周期（tick，数值越大越慢）
+	private static final float SPIN_PERIOD = 8.0F;          // 旋转周期（tick，数值越大越慢）
+	private static final float SWAY_AMPLITUDE = 0.08F;      // 左右摇摆幅度（弧度）
+	private static final float SWAY_PERIOD = 20.0F;         // 摇摆周期（tick）
+
 	private final ItemModelResolver itemModelResolver;
 
 	public TotemEntityRenderer(EntityRendererProvider.Context context) {
@@ -38,11 +46,11 @@ public class TotemEntityRenderer extends EntityRenderer<TotemEntity, TotemEntity
 	public void submit(TotemEntityRenderState state, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState camera) {
 		if (!state.item.isEmpty()) {
 			poseStack.pushPose();
-			float bob = Mth.sin(state.ageInTicks / 12.0F) * 0.25F;
+			float bob = Mth.sin(state.ageInTicks / BOB_PERIOD) * BOB_AMPLITUDE;
 			poseStack.translate(0.0F, bob, 0.0F);
-			poseStack.scale(1.8F, 1.8F, 1.8F);
-			poseStack.mulPose(Axis.YP.rotation(state.ageInTicks / 8.0F));
-			poseStack.mulPose(Axis.XP.rotation(Mth.sin(state.ageInTicks / 20.0F) * 0.08F));
+			poseStack.scale(MODEL_SCALE, MODEL_SCALE, MODEL_SCALE);
+			poseStack.mulPose(Axis.YP.rotation(state.ageInTicks / SPIN_PERIOD));
+			poseStack.mulPose(Axis.XP.rotation(Mth.sin(state.ageInTicks / SWAY_PERIOD) * SWAY_AMPLITUDE));
 			state.item.submit(poseStack, submitNodeCollector, 0xF000F0, OverlayTexture.NO_OVERLAY, state.outlineColor);
 			poseStack.popPose();
 			super.submit(state, poseStack, submitNodeCollector, camera);

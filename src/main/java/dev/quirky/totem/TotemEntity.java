@@ -33,6 +33,18 @@ public class TotemEntity extends Entity {
 	// so the map key uses UUIDUtil.STRING_CODEC (UUID.toString / UUID.fromString).
 	private static final Codec<Map<UUID, Integer>> HITS_CODEC = Codec.unboundedMap(UUIDUtil.STRING_CODEC, Codec.INT);
 
+	// ==== 手感参数区（集中调参）====
+	private static final float HIT_SOUND_VOLUME = 1.0F;          // 击打反馈音音量（>1 只拉长衰减距离，响度 clamp 1.0）
+	private static final float HIT_SOUND_PITCH = 1.0F;            // 击打反馈音高
+	private static final float RETRIEVE_SOUND_VOLUME = 0.5F;      // 取回音效音量
+	private static final float AMBIENT_CHIME_VOLUME = 4.8F;       // 环境叮声音量：衰减距离 = 音量×16 格（当前 ~77 格）
+	private static final float AMBIENT_CHIME_PITCH = 1.3F;        // 环境叮声音高（高=更清脆）
+	private static final int AMBIENT_CHIME_INTERVAL = 100;        // 环境音间隔 tick（100 ≈ 5 秒一次，调大更稀）
+	private static final int ENCHANT_PARTICLE_CHANCE = 4;         // 紫符文粒子：每 tick 1/N 概率（调大更稀）
+	private static final int END_ROD_PARTICLE_CHANCE = 12;        // 白光点粒子：每 tick 1/N 概率
+	private static final double PARTICLE_XZ_SPREAD = 0.45;        // 紫符文散布半径（格）
+	private static final double PARTICLE_Y_SPREAD = 0.55;         // 紫符文散布高度（格）
+
 	private UUID owner;
 	private List<ItemStackWithSlot> stored = List.of();
 	private final Map<UUID, Integer> hits = new HashMap<>();
@@ -68,7 +80,7 @@ public class TotemEntity extends Entity {
 			if (count >= HITS_TO_RETRIEVE) {
 				this.retrieveFor(player);
 			} else {
-				this.playSound(SoundEvents.AMETHYST_BLOCK_HIT, 1.0F, 1.0F);
+				this.playSound(SoundEvents.AMETHYST_BLOCK_HIT, HIT_SOUND_VOLUME, HIT_SOUND_PITCH);
 			}
 		}
 		return false;
@@ -78,7 +90,7 @@ public class TotemEntity extends Entity {
 		for (ItemStack stack : TotemOfHoldingLogic.restoreToPlayer(player, this.stored)) {
 			this.spawnAtLocation((ServerLevel) this.level(), stack);
 		}
-		this.playSound(SoundEvents.TOTEM_USE, 0.5F, 1.0F);
+		this.playSound(SoundEvents.TOTEM_USE, RETRIEVE_SOUND_VOLUME, 1.0F);
 		this.discard();
 	}
 
@@ -98,20 +110,20 @@ public class TotemEntity extends Entity {
 		super.tick();
 		if (this.level() instanceof ServerLevel serverLevel) {
 			// 26.2 服务端粒子必须用 sendParticles（Level.addParticle 是空实现，仅 ClientLevel 覆盖）
-			if (this.random.nextInt(4) == 0) {
+			if (this.random.nextInt(ENCHANT_PARTICLE_CHANCE) == 0) {
 				serverLevel.sendParticles(
 					ParticleTypes.ENCHANT,
 					this.getX(),
 					this.getY() + 0.3,
 					this.getZ(),
 					1,
-					0.45,
-					0.55,
-					0.45,
+					PARTICLE_XZ_SPREAD,
+					PARTICLE_Y_SPREAD,
+					PARTICLE_XZ_SPREAD,
 					0.02
 				);
 			}
-			if (this.random.nextInt(12) == 0) {
+			if (this.random.nextInt(END_ROD_PARTICLE_CHANCE) == 0) {
 				serverLevel.sendParticles(
 					ParticleTypes.END_ROD,
 					this.getX(),
@@ -124,8 +136,8 @@ public class TotemEntity extends Entity {
 					0.01
 				);
 			}
-			if (this.random.nextInt(100) == 0) {
-				this.playSound(SoundEvents.AMETHYST_BLOCK_CHIME, 4.8F, 1.3F);
+			if (this.random.nextInt(AMBIENT_CHIME_INTERVAL) == 0) {
+				this.playSound(SoundEvents.AMETHYST_BLOCK_CHIME, AMBIENT_CHIME_VOLUME, AMBIENT_CHIME_PITCH);
 			}
 		}
 	}
