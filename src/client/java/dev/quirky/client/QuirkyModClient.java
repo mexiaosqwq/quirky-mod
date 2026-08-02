@@ -7,6 +7,7 @@ import dev.quirky.client.tooltips.ClientFoodTooltipComponent;
 import dev.quirky.client.tooltips.ClientMapTooltipComponent;
 import dev.quirky.client.tooltips.ClientShulkerTooltipComponent;
 import dev.quirky.client.totem.TotemEntityRenderer;
+import dev.quirky.client.usage_ticker.UsageTickerHud;
 import dev.quirky.tooltips.AttributeTooltipComponent;
 import dev.quirky.tooltips.FoodTooltipComponent;
 import dev.quirky.tooltips.MapTooltipComponent;
@@ -19,6 +20,7 @@ public class QuirkyModClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		EquipSwapClient.init();
+		UsageTickerHud.init();
 		ClientTooltipComponentCallback.EVENT.register(component -> {
 			if (component instanceof MapTooltipComponent map) {
 				return new ClientMapTooltipComponent(map.mapId());
