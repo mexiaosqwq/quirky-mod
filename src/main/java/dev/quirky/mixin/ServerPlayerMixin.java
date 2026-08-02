@@ -49,6 +49,9 @@ public class ServerPlayerMixin {
 		BlockPos pos = player.blockPosition();
 		if (pos.getY() < 0) {
 			pos = pos.atY(0);
+		} else {
+			// 土径/耕地等非整高方块顶部死亡：blockPosition() floor 取整使基准低 1 格，图腾贴地——上移一格修正
+			pos = TotemOfHoldingLogic.raiseSpawnBase(player.getY(), pos);
 		}
 		BlockPos totemSpot = TotemOfHoldingLogic.findSpawnPosition(player.level(), pos);
 		totem.setPos(pos.getX() + 0.5, totemSpot.getY() + 0.5, pos.getZ() + 0.5);

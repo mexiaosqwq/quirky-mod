@@ -186,4 +186,21 @@ class TotemOfHoldingLogicTest {
 
 		assertEquals(65, result.getY()); // 全堵时兜底死亡点上方 1 格
 	}
+
+	// ---- raiseSpawnBase 非整高方块基准修正（土径贴地 bug 回归）----
+
+	@Test
+	void raiseSpawnBase_keepsIntegerFeetYUnchanged() {
+		BlockPos pos = new BlockPos(1, 64, 1);
+
+		assertEquals(pos, TotemOfHoldingLogic.raiseSpawnBase(65.0, pos)); // 完整方块：脚底整数，不动
+	}
+
+	@Test
+	void raiseSpawnBase_raisesOnFractionalFeetY() {
+		BlockPos pos = new BlockPos(1, 64, 1);
+
+		// 土径/耕地（高 15/16）顶部站立：脚底 64.9375 → blockPosition() floor 成 64，基准低 1 格
+		assertEquals(new BlockPos(1, 65, 1), TotemOfHoldingLogic.raiseSpawnBase(64.9375, pos));
+	}
 }

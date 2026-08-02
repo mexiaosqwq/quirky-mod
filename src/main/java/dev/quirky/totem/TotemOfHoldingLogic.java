@@ -40,6 +40,15 @@ public final class TotemOfHoldingLogic {
 	}
 
 	/**
+	 * 非整高方块（土径/耕地/半砖/雪层等）顶部站立时，blockPosition() 的 floor 取整
+	 * 会让死亡基准凭空低 1 格（如脚底 64.9375 → floor 成 64），导致图腾贴地。
+	 * 脚底坐标带小数即视为站在非整高方块顶部，基准上移一格；整数脚底不动。
+	 */
+	public static BlockPos raiseSpawnBase(double feetY, BlockPos pos) {
+		return feetY - Math.floor(feetY) > 0.001 ? pos.above() : pos;
+	}
+
+	/**
 	 * 自适应悬浮位置：从死亡点上方 1 格起，在玩家可攻击范围内（最多 2 格）
 	 * 找 2 格连续空气（图腾本身 + 上方空间）；全堵时兜底上方 1 格。
 	 */
