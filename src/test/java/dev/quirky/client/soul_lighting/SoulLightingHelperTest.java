@@ -86,6 +86,20 @@ class SoulLightingHelperTest {
 	}
 
 	@Test
+	void lightSourceCheck() {
+		assertTrue(SoulLightingHelper.isLightSource(Blocks.TORCH.defaultBlockState()));
+		assertTrue(SoulLightingHelper.isLightSource(Blocks.WALL_TORCH.defaultBlockState()));
+		assertTrue(SoulLightingHelper.isLightSource(Blocks.LANTERN.defaultBlockState()));
+		assertTrue(SoulLightingHelper.isLightSource(Blocks.CANDLE.defaultBlockState()));
+		// 灵魂变体本身不再是可被替换的光源
+		assertFalse(SoulLightingHelper.isLightSource(Blocks.SOUL_TORCH.defaultBlockState()));
+		assertFalse(SoulLightingHelper.isLightSource(Blocks.SOUL_LANTERN.defaultBlockState()));
+		// 产生 FLAME 粒子的非光源方块（熔炉等）不得被灵魂化
+		assertFalse(SoulLightingHelper.isLightSource(Blocks.FURNACE.defaultBlockState()));
+		assertFalse(SoulLightingHelper.isLightSource(Blocks.DIRT.defaultBlockState()));
+	}
+
+	@Test
 	void candleLitSpriteMapsToSoulFlameTexture() {
 		assertEquals(
 			Identifier.fromNamespaceAndPath("quirky", "block/quirky_soul_candle_flame"),

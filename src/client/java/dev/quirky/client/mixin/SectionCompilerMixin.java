@@ -1,5 +1,6 @@
 package dev.quirky.client.mixin;
 
+import dev.quirky.client.soul_lighting.SoulLightingHelper;
 import dev.quirky.client.soul_lighting.SoulLightingModels;
 import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.client.renderer.block.BlockAndTintGetter;
@@ -42,7 +43,9 @@ public abstract class SectionCompilerMixin {
 		BlockStateModel model,
 		long seed
 	) {
-		if (QuirkyConfigHolder.get().soulLighting) {
+		// 先按方块类型过滤，避免对区块内每个方块都做一次下方方块（y-1）查询；
+		// 只有光源方块（火把/灯笼/蜡烛）才需要动态判定下方是否为灵魂方块。
+		if (QuirkyConfigHolder.get().soulLighting && SoulLightingHelper.isLightSource(blockState)) {
 			model = SoulLightingModels.resolve(blockState, level.getBlockState(pos.below()), model);
 		}
 		renderer.tesselateBlock(output, x, y, z, level, pos, blockState, model, seed);

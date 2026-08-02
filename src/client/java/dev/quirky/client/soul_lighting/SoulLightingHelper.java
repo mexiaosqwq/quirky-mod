@@ -25,6 +25,16 @@ public final class SoulLightingHelper {
 	}
 
 	/**
+	 * 是否为可被灵魂化的光源方块（火把/墙上火把/灯笼/蜡烛）。
+	 * 灵魂火把/灵魂灯笼本身已是灵魂变体，不在此列；
+	 * 熔炉/刷怪笼等也会产生 FLAME 粒子的方块不在此列（见 FlameParticleMixin）。
+	 */
+	public static boolean isLightSource(BlockState state) {
+		Block block = state.getBlock();
+		return block == Blocks.TORCH || block == Blocks.WALL_TORCH || block == Blocks.LANTERN || block instanceof CandleBlock;
+	}
+
+	/**
 	 * 解析灵魂变体模型 id。
 	 *
 	 * @return 下方为灵魂方块且光源匹配时返回灵魂模型 id
@@ -34,7 +44,7 @@ public final class SoulLightingHelper {
 	 */
 	@Nullable
 	public static Identifier resolve(BlockState state, BlockState below) {
-		if (!isSoulBlock(below)) {
+		if (!isSoulBlock(below) || !isLightSource(state)) {
 			return null;
 		}
 		Block block = state.getBlock();
@@ -44,11 +54,8 @@ public final class SoulLightingHelper {
 		if (block == Blocks.LANTERN) {
 			return Identifier.withDefaultNamespace("block/soul_lantern");
 		}
-		if (block instanceof CandleBlock) {
-			boolean lit = state.getValue(AbstractCandleBlock.LIT);
-			return Identifier.fromNamespaceAndPath("quirky", lit ? "block/soul_candle_lit" : "block/soul_candle");
-		}
-		return null;
+		boolean lit = state.getValue(AbstractCandleBlock.LIT);
+		return Identifier.fromNamespaceAndPath("quirky", lit ? "block/soul_candle_lit" : "block/soul_candle");
 	}
 
 	/**

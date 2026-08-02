@@ -37,7 +37,14 @@ public abstract class FlameParticleMixin {
 		if (!QuirkyConfigHolder.get().soulLighting) {
 			return;
 		}
-		if (SoulLightingHelper.isSoulBlock(level.getBlockState(BlockPos.containing(x, y - 1.0, z)))) {
+		// 只处理火把/蜡烛自身产生的火焰粒子：粒子所在方块必须是光源方块本身，
+		// 且其正下方（y-1）为灵魂方块。熔炉/刷怪笼等也生成 FLAME 粒子，
+		// 但它们不是光源方块，不会误替换。
+		BlockPos pos = BlockPos.containing(x, y, z);
+		if (!SoulLightingHelper.isLightSource(level.getBlockState(pos))) {
+			return;
+		}
+		if (SoulLightingHelper.isSoulBlock(level.getBlockState(pos.below()))) {
 			this.setSprite(SoulLightingModels.soulFlameSprite());
 		}
 	}
