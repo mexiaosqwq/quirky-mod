@@ -82,10 +82,6 @@ public class ServerPlayerMixin {
 			player.sendSystemMessage(Component.translatable("message.quirky.totem_spawned_cross",
 				dimensionName, pos.getX(), pos.getY(), pos.getZ()));
 		}
-		if (offset >= 5) {
-			// 超过徒手攻击范围（眼睛 1.62 + 3 格射线 ≈ 4.6 格）：提示需搭方块取回
-			player.sendSystemMessage(Component.translatable("message.quirky.totem_spawned_high", offset));
-		}
 		player.getInventory().clearContent();
 	}
 }

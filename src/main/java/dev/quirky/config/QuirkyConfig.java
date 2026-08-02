@@ -44,7 +44,7 @@ public class QuirkyConfig implements ConfigData {
 	// ==== 图腾手感参数（服务端）====
 
 	@ConfigEntry.Category("totem")
-	@ConfigEntry.BoundedDiscrete(min = 1, max = 10)
+	@ConfigEntry.BoundedDiscrete(min = 1, max = 2)
 	@ConfigEntry.Gui.Tooltip
 	public int spawnHeightOffset = 1;
 
