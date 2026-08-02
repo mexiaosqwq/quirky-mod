@@ -1,14 +1,22 @@
 package dev.quirky.block;
 
+import dev.quirky.config.QuirkyConfigHolder;
+import net.minecraft.core.BlockPos;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.ButtonBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockSetType;
+import net.minecraft.world.phys.BlockHitResult;
 
 /**
  * 金/铁按钮：按下保持时长（holdTicks，红石刻）在构造时指定，
  * 其余行为与 {@link ButtonBlock} 原版一致（六面放置、红石输出、活塞不可推动、箭不可触发）。
+ * 运行时受 {@code goldButton}/{@code ironButton} 配置开关控制（review D2：热切换生效）。
  */
 public class MetalButtonBlock extends ButtonBlock {
 	/**
@@ -33,11 +41,13 @@ public class MetalButtonBlock extends ButtonBlock {
 	);
 
 	private final int holdTicks;
+	private final boolean gold;
 
-	public MetalButtonBlock(final BlockSetType type, final int holdTicks, final BlockBehaviour.Properties properties) {
+	public MetalButtonBlock(final BlockSetType type, final int holdTicks, final boolean gold, final BlockBehaviour.Properties properties) {
 		super(type, holdTicks, properties);
 		// 父类 ButtonBlock 的 ticksToStayPressed 是 private，镜像存储一份供测试可读性（review S6）
 		this.holdTicks = holdTicks;
+		this.gold = gold;
 	}
 
 	/**
@@ -45,5 +55,14 @@ public class MetalButtonBlock extends ButtonBlock {
 	 */
 	public static int holdTicksOf(final MetalButtonBlock button) {
 		return button.holdTicks;
+	}
+
+	@Override
+	protected InteractionResult useWithoutItem(final BlockState state, final Level level, final BlockPos pos, final Player player, final BlockHitResult hitResult) {
+		boolean enabled = this.gold ? QuirkyConfigHolder.get().goldButton : QuirkyConfigHolder.get().ironButton;
+		if (!enabled) {
+			return InteractionResult.PASS;
+		}
+		return super.useWithoutItem(state, level, pos, player, hitResult);
 	}
 }

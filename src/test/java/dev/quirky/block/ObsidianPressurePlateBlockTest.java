@@ -8,6 +8,8 @@ import static org.mockito.Mockito.when;
 
 import dev.quirky.ModBlocks;
 import dev.quirky.TestBootstrap;
+import dev.quirky.config.QuirkyConfig;
+import dev.quirky.config.QuirkyConfigHolder;
 import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
@@ -45,5 +47,20 @@ class ObsidianPressurePlateBlockTest {
 			.thenReturn(List.of());
 
 		assertEquals(0, ModBlocks.OBSIDIAN_PRESSURE_PLATE.getSignalStrength(level, pos));
+	}
+
+	/** 开关关闭时恒无信号，且不查询实体（review D2 热切换拦截）。 */
+	@Test
+	void plateDisabledByConfigGivesNoSignal() {
+		QuirkyConfigHolder.set(new QuirkyConfig());
+		try {
+			QuirkyConfigHolder.get().obsidianPlate = false;
+			Level level = mock(Level.class);
+			BlockPos pos = new BlockPos(1, 64, 1);
+
+			assertEquals(0, ModBlocks.OBSIDIAN_PRESSURE_PLATE.getSignalStrength(level, pos));
+		} finally {
+			QuirkyConfigHolder.set(new QuirkyConfig());
+		}
 	}
 }
