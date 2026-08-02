@@ -42,7 +42,6 @@ package dev.quirky.totem;
 import dev.quirky.TestBootstrap;
 import net.minecraft.world.ItemStackWithSlot;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.entity.EntityEquipment;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -174,8 +173,6 @@ class TotemOfHoldingLogicTest {
 		assertEquals(1, overflow.size());
 		assertTrue(overflow.getFirst().is(Items.DIAMOND_SWORD));
 	}
-
-	// DamageTypes import 仅为锚定：近战判定在任务 2 用 source.is(DamageTypes.PLAYER_ATTACK)
 }
 ```
 
@@ -293,6 +290,8 @@ import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.ItemStackWithSlot;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageTypes;
+import net.minecraft.world.entity.EntityEquipment;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -336,12 +335,12 @@ class TotemEntityTest {
 		sword.setHoverName(net.minecraft.network.chat.Component.literal("Excalibur"));
 		totem.initStored(owner, List.of(new ItemStackWithSlot(3, sword)));
 
-		TagValueOutput out = TagValueOutput.createWithContext(ProblemReporter.nope(), provider);
+		TagValueOutput out = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, provider);
 		totem.addAdditionalSaveData(out);
 		CompoundTag tag = out.buildResult();
 
 		TotemEntity loaded = newTotem();
-		loaded.readAdditionalSaveData(TagValueInput.create(ProblemReporter.nope(), provider, tag));
+		loaded.readAdditionalSaveData(TagValueInput.create(ProblemReporter.DISCARDING, provider, tag));
 
 		assertEquals(owner, loaded.getOwner());
 		assertEquals(1, loaded.getStored().size());
@@ -355,6 +354,7 @@ class TotemEntityTest {
 		TotemEntity totem = newTotem();
 		totem.initStored(UUID.randomUUID(), List.of(new ItemStackWithSlot(3, new ItemStack(Items.DIAMOND_SWORD))));
 		Player player = mock(Player.class);
+		when(player.getInventory()).thenReturn(new Inventory(player, new EntityEquipment())); // restoreToPlayer 必需
 		DamageSource melee = mock(DamageSource.class);
 		when(melee.getEntity()).thenReturn(player);
 		when(melee.is(DamageTypes.PLAYER_ATTACK)).thenReturn(true);
@@ -364,7 +364,6 @@ class TotemEntityTest {
 		assertFalse(totem.hurtServer(level, melee, 1.0F));
 
 		assertTrue(totem.isRemoved());
-		// 若 discard() 在 mock 环境下 NPE，stub level 的 getChunkSource()/broadcastEntityEvent 等必要调用
 	}
 
 	@Test
@@ -377,6 +376,10 @@ class TotemEntityTest {
 		assertFalse(totem.isRemoved());
 	}
 }
+
+// 已实锤：Entity 构造与 discard 在 mock(Level) 环境安全——levelCallback 默认
+// EntityInLevelCallback.NULL（Entity.java:280），getNextEntityId() 默认 0，
+// playSound/spawnAtLocation 为空操作（Mockito void 默认）。无需 stub level。
 ```
 
 - [ ] **Step 2: 运行确认失败**
