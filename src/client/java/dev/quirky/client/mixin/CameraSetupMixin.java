@@ -2,6 +2,8 @@ package dev.quirky.client.mixin;
 
 import dev.quirky.client.deathcam.DeathCamClient;
 import net.minecraft.client.Camera;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.DeathScreen;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -21,13 +23,24 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class CameraSetupMixin {
 	@Inject(method = "alignWithEntity", at = @At("RETURN"))
 	private void quirky$deathCamOverride(float partialTicks, CallbackInfo ci) {
-		if (!DeathCamClient.active()) {
+		Camera camera = (Camera) (Object) this;
+		if (DeathCamClient.active()) {
+			Vec3 position = DeathCamClient.cameraPosition(partialTicks);
+			((CameraAccessor) camera).quirky$invokeSetPosition(position);
+			((CameraAccessor) camera).quirky$invokeSetRotation(
+				DeathCamClient.cameraYaw(partialTicks), DeathCamClient.cameraPitch(partialTicks));
 			return;
 		}
-		Camera camera = (Camera) (Object) this;
-		Vec3 position = DeathCamClient.cameraPosition(partialTicks);
-		((CameraAccessor) camera).quirky$invokeSetPosition(position);
-		((CameraAccessor) camera).quirky$invokeSetRotation(
-			DeathCamClient.cameraYaw(partialTicks), DeathCamClient.cameraPitch(partialTicks));
+		if (DeathCamClient.frozen()) {
+			// 死亡界面期间保持镜头冻结视角（背景 = 镜头最后画面 + 原版红色渐变，无闪回）；
+			// 玩家重生/退出死亡界面后解除冻结，相机交还原版逻辑。
+			if (Minecraft.getInstance().gui.screen() instanceof DeathScreen) {
+				((CameraAccessor) camera).quirky$invokeSetPosition(DeathCamClient.frozenPosition());
+				((CameraAccessor) camera).quirky$invokeSetRotation(
+					DeathCamClient.frozenYaw(), DeathCamClient.frozenPitch());
+			} else {
+				DeathCamClient.unfreeze();
+			}
+		}
 	}
 }

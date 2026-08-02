@@ -4,7 +4,6 @@ import dev.quirky.client.ladder_snap.LadderSnapHelper;
 import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
-import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec2;
 import org.spongepowered.asm.mixin.Mixin;
@@ -60,6 +59,6 @@ public abstract class LocalPlayerAIStepMixin {
 
 	private static boolean isClimbable(BlockPos pos, LocalPlayer player) {
 		BlockState state = player.level().getBlockState(pos);
-		return state.is(BlockTags.CLIMBABLE);
+		return LadderSnapHelper.isClimbableTarget(state);
 	}
 }

@@ -1,5 +1,8 @@
 package dev.quirky.client.ladder_snap;
 
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec2;
 
 /**
@@ -11,6 +14,14 @@ public final class LadderSnapHelper {
 	private static final double CENTERED_THRESHOLD = 0.01;
 
 	private LadderSnapHelper() {
+	}
+
+	/**
+	 * 是否为目标吸附方块（spec：梯子/藤蔓；脚手架虽在 {@code #minecraft:climbable} 中，
+	 * 但玩家在其上应自由走动，不做吸附）。
+	 */
+	public static boolean isClimbableTarget(BlockState state) {
+		return state.is(BlockTags.CLIMBABLE) && !state.is(Blocks.SCAFFOLDING);
 	}
 
 	/**

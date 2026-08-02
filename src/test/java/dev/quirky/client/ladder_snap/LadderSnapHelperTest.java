@@ -3,10 +3,18 @@ package dev.quirky.client.ladder_snap;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import dev.quirky.TestBootstrap;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec2;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 class LadderSnapHelperTest {
+
+	@BeforeAll
+	static void bootStrap() {
+		TestBootstrap.boot();
+	}
 
 	@Test
 	void correctionPointsToLadderCenter() {
@@ -44,5 +52,18 @@ class LadderSnapHelperTest {
 		Vec2 correction = LadderSnapHelper.correction(0.0, 0.0, 0.5, 0.5, 5.0F);
 		assertEquals(0.5, correction.x, 1e-6);
 		assertEquals(0.5, correction.y, 1e-6);
+	}
+
+	@Test
+	void climbableTargetExcludesScaffolding() {
+		// 脚手架在 #minecraft:climbable 中，但玩家在其上应自由走动，不吸附。
+		// 注：测试环境无数据包 tag 数据（state.is(CLIMBABLE) 恒 false），
+		// 只能验证"被排除"一侧；生产环境 tag 正常加载。
+		org.junit.jupiter.api.Assertions.assertFalse(
+			LadderSnapHelper.isClimbableTarget(Blocks.SCAFFOLDING.defaultBlockState())
+		);
+		org.junit.jupiter.api.Assertions.assertFalse(
+			LadderSnapHelper.isClimbableTarget(Blocks.DIRT.defaultBlockState())
+		);
 	}
 }

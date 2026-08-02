@@ -34,6 +34,11 @@ public final class DeathCamClient {
 	private static @Nullable Component pendingDeathMessage;
 	private static boolean pendingHardcore;
 	private static @Nullable CameraType previousCameraType;
+	/** 镜头结束后的冻结视角：死亡界面背景保持镜头最后位置/朝向，避免闪回玩家第一人称 */
+	private static boolean frozen;
+	private static Vec3 frozenPosition = Vec3.ZERO;
+	private static float frozenYaw;
+	private static float frozenPitch;
 
 	private DeathCamClient() {
 	}
@@ -64,15 +69,18 @@ public final class DeathCamClient {
 		}
 	}
 
-	/** 服务端 payload 到达：刷新镜头锚点与环绕起始朝向。镜头已在播放时保留已推进的进度。 */
+	/**
+	 * 启动/刷新镜头。kill packet（本地位置）与 DeathCamPayload（服务端精确位置）先后到达：
+	 * 首次调用创建时间轴（用当时 yaw 作镜头朝向），后续调用只刷新锚点——
+	 * 不重建时间轴，否则两个包的 yaw 微小差异会让镜头朝向/进度跳变（"会随"感）。
+	 */
 	public static void start(Vec3 pos, float yaw, float pitch) {
 		if (!QuirkyConfigHolder.get().deathCam) {
 			return;
 		}
 		origin = pos;
-		boolean firstStart = timeline == null;
-		timeline = new DeathCamTimeline(QuirkyConfigHolder.get().deathCamDuration, yaw);
-		if (firstStart) {
+		if (timeline == null) {
+			timeline = new DeathCamTimeline(QuirkyConfigHolder.get().deathCamDuration, yaw);
 			ticksElapsed = 0;
 			forceThirdPerson();
 		}
@@ -121,7 +129,16 @@ public final class DeathCamClient {
 	}
 
 	private static void finish() {
-		restoreCameraType();
+		// 冻结镜头最后视角：死亡界面打开后相机保持该位置/朝向（不恢复第一人称），
+		// 死亡界面背景 = 镜头视角 + 原版红色渐变，无"闪回玩家第一人称"跳变；
+		// 玩家重生/退出死亡界面（screen 不再是 DeathScreen）时由 CameraSetupMixin 解除冻结。
+		if (timeline != null) {
+			float t = progress(0.0F);
+			frozenPosition = origin.add(timeline.position(t));
+			frozenYaw = timeline.yawDegrees(t);
+			frozenPitch = timeline.pitchDegrees(t);
+			frozen = true;
+		}
 		timeline = null;
 		Component message = pendingDeathMessage;
 		pendingDeathMessage = null;
@@ -134,9 +151,32 @@ public final class DeathCamClient {
 		}
 	}
 
+	/** 镜头是否已结束并冻结视角（死亡界面展示中）。 */
+	public static boolean frozen() {
+		return frozen;
+	}
+
+	public static Vec3 frozenPosition() {
+		return frozenPosition;
+	}
+
+	public static float frozenYaw() {
+		return frozenYaw;
+	}
+
+	public static float frozenPitch() {
+		return frozenPitch;
+	}
+
+	/** 死亡界面关闭（重生/回主菜单）或断线时解除冻结并恢复原相机类型。 */
+	public static void unfreeze() {
+		frozen = false;
+		restoreCameraType();
+	}
+
 	/** 切换维度/断线等安全退出：恢复相机视角并清空状态。 */
 	public static void reset() {
-		restoreCameraType();
+		unfreeze();
 		timeline = null;
 		pendingDeathMessage = null;
 	}
