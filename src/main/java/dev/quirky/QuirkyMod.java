@@ -12,7 +12,7 @@ public class QuirkyMod implements ModInitializer {
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
 	@Override
-	public static void onInitialize() {
+	public void onInitialize() {
 		ModBlocks.register();
 		ModItems.register();
 		ModEntities.register();
