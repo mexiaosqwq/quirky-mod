@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "minecraft:stone_button",
+    "minecraft:iron_nugget"
+  ],
+  "result": {
+    "id": "quirky:iron_button",
+    "count": 1
+  }
+}
