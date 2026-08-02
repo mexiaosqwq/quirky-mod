@@ -186,7 +186,7 @@ Expected: 编译失败（TotemOfHoldingLogic 不存在）
 ```java
 package dev.quirky.totem;
 
-import net.minecraft.core.component.EnchantmentEffectComponents;
+import net.minecraft.world.item.enchantment.EnchantmentEffectComponents;
 import net.minecraft.world.ItemStackWithSlot;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.player.Inventory;
