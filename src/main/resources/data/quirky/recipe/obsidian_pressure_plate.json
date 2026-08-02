@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "OO"
+  ],
+  "key": {
+    "O": "minecraft:obsidian"
+  },
+  "result": {
+    "id": "quirky:obsidian_pressure_plate",
+    "count": 1
+  }
+}

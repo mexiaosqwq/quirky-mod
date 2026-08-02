@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/pressure_plate_up",
+  "textures": {
+    "texture": "quirky:block/obsidian_pressure_plate"
+  }
+}
