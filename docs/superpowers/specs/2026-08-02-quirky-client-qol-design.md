@@ -43,12 +43,14 @@
 行为：
 - 悬停任意潜影盒（16 色 + 普通）时，tooltip 内显示盒内 9x3 内容物网格（与原版潜影盒 UI 一致，宽 > 高）；空格子留空。
 - 内容从物品 `DataComponents.CONTAINER` 读取（实施时以 26.2 反编译源码确认组件路径）；无 CONTAINER 组件的空盒显示空网格。
-- 仅对潜影盒生效（`ItemTags.SHULKER_BOXES`）；箱子/熔炉等其他带 CONTAINER 组件的物品不渲染。
+- **每格画底槽**：盒色暗化（25% 亮度）填充 + 盒色边框（60% 亮度），颜色随 16 色潜影盒外表（`ShulkerBoxBlock.getColor` → `DyeColor`）；普通盒用深灰。一眼可辨是打开的潜影盒 UI。
+- **隐藏原版 CONTAINER 文本行**（"包含物品"等）：`ItemStack.addToTooltip` 对 CONTAINER 组件且为潜影盒时取消（ContainerTooltipMixin），避免与网格重复。
+- 仅对潜影盒生效（`ItemTags.SHULKER_BOXES`）；箱子/熔炉等其他带 CONTAINER 组件的物品不渲染、文本行保留。
 - 仅客户端，服务端无需改动。
 
 实现：
-- `Item.getTooltipImage` mixin（MapTooltipMixin 模式）：潜影盒返回 `ShulkerTooltipComponent(containerList)`。
-- 客户端 `ClientShulkerTooltipComponent implements ClientTooltipComponent`：`extractImage` 内逐格绘制物品图标与数量（`GuiGraphicsExtractor` 的物品绘制 API 以本地源码为准），宽高按 9x3 网格计算（每格 16px + 内边距）。
+- `Item.getTooltipImage` mixin（MapTooltipMixin 模式）：潜影盒返回 `ShulkerTooltipComponent(contents, color)`（颜色随盒）。
+- 客户端 `ClientShulkerTooltipComponent implements ClientTooltipComponent`：`extractImage` 内先画底槽（fill + 边框线）再逐格绘制物品图标与数量（`GuiGraphicsExtractor` 的物品绘制 API 以本地源码为准），宽高按 9x3 网格计算（每格 16px + 内边距）。
 - `QuirkyModClient` 的 `ClientTooltipComponentCallback` 注册转换。
 
 验收：悬停潜影盒出现 9x3 内容预览；空格无图标；带物品数量显示；箱子/熔炉等非潜影盒容器 tooltip 不变。
@@ -104,19 +106,18 @@
 ### 5.5 死亡电影镜头（客户端 + 轻服务端）
 
 行为：
-- 玩家死亡瞬间不直接进死亡界面：镜头切第三人称，从死亡点附近开始，环绕旋转 360° 并缓慢拉远（约 2.5 秒，config 可调 2~5s），展示尸体/掉落物/凶手方位后，进入原版死亡界面。
+- 玩家死亡瞬间不直接进死亡界面：**基岩版式平滑过渡**——镜头从玩家身后贴脸位置（半径 0.8 格、眼睛高度 1.6、水平视角）开始，前 25% 时间快速拉出到 2.5 格（第一人称 → 第三人称的流畅感），随后缓慢拉远到 6 格并环绕旋转 360°（约 2.5 秒，config 可调 2~5s），展示尸体/掉落物/凶手方位后，进入原版死亡界面。
 - 镜头播放期间屏蔽输入（不响应 WASD/视角）；可按 Esc 提前跳过。
 - 纯视觉：不影响服务端死亡流程、不掉落、不复活。
 
 实现：
 - 服务端：`ServerPlayer.die` 处（mixin，MelonSeedMixin 同文件域）发送 `DeathCamPayload`（死亡位置、维度、朝向）。
 - 客户端：收到 payload 后启动镜头状态机：
-  - mixin `Camera.setup`：镜头播放期间用插值位置/旋转（死亡点 + 半径 2→6 格环绕，yaw 0→360°，pitch 缓慢 -10°→-25°）覆盖相机；
-  - mixin `GameRenderer` 或 `Minecraft`：播放期间暂停死亡界面显示（原版 `LocalPlayer.die` 触发的死亡屏幕），结束后正常进入；
-  - `KeyboardHandler`/`MouseHandler`：播放期间忽略视角输入。
-- 状态结束回调：`Minecraft.setScreen(DeathScreen)` 由原版流程继续。
+  - mixin `Camera.alignWithEntity`（26.2 实际注入点）：镜头播放期间用插值位置/旋转覆盖相机（DeathCamTimeline：起始半径 0.8、眼睛高度 1.6、俯角 0°；前 25% 拉出到 2.5，后段缓慢到 6；yaw 环绕 360°；pitch 0°→25°）；
+  - `ClientPacketListener.handlePlayerCombatKill` 拦截死亡界面 setScreen，镜头结束/Esc 后打开；
+  - `DeathCamSkipMixin`/`GuiDeathScreenDelayMixin`：Esc 跳过与死亡界面补开兜底。
 
-验收：死亡后先播放 ~2.5s 环绕镜头再出现死亡界面；镜头内掉落物可见；Esc 可跳过；创造/旁观不触发。
+验收：死亡后先播放 ~2.5s 平滑拉出 + 环绕镜头（无视角跳变/"雷霆运镜"）再出现死亡界面；镜头内掉落物可见；Esc 可跳过；创造/旁观不触发。
 
 ### 5.6 灵魂光源（客户端渲染）
 

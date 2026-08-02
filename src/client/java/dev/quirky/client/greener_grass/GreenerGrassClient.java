@@ -93,12 +93,21 @@ public final class GreenerGrassClient {
 	private static void registerWrapped(Block block) {
 		List<BlockTintSource> originals = Minecraft.getInstance().getBlockColors().getTintSources(block.defaultBlockState());
 		if (originals.isEmpty()) {
+			// TODO(debug): 草地增绿运行时诊断，验证后移除
+			dev.quirky.QuirkyMod.LOGGER.info("[greenerGrass] {} has no tint sources, skipped", block);
 			return;
 		}
 		List<BlockTintSource> wrapped = originals.stream()
 			.<BlockTintSource>map(delegate -> new GrassTintSourceWrapper(delegate, block))
 			.toList();
-		BlockColorRegistry.register(wrapped, block);
+		try {
+			BlockColorRegistry.register(wrapped, block);
+			// TODO(debug): 草地增绿运行时诊断，验证后移除
+			dev.quirky.QuirkyMod.LOGGER.info("[greenerGrass] registered {} wrappers for {} (originals={})", wrapped.size(), block, originals.size());
+		} catch (Throwable t) {
+			// TODO(debug): 草地增绿运行时诊断，验证后移除
+			dev.quirky.QuirkyMod.LOGGER.error("[greenerGrass] register failed for {}", block, t);
+		}
 	}
 
 	/** 包装原 tint source：取色后按配置开关与强度做颜色矩阵卷积。 */
@@ -106,6 +115,8 @@ public final class GreenerGrassClient {
 		private final BlockTintSource delegate;
 		/** 所属方块：树叶/藤蔓在 grassAffectLeaves 关闭时不过卷积 */
 		private final Block block;
+		/** 诊断用：是否已打印首次取色（TODO(debug) 移除） */
+		private boolean logged;
 
 		private GrassTintSourceWrapper(BlockTintSource delegate, Block block) {
 			this.delegate = delegate;
@@ -119,7 +130,14 @@ public final class GreenerGrassClient {
 
 		@Override
 		public int colorInWorld(BlockState state, BlockAndTintGetter level, BlockPos pos) {
-			return convolveIfEnabled(this.delegate.colorInWorld(state, level, pos));
+			int color = this.delegate.colorInWorld(state, level, pos);
+			int result = convolveIfEnabled(color);
+			// TODO(debug): 草地增绿运行时诊断，验证后移除
+			if (!logged) {
+				logged = true;
+				dev.quirky.QuirkyMod.LOGGER.info("[greenerGrass] {} first colorInWorld at {}: {} -> {}", block, pos, color, result);
+			}
+			return result;
 		}
 
 		@Override

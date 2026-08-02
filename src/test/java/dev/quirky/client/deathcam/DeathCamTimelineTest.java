@@ -10,13 +10,34 @@ class DeathCamTimelineTest {
 	private static final double EPS = 1e-4;
 
 	@Test
-	void timelineCirclesDeathPoint() {
+	void timelineStartsNearPlayerAndCirclesDeathPoint() {
+		// 基岩版式：起始相机贴近玩家（身后 0.8 格、眼睛高度），缓慢拉远环绕
 		DeathCamTimeline timeline = new DeathCamTimeline(50);
 		Vec3 start = timeline.position(0.0F);
 		Vec3 end = timeline.position(1.0F);
-		assertEquals(2.0, start.horizontalDistance(), EPS);
+		assertEquals(0.8, start.horizontalDistance(), EPS);
 		assertEquals(6.0, end.horizontalDistance(), EPS);
 		assertTrue(end.y > start.y, "镜头应随 t 上升");
+	}
+
+	@Test
+	void timelineStartsAtEyeHeight() {
+		// 起始高度 = 玩家眼睛高度附近，避免从第一人称瞬间跳到脚下
+		DeathCamTimeline timeline = new DeathCamTimeline(50);
+		assertEquals(1.6, timeline.position(0.0F).y, EPS);
+	}
+
+	@Test
+	void timelinePullsOutQuicklyThenSlowly() {
+		// 前 25% 快速从贴脸拉到 2.5 格（拉出阶段），之后缓慢拉远
+		DeathCamTimeline timeline = new DeathCamTimeline(50);
+		double radiusAtQuarter = timeline.position(0.25F).horizontalDistance();
+		double radiusAtHalf = timeline.position(0.5F).horizontalDistance();
+		// 前 25% 平均速度（0→0.25）应快于次 25%（0.25→0.5）
+		double pulloutSpeed = (radiusAtQuarter - timeline.position(0.0F).horizontalDistance()) / 0.25;
+		double cruiseSpeed = (radiusAtHalf - radiusAtQuarter) / 0.25;
+		assertTrue(radiusAtQuarter >= 2.0, "前段应快速拉出，t=0.25 时已到 " + radiusAtQuarter);
+		assertTrue(pulloutSpeed > cruiseSpeed, "前段拉远速度应快于后段: " + pulloutSpeed + " vs " + cruiseSpeed);
 	}
 
 	@Test
@@ -34,9 +55,9 @@ class DeathCamTimelineTest {
 	}
 
 	@Test
-	void pitchTiltsDownMonotonically() {
+	void pitchTiltsDownMonotonicallyFromLevel() {
 		DeathCamTimeline timeline = new DeathCamTimeline(50);
-		assertEquals(DeathCamTimeline.START_PITCH, timeline.pitchDegrees(0.0F), EPS);
+		assertEquals(0.0, timeline.pitchDegrees(0.0F), EPS);
 		assertEquals(DeathCamTimeline.END_PITCH, timeline.pitchDegrees(1.0F), EPS);
 		float previous = timeline.pitchDegrees(0.0F);
 		for (int i = 1; i <= 20; i++) {
