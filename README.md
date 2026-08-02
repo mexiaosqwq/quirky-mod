@@ -1,6 +1,6 @@
 # Quirky
 
-一个面向 Minecraft 26.2 的小型 Fabric 模组，提供 8 个原版风格的小机制，灵感来自 Quark。模组只依赖 Fabric API，额外添加一个临时方块。
+一个面向 Minecraft 26.2 的小型 Fabric 模组，提供 8 个原版风格的小机制，灵感来自 Quark。模组依赖 Fabric API 与 cloth-config（必需依赖），ModMenu 为可选依赖，额外添加一个临时方块。
 
 ## 功能
 
@@ -41,7 +41,7 @@ gradle build --no-daemon --console=plain
 
 ## 范围
 
-- 暂时没有配置界面。**计划**：后续接入 Cloth Config API，图腾/云块手感参数（音效音量与频率、粒子密度、尺寸/浮动/旋转等，现已集中为命名常量）改为游戏内可调。
+- **配置**：已接入 Cloth Config API——8 个机制开关（关掉即恢复原版行为）+ 图腾手感参数（击打次数/音效/粒子/渲染尺寸/浮动/旋转/摇摆）游戏内可调。单机/局域网在 ModMenu 里打开 Quirky 配置界面；专用服务器由服主编辑 `config/quirky.json5` 后执行 `/quirky reload` 热重载。ModMenu 为可选依赖，cloth-config 为必需依赖。
 - 红石直控门联动有意不实现。
 - 客户端行为需要桌面客户端手动验证；服务端机制通过构建和专用服务器冒烟测试验证。
 
