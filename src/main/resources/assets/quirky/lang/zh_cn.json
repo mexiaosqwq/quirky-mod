@@ -77,8 +77,8 @@
   "text.autoconfig.quirky.option.deathCam.@Tooltip": "死亡后先环绕死亡点慢速运镜，再进入死亡界面。",
   "text.autoconfig.quirky.option.longPick": "远距中键拾取",
   "text.autoconfig.quirky.option.longPick.@Tooltip": "扩展鼠标中键拾取方块的距离。",
-  "text.autoconfig.quirky.option.ladderSnap": "爬梯吸附",
-  "text.autoconfig.quirky.option.ladderSnap.@Tooltip": "爬梯时松开方向键自动对齐梯子中心线。",
+  "text.autoconfig.quirky.option.ladderSnap": "自动爬梯",
+  "text.autoconfig.quirky.option.ladderSnap.@Tooltip": "爬梯子/藤蔓时抬头自动上升、低头下降、平视悬停。",
   "text.autoconfig.quirky.option.offhandSwap": "副手快速装备",
   "text.autoconfig.quirky.option.offhandSwap.@Tooltip": "背包中右键盾牌或火把可直接装备到副手。",
   "text.autoconfig.quirky.option.goldButton": "金按钮",
@@ -100,7 +100,5 @@
   "text.autoconfig.quirky.option.pickRangeCreative": "创造拾取距离",
   "text.autoconfig.quirky.option.pickRangeCreative.@Tooltip": "创造模式中键拾取方块的距离。",
   "text.autoconfig.quirky.option.pickRangeSurvival": "生存拾取距离",
-  "text.autoconfig.quirky.option.pickRangeSurvival.@Tooltip": "生存模式中键拾取方块的距离。",
-  "text.autoconfig.quirky.option.ladderSnapStrength": "爬梯吸附强度",
-  "text.autoconfig.quirky.option.ladderSnapStrength.@Tooltip": "被拉向梯子中心线的力度。"
+  "text.autoconfig.quirky.option.pickRangeSurvival.@Tooltip": "生存模式中键拾取方块的距离。"
 }

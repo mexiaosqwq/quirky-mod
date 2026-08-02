@@ -202,8 +202,4 @@ public class QuirkyConfig implements ConfigData {
 	@ConfigEntry.BoundedDiscrete(min = 4, max = 64)
 	@ConfigEntry.Gui.Tooltip
 	public int pickRangeSurvival = 12;
-
-	@ConfigEntry.Category("client_qol")
-	@ConfigEntry.Gui.Tooltip
-	public float ladderSnapStrength = 0.5F;
 }

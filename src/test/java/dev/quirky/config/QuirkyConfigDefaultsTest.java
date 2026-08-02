@@ -65,7 +65,6 @@ class QuirkyConfigDefaultsTest {
 	@Test
 	void clientQolParamsWithinBounds() {
 		QuirkyConfig c = new QuirkyConfig();
-		assertTrue(c.ladderSnapStrength >= 0.1F && c.ladderSnapStrength <= 1.0F);
 		assertTrue(c.tickerHoldTicks >= 20 && c.tickerHoldTicks <= 200);
 		assertTrue(c.deathCamDuration >= 40 && c.deathCamDuration <= 100);
 		assertTrue(c.pickRangeCreative >= 16 && c.pickRangeCreative <= 256);

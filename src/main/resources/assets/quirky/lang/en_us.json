@@ -77,8 +77,8 @@
   "text.autoconfig.quirky.option.deathCam.@Tooltip": "Play a slow orbiting camera around your death point before the death screen.",
   "text.autoconfig.quirky.option.longPick": "Long Pick Block",
   "text.autoconfig.quirky.option.longPick.@Tooltip": "Extend the middle-click pick block range.",
-  "text.autoconfig.quirky.option.ladderSnap": "Ladder Snap",
-  "text.autoconfig.quirky.option.ladderSnap.@Tooltip": "Snap your body to the ladder center line while climbing without steering.",
+  "text.autoconfig.quirky.option.ladderSnap": "Auto Ladder Climb",
+  "text.autoconfig.quirky.option.ladderSnap.@Tooltip": "Look up to climb ladders and vines automatically (look down to descend, level to hover).",
   "text.autoconfig.quirky.option.offhandSwap": "Offhand Swap",
   "text.autoconfig.quirky.option.offhandSwap.@Tooltip": "Right-click a shield or torch in the inventory to equip it to the offhand.",
   "text.autoconfig.quirky.option.goldButton": "Gold Button",
@@ -100,7 +100,5 @@
   "text.autoconfig.quirky.option.pickRangeCreative": "Creative Pick Range",
   "text.autoconfig.quirky.option.pickRangeCreative.@Tooltip": "Middle-click pick block range in creative.",
   "text.autoconfig.quirky.option.pickRangeSurvival": "Survival Pick Range",
-  "text.autoconfig.quirky.option.pickRangeSurvival.@Tooltip": "Middle-click pick block range in survival.",
-  "text.autoconfig.quirky.option.ladderSnapStrength": "Ladder Snap Strength",
-  "text.autoconfig.quirky.option.ladderSnapStrength.@Tooltip": "How strongly you are pulled to the ladder center."
+  "text.autoconfig.quirky.option.pickRangeSurvival.@Tooltip": "Middle-click pick block range in survival."
 }

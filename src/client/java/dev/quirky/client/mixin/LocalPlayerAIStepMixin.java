@@ -3,9 +3,7 @@ package dev.quirky.client.mixin;
 import dev.quirky.client.ladder_snap.LadderSnapHelper;
 import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.Vec2;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -13,20 +11,21 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * 爬梯吸附（spec 5.9）：LocalPlayer.aiStep 末尾（本 tick 输入已 tick、移动已执行）——
- * 开关开启、在梯子/藤蔓上爬行、未按左右键时，朝所在梯子方块中心线叠加修正速度，
- * 玩家松手后身体平滑吸回梯子中心；按住左右键以手动控制优先，不干预。
+ * 自动上梯（spec 5.9，基岩版式）：爬梯子/藤蔓时未按手动键（W/S/空格/Shift）则按视角控制
+ * 垂直速度——抬头（pitch &lt; -30°）自动上升、低头（pitch &gt; 30°）自动下降、平视悬停，
+ * 爬梯只需抬头。注入 {@code LocalPlayer.travel} HEAD，本 tick 移动即生效。
+ * 脚手架不自动爬（玩家在其上自由走动）。
  */
 @Mixin(LocalPlayer.class)
 public abstract class LocalPlayerAIStepMixin {
-	/**
-	 * 自动上梯（基岩版式）：爬梯时未按手动键（W/S/空格/Shift）则按视角控制垂直速度——
-	 * 抬头自动上升、低头下降、平视悬停。注入 travel HEAD，本 tick 移动即生效。
-	 */
 	@Inject(method = "travel", at = @At("HEAD"))
 	private void quirky$autoClimb(Vec3 input, CallbackInfo ci) {
 		LocalPlayer player = (LocalPlayer) (Object) this;
 		if (!QuirkyConfigHolder.get().ladderSnap || !player.onClimbable()) {
+			return;
+		}
+		// 脚手架在 #minecraft:climbable 中，但玩家在其上应自由走动，不自动爬
+		if (player.getInBlockState().is(Blocks.SCAFFOLDING)) {
 			return;
 		}
 		boolean manual = player.input.keyPresses.forward()
@@ -37,49 +36,5 @@ public abstract class LocalPlayerAIStepMixin {
 		if (!Double.isNaN(vy)) {
 			player.setDeltaMovement(player.getDeltaMovement().x, vy, player.getDeltaMovement().z);
 		}
-	}
-
-	@Inject(method = "aiStep", at = @At("TAIL"))
-	private void quirky$snapToLadderCenter(CallbackInfo ci) {
-		LocalPlayer player = (LocalPlayer) (Object) this;
-		if (!QuirkyConfigHolder.get().ladderSnap || !player.onClimbable()) {
-			return;
-		}
-		// 手动左右控制优先：按住 A/D 时不做吸附干预
-		if (player.input.keyPresses.left() || player.input.keyPresses.right()) {
-			return;
-		}
-		BlockPos ladderPos = findClimbableBlock(player);
-		if (ladderPos == null) {
-			return;
-		}
-		Vec2 correction = LadderSnapHelper.correction(
-			player.getX(), player.getZ(),
-			ladderPos.getX() + 0.5, ladderPos.getZ() + 0.5,
-			QuirkyConfigHolder.get().ladderSnapStrength
-		);
-		player.setDeltaMovement(player.getDeltaMovement().add(correction.x, 0.0, correction.y));
-	}
-
-	/**
-	 * 找玩家当前所在的梯子/藤蔓方块：优先玩家自身所在格（与 {@code onClimbable} 的判定一致），
-	 * 否则查水平四邻（藤蔓/梯子边缘悬空时玩家身体可能略偏出所在格）。
-	 */
-	private static BlockPos findClimbableBlock(LocalPlayer player) {
-		BlockPos pos = player.blockPosition();
-		if (isClimbable(pos, player)) {
-			return pos;
-		}
-		for (BlockPos neighbor : new BlockPos[] { pos.north(), pos.south(), pos.east(), pos.west() }) {
-			if (isClimbable(neighbor, player)) {
-				return neighbor;
-			}
-		}
-		return null;
-	}
-
-	private static boolean isClimbable(BlockPos pos, LocalPlayer player) {
-		BlockState state = player.level().getBlockState(pos);
-		return LadderSnapHelper.isClimbableTarget(state);
 	}
 }
