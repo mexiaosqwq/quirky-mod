@@ -3,6 +3,7 @@ package dev.quirky;
 import dev.quirky.config.QuirkyConfig;
 import dev.quirky.config.QuirkyConfigHolder;
 import dev.quirky.config.QuirkyReloadCommand;
+import dev.quirky.deathcam.DeathCamServer;
 import dev.quirky.equip_swap.EquipSwapServer;
 import dev.quirky.harvest.HarvestHandler;
 import me.shedaniel.autoconfig.AutoConfig;
@@ -26,6 +27,7 @@ public class QuirkyMod implements ModInitializer {
 		ModEntities.register();
 		HarvestHandler.init();
 		EquipSwapServer.init();
+		DeathCamServer.init();
 		QuirkyReloadCommand.init();
 		LOGGER.info("Quirky loaded");
 	}
