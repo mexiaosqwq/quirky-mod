@@ -42,3 +42,10 @@ replay_*.log
 # local superpowers worktrees
 
 .worktrees/
+
+# pi session logs & local tool state
+
+logs/
+skills-lock.json
+.agents/
+.codex/
