@@ -121,17 +121,21 @@
 ### 5.6 灵魂光源（客户端渲染）
 
 行为：
-- 火把（含墙上火把）、灯笼放置在**灵魂沙/灵魂土正上方**（下表面接触）时，渲染为灵魂变体：火焰与灯体呈灵魂青色。
-- 蜡烛放置在灵魂方块上时：火焰部分渲染为灵魂青色（原版无灵魂蜡烛，自定义火焰着色）。
-- 破坏/移动后恢复原样（渲染按下方方块动态判定，无状态存储）。
-- 火焰粒子（火把/蜡烛粒子）在灵魂方块上时同样呈青色。
+- 火把（含墙上火把）、灯笼、蜡烛放置在**灵魂沙/灵魂土正上方**（下表面接触）时，**火焰粒子**呈灵魂青色（soul_fire_flame）。
+- 破坏/移动后恢复原样（粒子生成时按下方方块动态判定，无状态存储）。
 
-实现（实施时以 26.2 渲染源码验证，备选方案见风险）：
-- 首选：mixin `BlockModelShaper.getBlockModel`（或等价模型选择点），当 state 为 torch/wall_torch/lantern 且正下方为 soul_sand/soul_soil 时返回 soul_torch/soul_lantern 的 BakedModel；蜡烛返回自定义"灵魂蜡烛"模型（复制原版蜡烛模型 + 替换火焰纹理为自绘灵魂火焰 `textures/block/quirky_soul_candle_flame.png`）。
-- 粒子：mixin 火焰粒子创建点（`ParticleEngine`/`FlameParticle`），按所在方块邻居判定替换为 `soul_fire_flame` sprite。
+实现（26.2 实测）：
+- 粒子：mixin 火焰粒子创建点（`FlameParticle` 7 参构造器），按所在方块正下方判定替换为 `soul_fire_flame` sprite。
 - config：`soulLighting` 开关。
 
-验收：火把插在灵魂沙上呈青色火焰（与灵魂火把一致）；灯笼同理；蜡烛火焰青色；敲掉后恢复橙色；灵魂方块本身不受影响。
+已知限制（已放弃）：
+- **方块模型/贴图替换未实现**。26.2 渲染架构为 SectionCompiler 区块网格静态编译，
+  `SectionCompiler.compile` 的 tesselateBlock 调用点虽可拿到位置并替换模型，但实测
+  放置灵魂方块后上方光源所在 section 的重编译依赖脏区标记与 SectionCopy 缓存快照，
+  无法可靠地按邻居方块动态换贴图（粒子走 ClientLevel 实时数据可生效，区块编译走
+  SectionCopy 快照不可靠）。模型替换相关代码（SectionCompilerMixin/SoulCandleModel/灵魂蜡烛资源）已删除。
+
+验收：火把插在灵魂沙上火焰粒子青色；敲掉后恢复橙色；方块本体贴图保持原版（不替换）。
 
 ### 5.7 草地增绿（客户端）
 

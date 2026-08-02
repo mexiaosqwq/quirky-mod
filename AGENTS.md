@@ -90,6 +90,9 @@ This environment does not push to remote repositories; merge and publish locally
 - Instant-use items must run the same reach/validity check on client and server before returning success, so a failed use cannot consume the item locally.
 - Map tooltip drawing must stay inside the reported `getWidth`/`getHeight` bounds; the parchment border and map content must align to the component origin.
 - Client visuals still require desktop-client manual verification; build success alone does not prove hand-feel details.
+- **26.2 自定义 GUI sprite 路径**：客户端自定义 GUI sprite（如属性 tooltip 图标）必须放 `src/main/resources/assets/<mod>/textures/gui/sprites/<id>.png`，且 sprite id 用 `<id>`（**不带 `gui/` 前缀**）。26.2 GUI atlas（`atlases/gui.json`）source=`gui/sprites` 目录（prefix `""`），只扫该目录；纹理放 `textures/gui/`（缺 `sprites/` 层）或 id 多带 `gui/` 前缀 → 查不到 → 紫黑。属性 tooltip 图标实测已迁移到 `textures/gui/sprites/attribute/*.png`。
+- **渲染层数据源差异（灵魂光源根因，mcsrc 验证）**：同一判定对“粒子替换”生效、对“模型替换”失效时，差异在数据源：粒子用 `ClientLevel.getBlockState()`（实时）；区块编译期模型替换（SectionCompilerMixin）读 `RenderSectionRegion.getBlockState()`，后者来自 `SectionCopy`——构造时对 `LevelChunk.getStates()` 做 `PalettedContainer.copy()` 快照拷贝（静态数据）并经 `RenderRegionCache`（key=sectionCoord）缓存。改方块后不丢区块缓存（F3+A/移动重建）就一直用旧快照。RenderSectionRegion 是 3×3×3 邻居 section 缓存（RADIUS=1），越界一格查询有效。
+- **26.2 popResource 依赖 `block_drops` 规则**：`Block.popResource` 内部走私有重载，条件是 `level instanceof ServerLevel && getGameRules().get(GameRules.BLOCK_DROPS)`，规则关闭时掉落物不生成。凡“先 removeItem 再 popResource 漏出”的代码规则关闭时会永久吞物品——**移除前先 instanceof ServerLevel 检查规则**（26.2 `Level` 基类无 `getGameRules()`，仅在 `ServerLevel`）。GameRules mock：`new GameRules(FeatureFlags.DEFAULT_FLAGS)`。
 
 ## Agent-Specific Instructions
 

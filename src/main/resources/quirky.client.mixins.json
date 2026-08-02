@@ -6,7 +6,6 @@
   "mixins": [
     "ClockTooltipMixin",
     "AbstractContainerScreenAccessor",
-    "SectionCompilerMixin",
     "FlameParticleMixin",
     "PickBlockMixin",
     "CameraAccessor",
