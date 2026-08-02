@@ -98,7 +98,7 @@ dependencies {
 **新增**：
 - `src/main/java/dev/quirky/config/QuirkyConfig.java` — `@Config(name = "quirky")`，`implements ConfigData`；`toggles` / `totem` 两个 `@ConfigEntry.Category` 分类；数值项带 `@ConfigEntry.BoundedAbove/Below` + `@ConfigEntry.Gui.Tooltip` + Slider 注解
 - `src/main/java/dev/quirky/config/QuirkyConfigHolder.java` — 静态 holder（`get()` 默认实例 / `set()` 注入 AutoConfig 实例）
-- `src/main/java/dev/quirky/config/QuirkyReloadCommand.java` — `/quirky reload`：`ConfigHolder.load()`，权限等级 2，失败回退默认并提示
+- `src/main/java/dev/quirky/config/QuirkyReloadCommand.java` — `/quirky reload`：先 `ConfigHolder.load()`，**随后 `QuirkyConfigHolder.set(holder.getConfig())` 重新注入**（AutoConfig 的 load() 会用新反序列化的实例替换内部引用，静态 holder 持旧引用会读到旧值），权限等级 2，失败保留旧实例并提示
 - `src/client/java/dev/quirky/client/config/ModMenuIntegration.java` — `implements ModMenuApi`，`AutoConfig.getConfigScreen(QuirkyConfig.class, parent)`
 - `src/test/java/dev/quirky/config/QuirkyConfigDefaultsTest.java` — 默认值对照测试
 
@@ -114,7 +114,7 @@ dependencies {
 ### 5.3 测试策略
 
 - `QuirkyConfigDefaultsTest`：断言默认值 == 现有常量值（防未来改默认值导致行为漂移）；顺带验证范围边界（chance ≥ 1 等）
-- 现有 `TotemOfHoldingLogicTest` / `TotemEntityTest`：`@BeforeEach` 里 `QuirkyConfigHolder.set(new QuirkyConfig())` 注入默认实例，保持原断言不变
+- 现有 `TotemEntityTest`：`@BeforeEach` 里 `QuirkyConfigHolder.set(new QuirkyConfig())` 注入默认实例，保持原断言不变（`TotemOfHoldingLogicTest` 纯逻辑不读配置，无需注入）
 - 开关逻辑不单测（薄层判断，随构建验证）
 
 ### 5.4 验证
@@ -135,4 +135,6 @@ dependencies {
 - **Cloth Config 26.2 兼容性**：maven 有 `26.2.155`，v26.2 分支源码确认存在（`@Config`/`@ConfigEntry` 无 `@ServerConfig`）；API 若有出入以 `$HOME/.cache/mcsrc` 或反编译 jar 为准修正
 - **ModMenu 版本**：`20.0.0-beta.2`（v26.2 gradle.properties 实锤）；`modCompileOnly` + `suggests`，不装 ModMenu 不影响 mod 本体
 - **AutoConfig 文件损坏**：回退默认值 + 日志，不崩溃
+- **AutoConfig `load()` 替换实例**：reload 命令必须 load 后重新注入静态 holder，否则热重载失效（见 5.2）
+- **cloth-config 为强依赖**（`modApi` + `depends`）：缺失时 Fabric 阻止加载并提示安装，不做反射防御（YAGNI）
 - **热重载与现存实体**：图腾每次使用时读取配置值，reload 即时生效；无状态缓存问题
