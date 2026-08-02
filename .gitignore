@@ -49,3 +49,4 @@ logs/
 skills-lock.json
 .agents/
 .codex/
+.codegraph/
