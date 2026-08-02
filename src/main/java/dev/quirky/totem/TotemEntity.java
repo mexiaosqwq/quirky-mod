@@ -1,5 +1,7 @@
 package dev.quirky.totem;
 
+import com.mojang.serialization.Codec;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -24,7 +26,11 @@ public class TotemEntity extends Entity {
 	private static final String TAG_OWNER_MOST = "OwnerMost";
 	private static final String TAG_OWNER_LEAST = "OwnerLeast";
 	private static final String TAG_ITEMS = "Items";
+	private static final String TAG_HITS = "Hits";
 	private static final int HITS_TO_RETRIEVE = 3;
+	// UUIDUtil.CODEC encodes UUIDs as int arrays; NbtOps compound keys must be strings,
+	// so the map key uses UUIDUtil.STRING_CODEC (UUID.toString / UUID.fromString).
+	private static final Codec<Map<UUID, Integer>> HITS_CODEC = Codec.unboundedMap(UUIDUtil.STRING_CODEC, Codec.INT);
 
 	private UUID owner;
 	private List<ItemStackWithSlot> stored = List.of();
@@ -86,6 +92,7 @@ public class TotemEntity extends Entity {
 			output.putLong(TAG_OWNER_LEAST, this.owner.getLeastSignificantBits());
 		}
 		output.store(TAG_ITEMS, ItemStackWithSlot.CODEC.listOf(), this.stored);
+		output.store(TAG_HITS, HITS_CODEC, this.hits);
 	}
 
 	@Override
@@ -94,6 +101,8 @@ public class TotemEntity extends Entity {
 		long least = input.getLongOr(TAG_OWNER_LEAST, 0L);
 		this.owner = most == 0L && least == 0L ? null : new UUID(most, least);
 		this.stored = input.read(TAG_ITEMS, ItemStackWithSlot.CODEC.listOf()).orElse(List.of());
+		this.hits.clear();
+		this.hits.putAll(input.read(TAG_HITS, HITS_CODEC).orElse(Map.of()));
 	}
 
 	@Override

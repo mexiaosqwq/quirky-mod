@@ -72,6 +72,36 @@ class TotemEntityTest {
 	}
 
 	@Test
+	void saveAndLoad_roundTripsHitCountsAcrossReload() {
+		TotemEntity totem = newTotem();
+		totem.initStored(UUID.randomUUID(), List.of(new ItemStackWithSlot(3, new ItemStack(Items.DIAMOND_SWORD))));
+		Player player = mock(Player.class);
+		UUID hitter = UUID.randomUUID();
+		when(player.getUUID()).thenReturn(hitter);
+		when(player.getInventory()).thenReturn(new Inventory(player, new EntityEquipment())); // restoreToPlayer 必需
+		DamageSource melee = mock(DamageSource.class);
+		when(melee.getEntity()).thenReturn(player);
+		when(melee.is(DamageTypes.PLAYER_ATTACK)).thenReturn(true);
+
+		// 2 次击打，未触发取回
+		assertFalse(totem.hurtServer(level, melee, 1.0F));
+		assertFalse(totem.hurtServer(level, melee, 1.0F));
+		assertFalse(totem.isRemoved());
+
+		// chunk 卸载：序列化后重建实体
+		TagValueOutput out = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, provider);
+		totem.addAdditionalSaveData(out);
+		CompoundTag tag = out.buildResult();
+
+		TotemEntity loaded = newTotem();
+		loaded.readAdditionalSaveData(TagValueInput.create(ProblemReporter.DISCARDING, provider, tag));
+
+		// 重载后第 3 次击打应触发取回
+		assertFalse(loaded.hurtServer(level, melee, 1.0F));
+		assertTrue(loaded.isRemoved());
+	}
+
+	@Test
 	void hurtServer_countsMeleeHitsAndRetrievesOnThird() {
 		TotemEntity totem = newTotem();
 		totem.initStored(UUID.randomUUID(), List.of(new ItemStackWithSlot(3, new ItemStack(Items.DIAMOND_SWORD))));
