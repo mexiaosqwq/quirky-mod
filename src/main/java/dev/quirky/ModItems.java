@@ -43,8 +43,12 @@ public final class ModItems {
 	public static final Item OBSIDIAN_PRESSURE_PLATE = new BlockItem(
 		ModBlocks.OBSIDIAN_PRESSURE_PLATE,
 		new Item.Properties().setId(OBSIDIAN_PRESSURE_PLATE_ID)
+	);
+
 	public static final Item TORCH_ARROW = new TorchArrowItem(
 		new Item.Properties().setId(TORCH_ARROW_ID)
+	);
+
 	public static final Item WOODEN_HOPPER = new BlockItem(
 		ModBlocks.WOODEN_HOPPER,
 		new Item.Properties().setId(WOODEN_HOPPER_ID)
@@ -59,7 +63,8 @@ public final class ModItems {
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("gold_button"), GOLD_BUTTON);
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("iron_button"), IRON_BUTTON);
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("obsidian_pressure_plate"), OBSIDIAN_PRESSURE_PLATE);
-		Registry.register(BuiltInRegistries.ITEM, WOODEN_HOPPER_ID, WOODEN_HOPPER);
+		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("torch_arrow"), TORCH_ARROW);
+		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("wooden_hopper"), WOODEN_HOPPER);
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES)
 			.register(output -> output.accept(BOTTLED_CLOUD));
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.REDSTONE_BLOCKS)
@@ -67,15 +72,11 @@ public final class ModItems {
 				output.accept(GOLD_BUTTON);
 				output.accept(IRON_BUTTON);
 				output.accept(OBSIDIAN_PRESSURE_PLATE);
+				output.accept(WOODEN_HOPPER);
 			});
-		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("torch_arrow"), TORCH_ARROW);
-		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES)
-			.register(output -> output.accept(BOTTLED_CLOUD));
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.COMBAT)
 			.register(output -> output.accept(TORCH_ARROW));
 		// TOTEM_OF_HOLDING 不进创造页签：纯内部渲染素材（死亡点图腾实体显示用），玩家不应拿到
-		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.REDSTONE_BLOCKS)
-			.register(output -> output.accept(WOODEN_HOPPER));
 		// 木漏斗可作熔炉燃料（300 tick = 15 秒）：26.2 没有 DataComponents.FUEL，燃料改由服务端
 		// FuelValues 数据驱动，Fabric 通过 FuelValueEvents.BUILD 事件向 Builder 追加条目。
 		FuelValueEvents.BUILD.register((builder, context) -> builder.add(WOODEN_HOPPER, 300));

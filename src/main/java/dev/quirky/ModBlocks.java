@@ -5,8 +5,8 @@ import dev.quirky.block.MetalButtonBlock;
 import dev.quirky.block.ObsidianPressurePlateBlock;
 import dev.quirky.block.WoodenHopperBlock;
 import net.minecraft.core.Registry;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
@@ -20,10 +20,6 @@ public final class ModBlocks {
 	private static final ResourceKey<Block> GOLD_BUTTON_ID = ResourceKey.create(Registries.BLOCK, QuirkyMod.id("gold_button"));
 	private static final ResourceKey<Block> IRON_BUTTON_ID = ResourceKey.create(Registries.BLOCK, QuirkyMod.id("iron_button"));
 	private static final ResourceKey<Block> OBSIDIAN_PRESSURE_PLATE_ID = ResourceKey.create(Registries.BLOCK, QuirkyMod.id("obsidian_pressure_plate"));
-import net.minecraft.world.level.material.MapColor;
-
-public final class ModBlocks {
-	private static final ResourceKey<Block> CLOUD_ID = ResourceKey.create(Registries.BLOCK, QuirkyMod.id("cloud"));
 	private static final ResourceKey<Block> WOODEN_HOPPER_ID = ResourceKey.create(Registries.BLOCK, QuirkyMod.id("wooden_hopper"));
 
 	public static final CloudBlock CLOUD = new CloudBlock(
@@ -70,6 +66,9 @@ public final class ModBlocks {
 			.requiresCorrectToolForDrops()
 			.sound(SoundType.STONE)
 			.pushReaction(PushReaction.DESTROY)
+	);
+
+	/** 木漏斗：传输速度 1/4、红石锁不住，木制可作燃料。 */
 	public static final WoodenHopperBlock WOODEN_HOPPER = new WoodenHopperBlock(
 		BlockBehaviour.Properties.of()
 			.setId(WOODEN_HOPPER_ID)
