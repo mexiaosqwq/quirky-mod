@@ -76,8 +76,14 @@ public final class TestBootstrap {
 		item.builtInRegistryHolder().bindComponents(builder.build());
 	}
 
+	/**
+	 * Binds only a minimal component map (MAX_STACK_SIZE) for an item whose
+	 * full component initializer needs unavailable datapack registries
+	 * (e.g. shield's equippable references the bypasses_shield damage type tag).
+	 * Enough to construct ItemStacks; item-specific components stay unbound.
+	 */
 	@SuppressWarnings("deprecation")
-	private static void bindMinimalComponents(Item item) {
+	public static void bindMinimalComponents(Item item) {
 		item.builtInRegistryHolder().bindComponents(
 			DataComponentMap.builder().set(DataComponents.MAX_STACK_SIZE, 16).build()
 		);
