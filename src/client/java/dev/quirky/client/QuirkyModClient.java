@@ -2,6 +2,7 @@ package dev.quirky.client;
 
 import dev.quirky.ModEntities;
 import dev.quirky.client.equip_swap.EquipSwapClient;
+import dev.quirky.client.greener_grass.GreenerGrassClient;
 import dev.quirky.client.tooltips.ClientAttributeTooltipComponent;
 import dev.quirky.client.tooltips.ClientFoodTooltipComponent;
 import dev.quirky.client.tooltips.ClientMapTooltipComponent;
@@ -19,6 +20,7 @@ public class QuirkyModClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		EquipSwapClient.init();
+		GreenerGrassClient.init();
 		ClientTooltipComponentCallback.EVENT.register(component -> {
 			if (component instanceof MapTooltipComponent map) {
 				return new ClientMapTooltipComponent(map.mapId());
