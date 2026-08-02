@@ -12,23 +12,25 @@ import org.jspecify.annotations.Nullable;
 /**
  * 潜影盒内容 tooltip 的客户端绘制组件：9x3 网格逐格绘制物品与数量。
  *
- * <p>每格先画盒色暗化的底槽 + 盒色边框（普通盒用深灰），再画物品图标与数量，
- * 一眼可辨是打开的潜影盒 UI。
+ * <p>整体背景 + 每格深色底槽 + 淡色边框，像打开的潜影盒 UI：
+ * 普通盒用经典紫色调（深紫背景、淡紫边框）；16 色盒用盒色调（盒色 30% 背景、70% 边框）。
  */
 public class ClientShulkerTooltipComponent implements ClientTooltipComponent {
-	private static final int SLOT_SIZE = 16;
+	/** 槽尺寸：16 图标 + 2px 边距 */
+	private static final int SLOT_SIZE = 18;
+	private static final int ICON_SIZE = 16;
+	private static final int ICON_OFFSET = 1;
 	private static final int PADDING = 4;
 	private static final int COLS = 9;
 	private static final int ROWS = 3;
-	/** 底槽填充：盒色 25% 亮度，alpha 0xE0 */
-	private static final int SLOT_FILL_ALPHA = 0xE0;
-	/** 底槽边框：盒色 60% 亮度，alpha 0xFF */
-	private static final int SLOT_BORDER_ALPHA = 0xFF;
-	private static final int FILL_RATIO = 25;
-	private static final int BORDER_RATIO = 60;
-	/** 普通（无盒色）潜影盒的底槽颜色 */
-	private static final int DEFAULT_SLOT_FILL = 0xE01B1B1B;
-	private static final int DEFAULT_SLOT_BORDER = 0xFF4A4A4A;
+
+	/** 普通盒：经典紫色调（深紫罗兰背景 / 黑色半透明槽底 / 淡紫边框） */
+	private static final int DEFAULT_BACKGROUND = 0xE03A2A5E;
+	private static final int DEFAULT_SLOT = 0x4A000000;
+	private static final int DEFAULT_BORDER = 0x8A8060C8;
+	/** 盒色背景亮度比例（30%）与边框亮度比例（70%） */
+	private static final int BG_RATIO = 30;
+	private static final int BORDER_RATIO = 70;
 
 	private final NonNullList<ItemStack> items;
 	private final @Nullable DyeColor color;
@@ -51,45 +53,46 @@ public class ClientShulkerTooltipComponent implements ClientTooltipComponent {
 
 	@Override
 	public void extractImage(Font font, int x, int y, int w, int h, GuiGraphicsExtractor graphics) {
-		int fillColor = slotFillColor();
-		int borderColor = slotBorderColor();
+		int background = background();
+		int border = border();
+		graphics.fill(x, y, x + getWidth(font), y + getHeight(font), background);
 		int startX = x + PADDING;
 		int startY = y + PADDING;
 		for (int slot = 0; slot < items.size(); slot++) {
 			int sx = startX + (slot % COLS) * SLOT_SIZE;
 			int sy = startY + (slot / COLS) * SLOT_SIZE;
-			drawSlot(graphics, sx, sy, fillColor, borderColor);
+			drawSlot(graphics, sx, sy, border);
 			ItemStack stack = items.get(slot);
 			if (!stack.isEmpty()) {
-				graphics.item(stack, sx, sy);
-				graphics.itemDecorations(font, stack, sx, sy);
+				graphics.item(stack, sx + ICON_OFFSET, sy + ICON_OFFSET);
+				graphics.itemDecorations(font, stack, sx + ICON_OFFSET, sy + ICON_OFFSET);
 			}
 		}
 	}
 
-	/** 底槽 + 边框（1px 线），再画物品。 */
-	private static void drawSlot(GuiGraphicsExtractor graphics, int x, int y, int fillColor, int borderColor) {
-		graphics.fill(x, y, x + SLOT_SIZE, y + SLOT_SIZE, fillColor);
+	/** 深色槽底 + 1px 淡色边框。 */
+	private static void drawSlot(GuiGraphicsExtractor graphics, int x, int y, int borderColor) {
+		graphics.fill(x, y, x + SLOT_SIZE, y + SLOT_SIZE, DEFAULT_SLOT);
 		graphics.horizontalLine(x, x + SLOT_SIZE - 1, y, borderColor);
 		graphics.horizontalLine(x, x + SLOT_SIZE - 1, y + SLOT_SIZE - 1, borderColor);
 		graphics.verticalLine(x, y, y + SLOT_SIZE - 1, borderColor);
 		graphics.verticalLine(x + SLOT_SIZE - 1, y, y + SLOT_SIZE - 1, borderColor);
 	}
 
-	/** 底槽填充色：盒色 25% 亮度（ARGB），无盒色用深灰。 */
-	private int slotFillColor() {
+	/** 整体背景：普通盒紫色调；16 色盒用盒色 30% 亮度。 */
+	private int background() {
 		if (color == null) {
-			return DEFAULT_SLOT_FILL;
+			return DEFAULT_BACKGROUND;
 		}
-		return mix(color.getTextureDiffuseColor(), FILL_RATIO, SLOT_FILL_ALPHA);
+		return mix(color.getTextureDiffuseColor(), BG_RATIO, 0xE0);
 	}
 
-	/** 底槽边框色：盒色 60% 亮度（ARGB），无盒色用灰。 */
-	private int slotBorderColor() {
+	/** 边框色：普通盒淡紫；16 色盒用盒色 70% 亮度。 */
+	private int border() {
 		if (color == null) {
-			return DEFAULT_SLOT_BORDER;
+			return DEFAULT_BORDER;
 		}
-		return mix(color.getTextureDiffuseColor(), BORDER_RATIO, SLOT_BORDER_ALPHA);
+		return mix(color.getTextureDiffuseColor(), BORDER_RATIO, 0x8A);
 	}
 
 	private static int mix(int rgb, int ratio, int alpha) {
