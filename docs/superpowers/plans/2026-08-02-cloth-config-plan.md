@@ -16,7 +16,7 @@
 - 依赖：`modApi("me.shedaniel.cloth:cloth-config-fabric:26.2.155")`（exclude fabric-api）+ `modCompileOnly("com.terraformersmc:modmenu:20.0.0-beta.2")`；`fabric.mod.json` `depends` 加 `cloth-config: >=26.2.155`、`suggests` 加 `modmenu`、`entrypoints` 加 `modmenu`
 - 默认值必须与现有硬编码常量一一对应：服务端 8 个（3 / 1.0 / 1.0 / 0.5 / 4 / 12 / 0.45 / 0.55）、客户端 6 个（1.8 / 0.25 / 12 / 8 / 0.08 / 20）
 - 开关检查放 mixin/入口薄层；纯逻辑类（`TotemOfHoldingLogic`）不感知配置
-- `nextInt(0)` 会抛异常：粒子频率 chance 字段 min=1
+- `nextInt(0)` 会抛异常：粒子频率 chance 字段 min=1；**注意 26.2 注解仅 `@ConfigEntry.BoundedDiscrete(long min, long max)` 适用于 int/long 字段（自动渲染 slider），float 字段无边界注解（BoundedFloating 被注释）——运行时读取仍需 clamp 防御**（见 Task 5）
 - 若 AutoConfig 具体 API（注解/类名）与计划不符，以反编译 `cloth-config-fabric-26.2.155.jar` 为准修正（`find ~/.gradle -name "cloth-config*jar"`）
 
 ---
@@ -148,102 +148,66 @@ public class QuirkyConfig implements ConfigData {
 	// ==== 图腾手感参数（服务端）====
 
 	@ConfigEntry.Category("totem")
-	@ConfigEntry.BoundedBelow(min = 1)
-	@ConfigEntry.BoundedAbove(max = 10)
-	@ConfigEntry.Gui.Slider
+	@ConfigEntry.BoundedDiscrete(min = 1, max = 10)
 	@ConfigEntry.Gui.Tooltip
 	public int hitsToRetrieve = 3;
 
 	@ConfigEntry.Category("totem")
-	@ConfigEntry.BoundedBelow(min = 0)
-	@ConfigEntry.BoundedAbove(max = 4)
-	@ConfigEntry.Gui.Slider
 	@ConfigEntry.Gui.Tooltip
 	public float hitSoundVolume = 1.0F;
 
 	@ConfigEntry.Category("totem")
-	@ConfigEntry.BoundedBelow(min = 0.5F)
-	@ConfigEntry.BoundedAbove(max = 2)
-	@ConfigEntry.Gui.Slider
 	@ConfigEntry.Gui.Tooltip
 	public float hitSoundPitch = 1.0F;
 
 	@ConfigEntry.Category("totem")
-	@ConfigEntry.BoundedBelow(min = 0)
-	@ConfigEntry.BoundedAbove(max = 2)
-	@ConfigEntry.Gui.Slider
 	@ConfigEntry.Gui.Tooltip
 	public float retrieveSoundVolume = 0.5F;
 
 	@ConfigEntry.Category("totem")
-	@ConfigEntry.BoundedBelow(min = 1)
-	@ConfigEntry.BoundedAbove(max = 100)
-	@ConfigEntry.Gui.Slider
+	@ConfigEntry.BoundedDiscrete(min = 1, max = 100)
 	@ConfigEntry.Gui.Tooltip
 	public int enchantParticleChance = 4;
 
 	@ConfigEntry.Category("totem")
-	@ConfigEntry.BoundedBelow(min = 1)
-	@ConfigEntry.BoundedAbove(max = 100)
-	@ConfigEntry.Gui.Slider
+	@ConfigEntry.BoundedDiscrete(min = 1, max = 100)
 	@ConfigEntry.Gui.Tooltip
 	public int endRodParticleChance = 12;
 
 	@ConfigEntry.Category("totem")
-	@ConfigEntry.BoundedBelow(min = 0)
-	@ConfigEntry.BoundedAbove(max = 2)
-	@ConfigEntry.Gui.Slider
 	@ConfigEntry.Gui.Tooltip
 	public float particleXzSpread = 0.45F;
 
 	@ConfigEntry.Category("totem")
-	@ConfigEntry.BoundedBelow(min = 0)
-	@ConfigEntry.BoundedAbove(max = 2)
-	@ConfigEntry.Gui.Slider
 	@ConfigEntry.Gui.Tooltip
 	public float particleYSpread = 0.55F;
 
 	// ==== 图腾手感参数（客户端渲染）====
 
 	@ConfigEntry.Category("totem")
-	@ConfigEntry.BoundedBelow(min = 0.5F)
-	@ConfigEntry.BoundedAbove(max = 4)
-	@ConfigEntry.Gui.Slider
 	@ConfigEntry.Gui.Tooltip
 	public float modelScale = 1.8F;
 
 	@ConfigEntry.Category("totem")
-	@ConfigEntry.BoundedBelow(min = 0)
-	@ConfigEntry.BoundedAbove(max = 1)
-	@ConfigEntry.Gui.Slider
 	@ConfigEntry.Gui.Tooltip
 	public float bobAmplitude = 0.25F;
 
 	@ConfigEntry.Category("totem")
-	@ConfigEntry.BoundedBelow(min = 4)
-	@ConfigEntry.BoundedAbove(max = 60)
-	@ConfigEntry.Gui.Slider
+	@ConfigEntry.BoundedDiscrete(min = 4, max = 60)
 	@ConfigEntry.Gui.Tooltip
 	public int bobPeriod = 12;
 
 	@ConfigEntry.Category("totem")
-	@ConfigEntry.BoundedBelow(min = 4)
-	@ConfigEntry.BoundedAbove(max = 60)
-	@ConfigEntry.Gui.Slider
+	@ConfigEntry.BoundedDiscrete(min = 4, max = 60)
 	@ConfigEntry.Gui.Tooltip
 	public int spinPeriod = 8;
 
 	@ConfigEntry.Category("totem")
-	@ConfigEntry.BoundedBelow(min = 0)
-	@ConfigEntry.BoundedAbove(max = 0.5F)
-	@ConfigEntry.Gui.Slider
 	@ConfigEntry.Gui.Tooltip
 	public float swayAmplitude = 0.08F;
 
 	@ConfigEntry.Category("totem")
-	@ConfigEntry.BoundedBelow(min = 4)
-	@ConfigEntry.BoundedAbove(max = 60)
-	@ConfigEntry.Gui.Slider
+	@ConfigEntry.BoundedDiscrete(min = 4, max = 60)
 	@ConfigEntry.Gui.Tooltip
 	public int swayPeriod = 20;
 }
@@ -629,11 +593,13 @@ git commit -m "feat: add client mechanic toggles and modmenu integration"
 ```java
 		this.playSound(SoundEvents.TOTEM_USE, QuirkyConfigHolder.get().retrieveSoundVolume, 1.0F);
 ```
-`tick()` 内四处 `ENCHANT_PARTICLE_CHANCE` / `END_ROD_PARTICLE_CHANCE` / `PARTICLE_XZ_SPREAD` / `PARTICLE_Y_SPREAD` 改为（方法开头取一次配置）：
+`tick()` 内四处 `ENCHANT_PARTICLE_CHANCE` / `END_ROD_PARTICLE_CHANCE` / `PARTICLE_XZ_SPREAD` / `PARTICLE_Y_SPREAD` 改为（方法开头取一次配置；**BoundedDiscrete 在 26.2 不强制反序列化边界，chance 必须 clamp ≥1 防 `nextInt(0)` 崩溃**）：
 ```java
 		if (this.level() instanceof ServerLevel serverLevel) {
 			QuirkyConfig config = QuirkyConfigHolder.get();
-			if (this.random.nextInt(config.enchantParticleChance) == 0) {
+			int enchantChance = Math.max(1, config.enchantParticleChance);
+			int endRodChance = Math.max(1, config.endRodParticleChance);
+			if (this.random.nextInt(enchantChance) == 0) {
 				serverLevel.sendParticles(
 					ParticleTypes.ENCHANT,
 					this.getX(),
@@ -646,7 +612,7 @@ git commit -m "feat: add client mechanic toggles and modmenu integration"
 					0.02
 				);
 			}
-			if (this.random.nextInt(config.endRodParticleChance) == 0) {
+			if (this.random.nextInt(endRodChance) == 0) {
 				serverLevel.sendParticles(
 					ParticleTypes.END_ROD,
 					this.getX(),
