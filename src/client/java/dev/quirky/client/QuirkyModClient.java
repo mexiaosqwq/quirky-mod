@@ -2,9 +2,11 @@ package dev.quirky.client;
 
 import dev.quirky.ModEntities;
 import dev.quirky.client.equip_swap.EquipSwapClient;
+import dev.quirky.client.tooltips.ClientFoodTooltipComponent;
 import dev.quirky.client.tooltips.ClientMapTooltipComponent;
 import dev.quirky.client.tooltips.ClientShulkerTooltipComponent;
 import dev.quirky.client.totem.TotemEntityRenderer;
+import dev.quirky.tooltips.FoodTooltipComponent;
 import dev.quirky.tooltips.MapTooltipComponent;
 import dev.quirky.tooltips.ShulkerTooltipComponent;
 import net.fabricmc.api.ClientModInitializer;
@@ -21,6 +23,9 @@ public class QuirkyModClient implements ClientModInitializer {
 			}
 			if (component instanceof ShulkerTooltipComponent shulker) {
 				return new ClientShulkerTooltipComponent(shulker);
+			}
+			if (component instanceof FoodTooltipComponent food) {
+				return new ClientFoodTooltipComponent(food);
 			}
 			return null;
 		});

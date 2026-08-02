@@ -3,6 +3,7 @@ package dev.quirky.mixin;
 import java.util.Optional;
 
 import dev.quirky.config.QuirkyConfigHolder;
+import dev.quirky.tooltips.FoodTooltipComponent;
 import dev.quirky.tooltips.ShulkerTooltipComponent;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
@@ -26,6 +27,18 @@ public abstract class TooltipDetailsMixin {
 		}
 		if (stack.has(DataComponents.CONTAINER)) {
 			cir.setReturnValue(Optional.of(new ShulkerTooltipComponent(stack.get(DataComponents.CONTAINER))));
+		}
+	}
+
+	@Inject(method = "getTooltipImage", at = @At("HEAD"), cancellable = true)
+	private void quirky$foodTooltip(ItemStack stack, CallbackInfoReturnable<Optional<TooltipComponent>> cir) {
+		if (!QuirkyConfigHolder.get().foodTooltip) {
+			return;
+		}
+		// FOOD 组件无默认值：非食物物品 stack.get 返回 null
+		var food = stack.get(DataComponents.FOOD);
+		if (food != null) {
+			cir.setReturnValue(Optional.of(new FoodTooltipComponent(food)));
 		}
 	}
 }
