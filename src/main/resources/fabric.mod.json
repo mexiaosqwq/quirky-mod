@@ -10,7 +10,8 @@
   "environment": "*",
   "entrypoints": {
     "main": ["dev.quirky.QuirkyMod"],
-    "client": ["dev.quirky.client.QuirkyModClient"]
+    "client": ["dev.quirky.client.QuirkyModClient"],
+    "modmenu": ["dev.quirky.client.config.ModMenuIntegration"]
   },
   "mixins": [
     "quirky.mixins.json",
@@ -23,6 +24,10 @@
     "fabricloader": ">=0.19.3",
     "minecraft": "~26.2",
     "java": ">=25",
-    "fabric-api": "*"
+    "fabric-api": "*",
+    "cloth-config": ">=26.2.155"
+  },
+  "suggests": {
+    "modmenu": "*"
   }
 }
