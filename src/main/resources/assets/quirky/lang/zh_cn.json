@@ -1,6 +1,7 @@
 {
   "item.quirky.bottled_cloud": "云瓶",
   "item.quirky.totem_of_holding": "保留图腾",
+  "item.quirky.torch_arrow": "火把箭",
   "message.quirky.totem_spawned": "你的保留图腾生成于 %s (%s, %s, %s)，距你的出生点 %s 格",
   "message.quirky.totem_spawned_cross": "你的保留图腾生成于 %s (%s, %s, %s)，与你的出生点不在同一维度",
   "tooltip.quirky.clock": "第 %s 天 · %s",
