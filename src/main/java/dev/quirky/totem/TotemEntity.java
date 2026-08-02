@@ -100,16 +100,16 @@ public class TotemEntity extends Entity {
 			if (this.random.nextInt(6) == 0) {
 				serverLevel.addParticle(
 					ParticleTypes.ENCHANT,
-					this.getX() + (this.random.nextDouble() - 0.5) * 0.6,
-					this.getY() + this.random.nextDouble() * 0.8,
-					this.getZ() + (this.random.nextDouble() - 0.5) * 0.6,
+					this.getX() + (this.random.nextDouble() - 0.5) * 0.8,
+					this.getY() + this.random.nextDouble() * 0.9,
+					this.getZ() + (this.random.nextDouble() - 0.5) * 0.8,
 					0.0,
 					0.05,
 					0.0
 				);
 			}
 			if (this.random.nextInt(160) == 0) {
-				this.playSound(SoundEvents.AMETHYST_BLOCK_CHIME, 0.15F, 1.3F);
+				this.playSound(SoundEvents.AMETHYST_BLOCK_CHIME, 0.35F, 1.3F);
 			}
 		}
 	}

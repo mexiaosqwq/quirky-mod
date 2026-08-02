@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class TotemOfHoldingLogic {
-	private static final int MAX_RAISE = 6;
+	private static final int MAX_RAISE = 3; // 最高升到死亡点上方 3 格——必须保持在玩家攻击范围（眼睛 1.62 + 3 格射线）内
 
 	private TotemOfHoldingLogic() {
 	}
@@ -40,17 +40,18 @@ public final class TotemOfHoldingLogic {
 	}
 
 	/**
-	 * 自适应悬浮位置：从死亡点上方 1 格起向上找 2 格连续空气（图腾本身 + 上方空间），
-	 * 低顶/遮挡时自动升高；全部被堵时兜底死亡点上方 1 格。
+	 * 自适应悬浮位置：从死亡点上方 2 格（头顶上方）起，在玩家可攻击范围内（最多 3 格）
+	 * 找 2 格连续空气（图腾本身 + 上方空间）；全堵时兜底头顶上方。
+	 * 上限 3 格是硬约束：超出玩家攻击范围（眼睛 1.62 + 3 格射线）会打不到图腾。
 	 */
 	public static BlockPos findSpawnPosition(Level level, BlockPos deathPos) {
-		for (int i = 1; i <= MAX_RAISE; i++) {
+		for (int i = 2; i <= MAX_RAISE; i++) {
 			BlockPos candidate = deathPos.above(i);
 			if (level.getBlockState(candidate).isAir() && level.getBlockState(candidate.above()).isAir()) {
 				return candidate;
 			}
 		}
-		return deathPos.above(1);
+		return deathPos.above(2);
 	}
 
 	public static List<ItemStack> restoreToPlayer(Player player, List<ItemStackWithSlot> stored) {

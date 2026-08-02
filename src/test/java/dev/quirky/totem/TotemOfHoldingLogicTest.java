@@ -161,20 +161,20 @@ class TotemOfHoldingLogicTest {
 
 		BlockPos result = TotemOfHoldingLogic.findSpawnPosition(level, new BlockPos(1, 64, 1));
 
-		assertEquals(65, result.getY()); // 死亡点上方 1 格（头顶附近）
+		assertEquals(66, result.getY()); // 头顶上方（死亡点 +2）
 	}
 
 	@Test
 	void findSpawnPosition_risesPastObstacles() {
 		Level level = mock(Level.class);
-		// y=65 有方块（低顶），y=66 起为空
-		when(level.getBlockState(new BlockPos(1, 65, 1))).thenReturn(Blocks.STONE.defaultBlockState());
-		when(level.getBlockState(new BlockPos(1, 66, 1))).thenReturn(Blocks.AIR.defaultBlockState());
+		// y=66 有方块（低顶），y=67 起为空
+		when(level.getBlockState(new BlockPos(1, 66, 1))).thenReturn(Blocks.STONE.defaultBlockState());
 		when(level.getBlockState(new BlockPos(1, 67, 1))).thenReturn(Blocks.AIR.defaultBlockState());
+		when(level.getBlockState(new BlockPos(1, 68, 1))).thenReturn(Blocks.AIR.defaultBlockState());
 
 		BlockPos result = TotemOfHoldingLogic.findSpawnPosition(level, new BlockPos(1, 64, 1));
 
-		assertEquals(66, result.getY()); // 跳过被挡的 y=65，落在 y=66
+		assertEquals(67, result.getY()); // 跳过被挡的 y=66，落在 y=67
 	}
 
 	@Test
@@ -184,6 +184,6 @@ class TotemOfHoldingLogicTest {
 
 		BlockPos result = TotemOfHoldingLogic.findSpawnPosition(level, new BlockPos(1, 64, 1));
 
-		assertEquals(65, result.getY()); // 全堵时兜底死亡点上方 1 格
+		assertEquals(66, result.getY()); // 全堵时兜底头顶上方
 	}
 }

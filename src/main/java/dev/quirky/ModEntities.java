@@ -12,7 +12,7 @@ public final class ModEntities {
 	private static final ResourceKey<EntityType<?>> TOTEM_ID = ResourceKey.create(Registries.ENTITY_TYPE, QuirkyMod.id("totem_of_holding"));
 
 	public static final EntityType<TotemEntity> TOTEM = EntityType.Builder.of(TotemEntity::new, MobCategory.MISC)
-		.sized(0.5F, 0.6F)
+		.sized(0.8F, 0.8F)
 		.clientTrackingRange(8)
 		.build(TOTEM_ID);
 
