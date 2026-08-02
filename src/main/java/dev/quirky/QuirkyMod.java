@@ -15,6 +15,7 @@ public class QuirkyMod implements ModInitializer {
 	public void onInitialize() {
 		ModBlocks.register();
 		ModItems.register();
+		ModEntities.register();
 		HarvestHandler.init();
 		EquipSwapServer.init();
 		LOGGER.info("Quirky loaded");

@@ -32,6 +32,7 @@ public final class TestBootstrap {
 		BuiltInRegistries.REGISTRY.keySet();
 		ModBlocks.register();
 		ModItems.register();
+		ModEntities.register(); // EntityType 构造会创建 intrusive holder，必须在注册窗口内加载
 		setBootstrapped(false);
 		Bootstrap.bootStrap();
 		RegistryAccess.Frozen registries = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY);
