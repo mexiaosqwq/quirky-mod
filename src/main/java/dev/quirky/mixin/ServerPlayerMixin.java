@@ -1,6 +1,7 @@
 package dev.quirky.mixin;
 
 import dev.quirky.ModEntities;
+import dev.quirky.config.QuirkyConfigHolder;
 import dev.quirky.totem.TotemEntity;
 import dev.quirky.totem.TotemOfHoldingLogic;
 import net.minecraft.core.BlockPos;
@@ -31,6 +32,9 @@ public class ServerPlayerMixin {
 		)
 	)
 	private void quirky$totemProtectInventory(DamageSource source, CallbackInfo ci) {
+		if (!QuirkyConfigHolder.get().totemOfHolding) {
+			return; // 不生成图腾，原版掉落照常
+		}
 		ServerPlayer player = (ServerPlayer) (Object) this;
 		boolean keepInventory = player.level().getGameRules().get(GameRules.KEEP_INVENTORY);
 		if (!TotemOfHoldingLogic.shouldSpawnTotem(player, source, keepInventory)) {

@@ -2,6 +2,7 @@ package dev.quirky.item;
 
 import dev.quirky.ModBlocks;
 import dev.quirky.cloud.CloudPlacement;
+import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -19,6 +20,9 @@ public class BottledCloudItem extends Item {
 
 	@Override
 	public InteractionResult use(Level level, Player player, InteractionHand hand) {
+		if (!QuirkyConfigHolder.get().cloudBottle) {
+			return InteractionResult.FAIL;
+		}
 		BlockPos pos = CloudPlacement.findNearestAir(
 			level,
 			player.getEyePosition(),
