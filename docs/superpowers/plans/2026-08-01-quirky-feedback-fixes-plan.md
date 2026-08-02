@@ -41,7 +41,7 @@ gradle clean build --no-daemon --console=plain
 
 根因：`ClientItemInfoLoader` 只扫描 `assets/<namespace>/items/<id>.json`（`FileToIdConverter.json("items")`），`ItemModelResolver` 只读取 `DataComponents.ITEM_MODEL`。旧 jar 里只有 `models/item/bottled_cloud.json`，因此物品模型 ID 无对应 ClientItem，渲染为缺失模型紫黑方块。
 
-- [ ] **Step 1: 添加新式物品模型注册文件**
+- [x] **Step 1: 添加新式物品模型注册文件**
 
 创建 `src/main/resources/assets/quirky/items/bottled_cloud.json`：
 
@@ -54,7 +54,7 @@ gradle clean build --no-daemon --console=plain
 }
 ```
 
-- [ ] **Step 2: 创建贴图生成脚本**
+- [x] **Step 2: 创建贴图生成脚本**
 
 创建 `tools/generate_cloud_textures.py`，内容如下：
 
@@ -208,7 +208,7 @@ write_png(
 )
 ```
 
-- [ ] **Step 3: 运行生成脚本并验证 PNG**
+- [x] **Step 3: 运行生成脚本并验证 PNG**
 
 ```bash
 python3 tools/generate_cloud_textures.py
@@ -218,7 +218,7 @@ identify src/main/resources/assets/quirky/textures/item/bottled_cloud.png \
 
 预期：两张图均为 `16 x 16`、`8-bit/color RGBA`。
 
-- [ ] **Step 4: 构建并检查 jar 内容**
+- [x] **Step 4: 构建并检查 jar 内容**
 
 ```bash
 JAVA_HOME=/data/data/com.termux/files/usr/lib/jvm/java-25-openjdk \
@@ -229,7 +229,7 @@ unzip -l build/libs/quirky-0.1.0.jar | grep 'assets/quirky/items/bottled_cloud.j
 
 预期：构建成功，jar 内包含 `assets/quirky/items/bottled_cloud.json`。
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add src/main/resources/assets/quirky/items/bottled_cloud.json \
@@ -253,7 +253,7 @@ git commit -m "fix: load bottled cloud item model with 26.2 item registration"
 
 根因：客户端在 `ScreenEvents.BEFORE_INIT` 中明确排除了 `CreativeModeInventoryScreen`，创造模式右键不会发送换装包。另外创造界面的非背包页签使用 `ItemPickerMenu` 热键栏槽位编号 45-53，服务端 `InventoryMenu` 热键栏编号是 36-44，必须映射。
 
-- [ ] **Step 1: 先写失败测试**
+- [x] **Step 1: 先写失败测试**
 
 创建 `src/test/java/dev/quirky/client/equip_swap/EquipSwapClientTest.java`：
 
@@ -323,7 +323,7 @@ class EquipSwapClientTest {
 }
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 ```bash
 JAVA_HOME=/data/data/com.termux/files/usr/lib/jvm/java-25-openjdk \
@@ -333,7 +333,7 @@ gradle test --tests 'dev.quirky.client.equip_swap.EquipSwapClientTest' --no-daem
 
 预期：编译失败，因为 `serverSlotIndex` 不存在。
 
-- [ ] **Step 3: 实现客户端改造**
+- [x] **Step 3: 实现客户端改造**
 
 修改 `src/client/java/dev/quirky/client/equip_swap/EquipSwapClient.java`：
 
@@ -402,7 +402,7 @@ public final class EquipSwapClient {
 }
 ```
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 ```bash
 JAVA_HOME=/data/data/com.termux/files/usr/lib/jvm/java-25-openjdk \
@@ -412,7 +412,7 @@ gradle test --tests 'dev.quirky.client.equip_swap.EquipSwapClientTest' --no-daem
 
 预期：4 个测试全部通过。
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add src/client/java/dev/quirky/client/equip_swap/EquipSwapClient.java \
@@ -439,7 +439,7 @@ git commit -m "feat: support equip swap in creative inventory"
 
 用户授权“可以把这功能删掉”，本任务选择删除指南针提示，保留时钟提示。
 
-- [ ] **Step 1: 修改 Mixin，只保留时钟分支**
+- [x] **Step 1: 修改 Mixin，只保留时钟分支**
 
 `src/client/java/dev/quirky/client/mixin/ClockCompassTooltipMixin.java` 最终内容：
 
@@ -498,7 +498,7 @@ public abstract class ClockCompassTooltipMixin {
 }
 ```
 
-- [ ] **Step 2: 删除语言键**
+- [x] **Step 2: 删除语言键**
 
 `src/main/resources/assets/quirky/lang/zh_cn.json` 删除 `tooltip.quirky.compass` 与 `tooltip.quirky.lodestone`，只保留：
 
@@ -518,7 +518,7 @@ public abstract class ClockCompassTooltipMixin {
 }
 ```
 
-- [ ] **Step 3: 更新用户文档与规格**
+- [x] **Step 3: 更新用户文档与规格**
 
 `README.md`：
 
@@ -544,7 +544,7 @@ public abstract class ClockCompassTooltipMixin {
 - 音效总表中 `地图/指南针/时钟` 改为 `地图/时钟`。
 - 非目标中 `不给地图、指南针、时钟加音效` 改为 `不给地图、时钟加音效`。
 
-- [ ] **Step 4: 构建验证**
+- [x] **Step 4: 构建验证**
 
 ```bash
 JAVA_HOME=/data/data/com.termux/files/usr/lib/jvm/java-25-openjdk \
@@ -554,7 +554,7 @@ gradle build --no-daemon --console=plain
 
 预期：构建成功，Mixin 仍被客户端引用。
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add src/client/java/dev/quirky/client/mixin/ClockCompassTooltipMixin.java \
@@ -578,7 +578,7 @@ git commit -m "chore: remove compass tooltip and enable creative equip swap docs
 - Consumes: Task 1-3 的所有改动。
 - Produces: 可安装的 mod jar 与最终变更清单。
 
-- [ ] **Step 1: 全量 clean build**
+- [x] **Step 1: 全量 clean build**
 
 ```bash
 JAVA_HOME=/data/data/com.termux/files/usr/lib/jvm/java-25-openjdk \
@@ -588,7 +588,7 @@ gradle clean build --no-daemon --console=plain
 
 预期：全部测试与构建通过。
 
-- [ ] **Step 2: 检查 jar 内资源**
+- [x] **Step 2: 检查 jar 内资源**
 
 ```bash
 unzip -l build/libs/quirky-0.1.0.jar | grep -E 'assets/quirky/(items/bottled_cloud|models/item/bottled_cloud|textures/item/bottled_cloud|textures/block/cloud)'
@@ -596,7 +596,7 @@ unzip -l build/libs/quirky-0.1.0.jar | grep -E 'assets/quirky/(items/bottled_clo
 
 预期：四类资源都在 jar 中。
 
-- [ ] **Step 3: 自检清单**
+- [x] **Step 3: 自检清单**
 
 ```text
 1. `items/bottled_cloud.json` 的 model 指向 `quirky:item/bottled_cloud`。
@@ -606,7 +606,7 @@ unzip -l build/libs/quirky-0.1.0.jar | grep -E 'assets/quirky/(items/bottled_clo
 5. 用户无关改动（AGENTS.md、.agents/ 等）未提交。
 ```
 
-- [ ] **Step 4: 最终提交（如有剩余文档改动）**
+- [x] **Step 4: 最终提交（如有剩余文档改动）**
 
 ```bash
 git status --short

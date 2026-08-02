@@ -34,7 +34,7 @@
   - `List<ItemStackWithSlot> collectInventory(Player player)` — 遍历 `getContainerSize()`，跳过空槽与消失诅咒物品，`stack.copy()` 存 `new ItemStackWithSlot(slot, stack)`
   - `List<ItemStack> restoreToPlayer(Player player, List<ItemStackWithSlot> stored)` — 原槽位空则原位放回；否则 `getFreeSlot()`；满则加入返回列表（overflow）
 
-- [ ] **Step 1: 写失败测试** `src/test/java/dev/quirky/totem/TotemOfHoldingLogicTest.java`
+- [x] **Step 1: 写失败测试** `src/test/java/dev/quirky/totem/TotemOfHoldingLogicTest.java`
 
 ```java
 package dev.quirky.totem;
@@ -176,12 +176,12 @@ class TotemOfHoldingLogicTest {
 }
 ```
 
-- [ ] **Step 2: 运行确认失败**
+- [x] **Step 2: 运行确认失败**
 
 Run: `gradle test --tests 'dev.quirky.totem.TotemOfHoldingLogicTest'`
 Expected: 编译失败（TotemOfHoldingLogic 不存在）
 
-- [ ] **Step 3: 实现** `src/main/java/dev/quirky/totem/TotemOfHoldingLogic.java`
+- [x] **Step 3: 实现** `src/main/java/dev/quirky/totem/TotemOfHoldingLogic.java`
 
 ```java
 package dev.quirky.totem;
@@ -243,12 +243,12 @@ public final class TotemOfHoldingLogic {
 }
 ```
 
-- [ ] **Step 4: 运行确认通过**
+- [x] **Step 4: 运行确认通过**
 
 Run: `gradle test --tests 'dev.quirky.totem.TotemOfHoldingLogicTest'`
 Expected: 9 个测试全过（若 `inventory.setItem(36, ...)` 或 `getFreeSlot` 行为与预期不符，按 mcsrc 实测调整断言，并把事实回写 Global Constraints）
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add src/main/java/dev/quirky/totem/TotemOfHoldingLogic.java src/test/java/dev/quirky/totem/TotemOfHoldingLogicTest.java
@@ -274,7 +274,7 @@ git commit -m "feat: add totem of holding core logic with tests"
   - `static void TotemEntity.breakForOwner(ServerPlayer player)` — 遍历 `player.getServer().getAllLevels()`，`level.getEntities(TotemEntity.class, e -> player.getUUID().equals(e.getOwner()))` → 每物品 `totem.spawnAtLocation((ServerLevel) totem.level(), stack)` → `totem.discard()`
   - 击打：`hurtServer` 计数，`HITS_TO_RETRIEVE = 3`；第 3 次 `restoreToPlayer` + overflow 掉落 + `playSound(SoundEvents.TOTEM_USE)` + `discard()`
 
-- [ ] **Step 1: 写失败测试** `src/test/java/dev/quirky/totem/TotemEntityTest.java`
+- [x] **Step 1: 写失败测试** `src/test/java/dev/quirky/totem/TotemEntityTest.java`
 
 ```java
 package dev.quirky.totem;
@@ -382,12 +382,12 @@ class TotemEntityTest {
 // playSound/spawnAtLocation 为空操作（Mockito void 默认）。无需 stub level。
 ```
 
-- [ ] **Step 2: 运行确认失败**
+- [x] **Step 2: 运行确认失败**
 
 Run: `gradle test --tests 'dev.quirky.totem.TotemEntityTest'`
 Expected: 编译失败（ModEntities/TotemEntity 不存在）
 
-- [ ] **Step 3: 实现** `src/main/java/dev/quirky/ModEntities.java`
+- [x] **Step 3: 实现** `src/main/java/dev/quirky/ModEntities.java`
 
 ```java
 package dev.quirky;
@@ -418,7 +418,7 @@ public final class ModEntities {
 
 （26.2 实测：`EntityType.Builder.build(ResourceKey)` 只构造不注册，需 `Registry.register`——照 ModBlocks/ModItems 既有模式；`QuirkyMod.onInitialize` 加 `ModEntities.register()`；`TestBootstrap.boot()` 在注册窗口内（与 ModBlocks/ModItems.register() 并列）加 `ModEntities.register()`——EntityType 构造创建 intrusive holder 需在注册表冻结前，且惰性类加载会晚于冻结导致测试崩溃）
 
-- [ ] **Step 4: 实现** `src/main/java/dev/quirky/totem/TotemEntity.java`
+- [x] **Step 4: 实现** `src/main/java/dev/quirky/totem/TotemEntity.java`
 
 ```java
 package dev.quirky.totem;
@@ -527,12 +527,12 @@ public class TotemEntity extends Entity {
 }
 ```
 
-- [ ] **Step 5: 运行确认通过**
+- [x] **Step 5: 运行确认通过**
 
 Run: `gradle test --tests 'dev.quirky.totem.TotemEntityTest'`
 Expected: 3 个测试全过。若 `TagValueOutput` 取 tag 方法名不同（`getCompoundTag` vs 其他），查 `TagValueOutput.java` 源码修正；若 `hurtServer` 中 `spawnAtLocation`/`discard` 在 mock level 下 NPE，stub 对应调用。
 
-- [ ] **Step 6: 提交**
+- [x] **Step 6: 提交**
 
 ```bash
 git add src/main/java/dev/quirky/ModEntities.java src/main/java/dev/quirky/totem/TotemEntity.java src/test/java/dev/quirky/totem/TotemEntityTest.java
@@ -551,7 +551,7 @@ git commit -m "feat: add totem entity with retrieve and persistence"
 - Consumes: `TotemOfHoldingLogic.shouldSpawnTotem` / `collectInventory`；`TotemEntity.breakForOwner` / `initStored`；`ModEntities.TOTEM`
 - Produces: 无（拦截点行为：触发则破裂旧图腾 → 收集 → 生成新图腾 → `inventory.clearContent()`）
 
-- [ ] **Step 1: 实现 Mixin** `src/main/java/dev/quirky/mixin/ServerPlayerMixin.java`
+- [x] **Step 1: 实现 Mixin** `src/main/java/dev/quirky/mixin/ServerPlayerMixin.java`
 
 ```java
 package dev.quirky.mixin;
@@ -605,16 +605,16 @@ public class ServerPlayerMixin {
 }
 ```
 
-- [ ] **Step 2: 注册 Mixin**
+- [x] **Step 2: 注册 Mixin**
 
 `src/main/resources/quirky.mixins.json` 的 `"mixins"` 数组改为：`["DoubleDoorMixin", "MapTooltipMixin", "MelonSeedMixin", "ServerPlayerMixin"]`
 
-- [ ] **Step 3: 构建验证**
+- [x] **Step 3: 构建验证**
 
 Run: `gradle build`
 Expected: BUILD SUCCESSFUL（mixin 注入点解析成功；`defaultRequire: 1` 会强制验证 target 存在）
 
-- [ ] **Step 4: 提交**
+- [x] **Step 4: 提交**
 
 ```bash
 git add src/main/java/dev/quirky/mixin/ServerPlayerMixin.java src/main/resources/quirky.mixins.json
@@ -636,11 +636,11 @@ git commit -m "feat: intercept player death to spawn holding totem"
 - Consumes: 无（贴图素材）
 - Produces: `ModItems.TOTEM_OF_HOLDING`（任务 5 渲染引用）
 
-- [ ] **Step 1: 生成预览**
+- [x] **Step 1: 生成预览**
 
 用 python3 生成 16x16 图腾贴图并放大 20x 输出 `build/previews/totem_item_v1.png` + ASCII 渲染展示。设计参考 Quark 图腾：竖向长条徽章，米白/金色主体 + 中间菱形宝石（蓝/紫色），深色描边。**展示给用户，等待确认后才继续 Step 2**。
 
-- [ ] **Step 2: 落地正式资源**（用户确认后）
+- [x] **Step 2: 落地正式资源**（用户确认后）
 
 - `ModItems` 加物品注册（照 BOTTLED_CLOUD 模式）
 - `models/item/totem_of_holding.json`：
@@ -655,7 +655,7 @@ git commit -m "feat: intercept player death to spawn holding totem"
 - `textures/item/totem_of_holding.png` 16x16 RGBA（与预览同像素）
 - lang 文件加：`"item.quirky.totem_of_holding": "Totem of Holding"` / `"保留图腾"`
 
-- [ ] **Step 3: 构建验证 + 提交**
+- [x] **Step 3: 构建验证 + 提交**
 
 Run: `gradle build`
 Expected: BUILD SUCCESSFUL
@@ -677,7 +677,7 @@ git commit -m "feat: add totem of holding item with texture"
 **Interfaces:**
 - Consumes: `ModEntities.TOTEM`、`ModItems.TOTEM_OF_HOLDING`；26.2 渲染管线：`EntityRenderer<T, S extends EntityRenderState>` 的 `createRenderState()` / `extractRenderState(T, S, float)` / `submit(S, PoseStack, SubmitNodeCollector, CameraRenderState)`（模板：`ItemEntityRenderer`）；`ItemEntityRenderState.extractItemGroupRenderState(Entity, ItemStack, ItemModelResolver)`（已实锤签名）；`context.getItemModelResolver()`
 
-- [ ] **Step 1: 实现** `src/client/java/dev/quirky/client/totem/TotemEntityRenderState.java`
+- [x] **Step 1: 实现** `src/client/java/dev/quirky/client/totem/TotemEntityRenderState.java`
 
 ```java
 package dev.quirky.client.totem;
@@ -688,7 +688,7 @@ public class TotemEntityRenderState extends ItemEntityRenderState {
 }
 ```
 
-- [ ] **Step 2: 实现** `src/client/java/dev/quirky/client/totem/TotemEntityRenderer.java`
+- [x] **Step 2: 实现** `src/client/java/dev/quirky/client/totem/TotemEntityRenderer.java`
 
 ```java
 package dev.quirky.client.totem;
@@ -750,7 +750,7 @@ public class TotemEntityRenderer extends EntityRenderer<TotemEntity, TotemEntity
 }
 ```
 
-- [ ] **Step 3: 注册渲染器**
+- [x] **Step 3: 注册渲染器**
 
 `QuirkyModClient.onInitializeClient` 末尾加：
 ```java
@@ -758,7 +758,7 @@ EntityRenderers.register(ModEntities.TOTEM, TotemEntityRenderer::new);
 ```
 （import `dev.quirky.ModEntities`、`dev.quirky.client.totem.TotemEntityRenderer`、`net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry`）
 
-- [ ] **Step 4: 构建验证 + 提交**
+- [x] **Step 4: 构建验证 + 提交**
 
 Run: `gradle build`
 Expected: BUILD SUCCESSFUL（若 `EntityRenderer<T, S>` 泛型/方法签名与预期不符，以 `ItemEntityRenderer.java` 源码为准修正；`Identifier` 若为 `ResourceLocation` 旧名同样修正）
@@ -776,26 +776,26 @@ git commit -m "feat: render floating totem entity"
 - Modify: `README.md`（功能列表加保留图腾）
 - Modify: `features.md`（同步）
 
-- [ ] **Step 1: 更新文档**
+- [x] **Step 1: 更新文档**
 
 README 功能列表（照现有条目风格）：
 > - **保留图腾**：死亡时背包物品集中存入死亡点生成的悬浮图腾（非 PVP 击杀、非创造、`keepInventory` 关闭时生效），任何玩家击打 3 次取回，按原槽位归还；未取回再死则旧图腾破裂散落。消失诅咒物品不保存；经验照常掉落。
 
 features.md 同步同内容。
 
-- [ ] **Step 2: 全量构建 + 测试**
+- [x] **Step 2: 全量构建 + 测试**
 
 Run: `gradle clean build`
 Expected: BUILD SUCCESSFUL，全量测试（37 + 新增 12 = 49 左右）0 失败
 
-- [ ] **Step 3: 提交**
+- [x] **Step 3: 提交**
 
 ```bash
 git add README.md features.md
 git commit -m "docs: document totem of holding feature"
 ```
 
-- [ ] **Step 4: 桌面手动验证清单**（交给用户/桌面客户端）
+- [x] **Step 4: 桌面手动验证清单**（交给用户/桌面客户端）
 
 1. 生存死亡（摔死/溺死）→ 死亡点出现悬浮旋转图腾，原物品不散落
 2. 击打 3 次 → 物品按原槽位回背包（含盔甲槽），音效播放；背包满时多余物品原地掉落

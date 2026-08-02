@@ -12,28 +12,28 @@
 
 ## 文件跟踪
 
-- [ ] `src/main/java/dev/quirky/ModBlocks.java`（新增：注册云团方块）
-- [ ] `src/main/java/dev/quirky/block/CloudBlock.java`（新增：临时云团方块）
-- [ ] `src/main/java/dev/quirky/cloud/CloudPlacement.java`（新增：准心空气方块查找）
-- [ ] `src/main/java/dev/quirky/item/BottledCloudItem.java`（修改：右键放云团）
-- [ ] `src/main/java/dev/quirky/QuirkyMod.java`（修改：初始化注册顺序）
-- [ ] `src/test/java/dev/quirky/cloud/CloudPlacementTest.java`（新增）
-- [ ] `src/test/java/dev/quirky/block/CloudBlockTest.java`（新增）
-- [ ] `src/test/java/dev/quirky/item/BottledCloudUseTest.java`（修改）
-- [ ] `src/main/java/dev/quirky/door/DoubleDoorHandler.java`（修改：支持非玩家实体）
-- [ ] `src/main/java/dev/quirky/mixin/DoubleDoorMixin.java`（修改：增加 `setOpen` 注入）
-- [ ] `src/test/java/dev/quirky/door/DoubleDoorHandlerTest.java`（修改）
-- [ ] `src/main/java/dev/quirky/food/MelonSeedHandler.java`（修改：吐籽）
-- [ ] `src/test/java/dev/quirky/food/MelonSeedHandlerTest.java`（修改）
-- [ ] `src/client/java/dev/quirky/client/tooltips/ClientMapTooltipComponent.java`（修改：地图纸边）
-- [ ] `src/test/java/dev/quirky/client/tooltips/ClientMapTooltipComponentTest.java`（新增）
-- [ ] `build.gradle`（修改：测试编译包含 client 输出）
-- [ ] `src/main/java/dev/quirky/harvest/HarvestFx.java`（修改：补破坏音/补种音）
-- [ ] `src/main/java/dev/quirky/harvest/HarvestHandler.java`（修改：补种音调用点）
-- [ ] `src/test/java/dev/quirky/harvest/HarvestFxTest.java`（修改）
-- [ ] `src/main/resources/assets/quirky/blockstates/cloud.json`（新增）
-- [ ] `src/main/resources/assets/quirky/models/block/cloud.json`（新增）
-- [ ] `src/main/resources/assets/quirky/textures/block/cloud.png`（新增）
+- [x] `src/main/java/dev/quirky/ModBlocks.java`（新增：注册云团方块）
+- [x] `src/main/java/dev/quirky/block/CloudBlock.java`（新增：临时云团方块）
+- [x] `src/main/java/dev/quirky/cloud/CloudPlacement.java`（新增：准心空气方块查找）
+- [x] `src/main/java/dev/quirky/item/BottledCloudItem.java`（修改：右键放云团）
+- [x] `src/main/java/dev/quirky/QuirkyMod.java`（修改：初始化注册顺序）
+- [x] `src/test/java/dev/quirky/cloud/CloudPlacementTest.java`（新增）
+- [x] `src/test/java/dev/quirky/block/CloudBlockTest.java`（新增）
+- [x] `src/test/java/dev/quirky/item/BottledCloudUseTest.java`（修改）
+- [x] `src/main/java/dev/quirky/door/DoubleDoorHandler.java`（修改：支持非玩家实体）
+- [x] `src/main/java/dev/quirky/mixin/DoubleDoorMixin.java`（修改：增加 `setOpen` 注入）
+- [x] `src/test/java/dev/quirky/door/DoubleDoorHandlerTest.java`（修改）
+- [x] `src/main/java/dev/quirky/food/MelonSeedHandler.java`（修改：吐籽）
+- [x] `src/test/java/dev/quirky/food/MelonSeedHandlerTest.java`（修改）
+- [x] `src/client/java/dev/quirky/client/tooltips/ClientMapTooltipComponent.java`（修改：地图纸边）
+- [x] `src/test/java/dev/quirky/client/tooltips/ClientMapTooltipComponentTest.java`（新增）
+- [x] `build.gradle`（修改：测试编译包含 client 输出）
+- [x] `src/main/java/dev/quirky/harvest/HarvestFx.java`（修改：补破坏音/补种音）
+- [x] `src/main/java/dev/quirky/harvest/HarvestHandler.java`（修改：补种音调用点）
+- [x] `src/test/java/dev/quirky/harvest/HarvestFxTest.java`（修改）
+- [x] `src/main/resources/assets/quirky/blockstates/cloud.json`（新增）
+- [x] `src/main/resources/assets/quirky/models/block/cloud.json`（新增）
+- [x] `src/main/resources/assets/quirky/textures/block/cloud.png`（新增）
 
 **架构：** 继续使用单一 Fabric 模组。服务端/通用逻辑在 `src/main`，客户端逻辑在 `src/client`，每个机制一个包，Mixin 只用于 Fabric API 没有钩子的地方。
 

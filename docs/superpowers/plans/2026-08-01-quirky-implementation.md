@@ -79,7 +79,7 @@ src/main/resources/
 - Produces: `QuirkyMod.MOD_ID` = `"quirky"`, `QuirkyMod.id(String)` returns `Identifier.fromNamespaceAndPath(MOD_ID, path)`.
 - Produces: empty mixin configs that later tasks append mixin class names to.
 
-- [ ] **Step 1: Update Gradle identity files**
+- [x] **Step 1: Update Gradle identity files**
 
 `settings.gradle`:
 
@@ -116,7 +116,7 @@ fabric_api_version=0.155.2+26.2
 
 In `build.gradle`, change the `loom { mods { ... } }` block key from `"modid"` to `"quirky"`.
 
-- [ ] **Step 2: Replace fabric.mod.json**
+- [x] **Step 2: Replace fabric.mod.json**
 
 ```json
 {
@@ -149,7 +149,7 @@ In `build.gradle`, change the `loom { mods { ... } }` block key from `"modid"` t
 }
 ```
 
-- [ ] **Step 3: Create entry point and mixin configs**
+- [x] **Step 3: Create entry point and mixin configs**
 
 `src/main/java/dev/quirky/QuirkyMod.java`:
 
@@ -221,7 +221,7 @@ public class QuirkyModClient implements ClientModInitializer {
 }
 ```
 
-- [ ] **Step 4: Move icon and remove example sources**
+- [x] **Step 4: Move icon and remove example sources**
 
 ```bash
 mkdir -p src/main/resources/assets/quirky
@@ -240,12 +240,12 @@ src/main/resources/modid.mixins.json
 src/main/resources/modid.client.mixins.json
 ```
 
-- [ ] **Step 5: Build**
+- [x] **Step 5: Build**
 
 Run the build command from Global Constraints.
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add -A
@@ -270,7 +270,7 @@ git commit -m "chore: scaffold quirky fabric mod"
 - Consumes: `QuirkyMod.id(String)`.
 - Produces: `ModItems.BOTTLED_CLOUD` (`net.minecraft.world.item.Item`) for later tasks and creative tab registration.
 
-- [ ] **Step 1: Create the item class**
+- [x] **Step 1: Create the item class**
 
 `src/main/java/dev/quirky/item/BottledCloudItem.java`:
 
@@ -300,7 +300,7 @@ public class BottledCloudItem extends Item {
 }
 ```
 
-- [ ] **Step 2: Register the item and creative tab entry**
+- [x] **Step 2: Register the item and creative tab entry**
 
 `src/main/java/dev/quirky/ModItems.java`:
 
@@ -333,7 +333,7 @@ public final class ModItems {
 
 In `QuirkyMod.onInitialize()`, add `ModItems.register();` before the logger line.
 
-- [ ] **Step 3: Add model, recipe, lang, and texture**
+- [x] **Step 3: Add model, recipe, lang, and texture**
 
 `src/main/resources/assets/quirky/models/item/bottled_cloud.json`:
 
@@ -422,11 +422,11 @@ PY
 python3 /tmp/make_cloud_texture.py
 ```
 
-- [ ] **Step 4: Build**
+- [x] **Step 4: Build**
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
@@ -445,7 +445,7 @@ git commit -m "feat: add bottled cloud item"
 - Consumes: `QuirkyMod` entry point.
 - Produces: `HarvestHandler.init()` which registers `UseBlockCallback.EVENT`.
 
-- [ ] **Step 1: Create the harvest handler**
+- [x] **Step 1: Create the harvest handler**
 
 `src/main/java/dev/quirky/harvest/HarvestHandler.java`:
 
@@ -620,15 +620,15 @@ public final class HarvestHandler {
 }
 ```
 
-- [ ] **Step 2: Register the handler**
+- [x] **Step 2: Register the handler**
 
 In `QuirkyMod.onInitialize()`, add `dev.quirky.harvest.HarvestHandler.init();`.
 
-- [ ] **Step 3: Build**
+- [x] **Step 3: Build**
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add -A
@@ -647,7 +647,7 @@ git commit -m "feat: add right-click harvest and replant"
 - Consumes: empty `quirky.mixins.json` from Task 0.
 - Produces: `DoubleDoorMixin` registered in the main mixin config.
 
-- [ ] **Step 1: Create the mixin**
+- [x] **Step 1: Create the mixin**
 
 `src/main/java/dev/quirky/mixin/DoubleDoorMixin.java`:
 
@@ -701,7 +701,7 @@ public abstract class DoubleDoorMixin {
 }
 ```
 
-- [ ] **Step 2: Register the mixin**
+- [x] **Step 2: Register the mixin**
 
 In `src/main/resources/quirky.mixins.json`, set:
 
@@ -709,11 +709,11 @@ In `src/main/resources/quirky.mixins.json`, set:
 "mixins": ["DoubleDoorMixin"]
 ```
 
-- [ ] **Step 3: Build**
+- [x] **Step 3: Build**
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add -A
@@ -735,7 +735,7 @@ git commit -m "feat: sync double doors"
 - Consumes: `quirky.mixins.json`, `QuirkyModClient`.
 - Produces: `MapTooltipComponent(MapId)` marker component and `ClientMapTooltipComponent` renderer.
 
-- [ ] **Step 1: Create the common tooltip component**
+- [x] **Step 1: Create the common tooltip component**
 
 `src/main/java/dev/quirky/tooltips/MapTooltipComponent.java`:
 
@@ -749,7 +749,7 @@ public record MapTooltipComponent(MapId mapId) implements TooltipComponent {
 }
 ```
 
-- [ ] **Step 2: Create the map tooltip mixin**
+- [x] **Step 2: Create the map tooltip mixin**
 
 `src/main/java/dev/quirky/mixin/MapTooltipMixin.java`:
 
@@ -779,7 +779,7 @@ public abstract class MapTooltipMixin {
 }
 ```
 
-- [ ] **Step 3: Create the client renderer**
+- [x] **Step 3: Create the client renderer**
 
 `src/client/java/dev/quirky/client/tooltips/ClientMapTooltipComponent.java`:
 
@@ -833,7 +833,7 @@ public class ClientMapTooltipComponent implements ClientTooltipComponent {
 }
 ```
 
-- [ ] **Step 4: Register the client callback**
+- [x] **Step 4: Register the client callback**
 
 Replace `QuirkyModClient`:
 
@@ -864,11 +864,11 @@ In `src/main/resources/quirky.mixins.json`, set:
 "mixins": ["DoubleDoorMixin", "MapTooltipMixin"]
 ```
 
-- [ ] **Step 5: Build**
+- [x] **Step 5: Build**
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add -A
@@ -889,7 +889,7 @@ git commit -m "feat: render filled maps in tooltips"
 - Consumes: `quirky.client.mixins.json`.
 - Produces: client-only mixin that appends tooltip lines for clock and compass.
 
-- [ ] **Step 1: Create the mixin**
+- [x] **Step 1: Create the mixin**
 
 `src/client/java/dev/quirky/client/tooltips/ClockCompassTooltipMixin.java`:
 
@@ -972,7 +972,7 @@ public abstract class ClockCompassTooltipMixin {
 }
 ```
 
-- [ ] **Step 2: Register the client mixin**
+- [x] **Step 2: Register the client mixin**
 
 In `src/main/resources/quirky.client.mixins.json`, set:
 
@@ -980,7 +980,7 @@ In `src/main/resources/quirky.client.mixins.json`, set:
 "mixins": ["ClockCompassTooltipMixin"]
 ```
 
-- [ ] **Step 3: Add translations**
+- [x] **Step 3: Add translations**
 
 `src/main/resources/assets/quirky/lang/en_us.json`:
 
@@ -1004,11 +1004,11 @@ In `src/main/resources/quirky.client.mixins.json`, set:
 }
 ```
 
-- [ ] **Step 4: Build**
+- [x] **Step 4: Build**
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
@@ -1032,7 +1032,7 @@ git commit -m "feat: add clock and compass tooltips"
 - Consumes: `QuirkyMod`, `QuirkyModClient`, `quirky.client.mixins.json`.
 - Produces: `EquipSwapPayload(int containerId, int slotIndex)` and server receiver.
 
-- [ ] **Step 1: Create the payload**
+- [x] **Step 1: Create the payload**
 
 `src/main/java/dev/quirky/equip_swap/EquipSwapPayload.java`:
 
@@ -1064,7 +1064,7 @@ public record EquipSwapPayload(int containerId, int slotIndex) implements Custom
 }
 ```
 
-- [ ] **Step 2: Create the server handler**
+- [x] **Step 2: Create the server handler**
 
 `src/main/java/dev/quirky/equip_swap/EquipSwapServer.java`:
 
@@ -1156,7 +1156,7 @@ public final class EquipSwapServer {
 }
 ```
 
-- [ ] **Step 3: Create the screen accessor**
+- [x] **Step 3: Create the screen accessor**
 
 `src/client/java/dev/quirky/client/mixin/AbstractContainerScreenAccessor.java`:
 
@@ -1175,7 +1175,7 @@ public interface AbstractContainerScreenAccessor {
 }
 ```
 
-- [ ] **Step 4: Create the client handler**
+- [x] **Step 4: Create the client handler**
 
 `src/client/java/dev/quirky/client/equip_swap/EquipSwapClient.java`:
 
@@ -1221,7 +1221,7 @@ public final class EquipSwapClient {
 }
 ```
 
-- [ ] **Step 5: Register init calls and mixin**
+- [x] **Step 5: Register init calls and mixin**
 
 In `QuirkyMod.onInitialize()`, add `dev.quirky.equip_swap.EquipSwapServer.init();`.
 
@@ -1233,11 +1233,11 @@ In `src/main/resources/quirky.client.mixins.json`, set:
 "mixins": ["ClockCompassTooltipMixin", "AbstractContainerScreenAccessor"]
 ```
 
-- [ ] **Step 6: Build**
+- [x] **Step 6: Build**
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add -A
@@ -1256,7 +1256,7 @@ git commit -m "feat: swap equipment with right-click in inventory"
 - Consumes: `quirky.mixins.json`.
 - Produces: server-side mixin that grants one melon seed after eating a melon slice.
 
-- [ ] **Step 1: Create the mixin**
+- [x] **Step 1: Create the mixin**
 
 `src/main/java/dev/quirky/mixin/MelonSeedMixin.java`:
 
@@ -1296,7 +1296,7 @@ public abstract class MelonSeedMixin {
 }
 ```
 
-- [ ] **Step 2: Register the mixin**
+- [x] **Step 2: Register the mixin**
 
 In `src/main/resources/quirky.mixins.json`, set:
 
@@ -1304,11 +1304,11 @@ In `src/main/resources/quirky.mixins.json`, set:
 "mixins": ["DoubleDoorMixin", "MapTooltipMixin", "MelonSeedMixin"]
 ```
 
-- [ ] **Step 3: Build**
+- [x] **Step 3: Build**
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add -A
@@ -1326,16 +1326,16 @@ git commit -m "feat: drop melon seeds when eating melon slices"
 - Consumes: every task above.
 - Produces: final build artifact `build/libs/quirky-0.1.0.jar`.
 
-- [ ] **Step 1: Update README**
+- [x] **Step 1: Update README**
 
 Add a short section listing the seven mechanics and the build command from Global Constraints.
 
-- [ ] **Step 2: Run the full build**
+- [x] **Step 2: Run the full build**
 
 Run the build command from Global Constraints.
 Expected: `BUILD SUCCESSFUL` and `build/libs/quirky-0.1.0.jar` exists.
 
-- [ ] **Step 3: Run a server smoke test (optional but recommended)**
+- [x] **Step 3: Run a server smoke test (optional but recommended)**
 
 If `gradle runServer` is available and the environment permits:
 
@@ -1347,7 +1347,7 @@ timeout 90 gradle runServer --no-daemon --console=plain
 
 Expected: server reaches `Done` without crashing.
 
-- [ ] **Step 4: Manual client checklist (desktop environment)**
+- [x] **Step 4: Manual client checklist (desktop environment)**
 
 This checklist is for a machine with a GUI and the same `build/libs/quirky-0.1.0.jar`:
 
@@ -1359,7 +1359,7 @@ This checklist is for a machine with a GUI and the same `build/libs/quirky-0.1.0
 6. Right-clicking a chestplate in inventory swaps with a worn elytra, and vice versa.
 7. Eating a melon slice in survival gives one melon seed.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add -A
