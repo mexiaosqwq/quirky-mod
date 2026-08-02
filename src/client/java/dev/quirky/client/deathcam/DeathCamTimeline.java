@@ -8,10 +8,11 @@ import net.minecraft.world.phys.Vec3;
  *
  * <p>基岩版式过渡：t=0 时相机贴近玩家（身后 0.8 格、眼睛高度 1.6、水平视角），
  * 前 25% 时间快速拉出到 2.5 格（第一人称 → 第三人称的平滑过渡感），
- * 之后缓慢拉远到 6 格并环绕 360°（yaw 0→360°）、高度升至 2.0、俯视角 0°→25° 单调加深。
+ * 之后缓慢拉远到 6 格、高度升至 2.0、俯视角 0°→25° 单调加深。
+ * 镜头朝向保持玩家死亡时的 yaw 不变（不环绕旋转——用户验收：环绕 = 雷霆运镜感）。
  *
  * {@link #position(float)} 返回相对死亡锚点的偏移；相机绝对位置 = 锚点 + 偏移，
- * 且镜头始终朝向锚点（环绕角与朝向角相差 180°）。
+ * 且镜头始终位于玩家正后方（朝向角 + 180°）看向锚点。
  */
 public final class DeathCamTimeline {
 	/** 起始水平半径：贴近玩家身后（玩家碰撞箱宽 0.6，0.8 在箱外不穿模） */
@@ -27,7 +28,6 @@ public final class DeathCamTimeline {
 	public static final float END_PITCH = 25.0F;
 	/** 拉出阶段占全程比例 */
 	private static final float PULLOUT_FRACTION = 0.25F;
-	private static final float FULL_TURN_DEGREES = 360.0F;
 
 	private final int durationTicks;
 	private final float startYaw;
@@ -36,7 +36,7 @@ public final class DeathCamTimeline {
 		this(durationTicks, 0.0F);
 	}
 
-	/** @param startYaw 环绕起始角（相机朝向），通常取玩家死亡时的 yRot */
+	/** @param startYaw 镜头朝向（通常取玩家死亡时的 yRot），全程恒定不旋转 */
 	public DeathCamTimeline(int durationTicks, float startYaw) {
 		this.durationTicks = durationTicks;
 		this.startYaw = startYaw;
@@ -47,18 +47,18 @@ public final class DeathCamTimeline {
 	}
 
 	/**
-	 * 相机位置相对死亡锚点的偏移：环绕角 = 朝向 + 180°（镜头看向锚点），
+	 * 相机位置相对死亡锚点的偏移：恒定位于玩家正后方（朝向角 + 180°），
 	 * 水平半径按"先快后慢"分段插值，高度 1.6→2.0 线性上升。
 	 */
 	public Vec3 position(float t) {
-		double rad = Math.toRadians(yawDegrees(t) + FULL_TURN_DEGREES / 2.0F);
+		double rad = Math.toRadians(yawDegrees(t) + 180.0F);
 		float radius = radiusAt(t);
 		return new Vec3(Math.sin(rad) * radius, Mth.lerp(t, START_HEIGHT, END_HEIGHT), Math.cos(rad) * radius);
 	}
 
-	/** 相机朝向（yaw）：起始朝向 + 0→360° 环绕一周。 */
+	/** 相机朝向（yaw）：保持起始朝向不变（不环绕，基岩版式拉出展示）。 */
 	public float yawDegrees(float t) {
-		return startYaw + FULL_TURN_DEGREES * t;
+		return startYaw;
 	}
 
 	/**

@@ -10,8 +10,8 @@ class DeathCamTimelineTest {
 	private static final double EPS = 1e-4;
 
 	@Test
-	void timelineStartsNearPlayerAndCirclesDeathPoint() {
-		// 基岩版式：起始相机贴近玩家（身后 0.8 格、眼睛高度），缓慢拉远环绕
+	void timelineStartsNearPlayerAndPullsBack() {
+		// 基岩版式：起始相机贴近玩家（身后 0.8 格、眼睛高度），平滑拉出到 6 格展示位
 		DeathCamTimeline timeline = new DeathCamTimeline(50);
 		Vec3 start = timeline.position(0.0F);
 		Vec3 end = timeline.position(1.0F);
@@ -41,17 +41,12 @@ class DeathCamTimelineTest {
 	}
 
 	@Test
-	void yawSweepsFullCircle() {
-		DeathCamTimeline timeline = new DeathCamTimeline(50);
-		assertEquals(0.0, timeline.yawDegrees(0.0F), EPS);
-		assertEquals(360.0, timeline.yawDegrees(1.0F), EPS);
-	}
-
-	@Test
-	void yawSweepStartsAtGivenYaw() {
+	void yawStaysAtStartYaw() {
+		// 基岩版死亡镜头不环绕：镜头朝向全程保持玩家死亡时的朝向，杜绝"雷霆运镜"式旋转
 		DeathCamTimeline timeline = new DeathCamTimeline(50, 90.0F);
 		assertEquals(90.0, timeline.yawDegrees(0.0F), EPS);
-		assertEquals(450.0, timeline.yawDegrees(1.0F), EPS);
+		assertEquals(90.0, timeline.yawDegrees(0.5F), EPS);
+		assertEquals(90.0, timeline.yawDegrees(1.0F), EPS);
 	}
 
 	@Test
@@ -68,16 +63,15 @@ class DeathCamTimelineTest {
 	}
 
 	@Test
-	void cameraOrbitsFacingAnchorAtEveryStep() {
-		DeathCamTimeline timeline = new DeathCamTimeline(50);
+	void cameraStaysBehindPlayer() {
+		// 相机始终位于玩家正后方（朝向的反方向），拉出过程中方向恒定
+		DeathCamTimeline timeline = new DeathCamTimeline(50, 0.0F);
 		for (int i = 0; i <= 20; i++) {
 			float t = i / 20.0F;
 			Vec3 offset = timeline.position(t);
-			// 相机偏移始终与朝向相反（指向锚点）：yaw(t)+180° 方向的单位向量 ∝ -offset
-			double lookX = Math.sin(Math.toRadians(timeline.yawDegrees(t)));
-			double lookZ = Math.cos(Math.toRadians(timeline.yawDegrees(t)));
-			double dot = lookX * offset.x + lookZ * offset.z;
-			assertTrue(dot < 0, "镜头应朝向锚点 at t=" + t);
+			// 朝向 yaw=0（+Z），相机应在 -Z 方向（offset.z < 0）
+			assertTrue(offset.z < -0.5, "相机应在玩家正后方 at t=" + t);
+			assertEquals(0.0, offset.x, EPS);
 		}
 	}
 }
