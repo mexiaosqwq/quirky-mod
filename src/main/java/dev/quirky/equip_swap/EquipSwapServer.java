@@ -12,6 +12,7 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.EnchantmentEffectComponents;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 
@@ -48,11 +49,18 @@ public final class EquipSwapServer {
 			return false;
 		}
 		ItemStack stack = source.getItem();
-		if (stack.isEmpty() || !stack.has(DataComponents.EQUIPPABLE)) {
+		if (stack.isEmpty()) {
+			return false;
+		}
+		boolean offhandItem = isOffhandSwapItem(stack);
+		if (offhandItem && !QuirkyConfigHolder.get().offhandSwap) {
+			return false;
+		}
+		if (!offhandItem && !stack.has(DataComponents.EQUIPPABLE)) {
 			return false;
 		}
 
-		EquipmentSlot equipmentSlot = player.getEquipmentSlotForItem(stack);
+		EquipmentSlot equipmentSlot = offhandItem ? EquipmentSlot.OFFHAND : player.getEquipmentSlotForItem(stack);
 		int inventoryIndex = inventoryIndexFor(equipmentSlot);
 		if (inventoryIndex < 0) {
 			return false;
@@ -60,7 +68,7 @@ public final class EquipSwapServer {
 		if (source.container == player.getInventory() && source.getContainerSlot() == inventoryIndex) {
 			return false;
 		}
-		if (!player.isEquippableInSlot(stack, equipmentSlot)) {
+		if (!offhandItem && !player.isEquippableInSlot(stack, equipmentSlot)) {
 			return false;
 		}
 
@@ -89,6 +97,14 @@ public final class EquipSwapServer {
 		return true;
 	}
 
+	/**
+	 * 副手交换物品：右键背包中的盾牌或火把时直接与副手槽互换。
+	 * 火把无 EQUIPPABLE 组件，因此走独立判定。
+	 */
+	public static boolean isOffhandSwapItem(ItemStack stack) {
+		return stack.is(Items.SHIELD) || stack.is(Items.TORCH);
+	}
+
 	private static int inventoryIndexFor(EquipmentSlot slot) {
 		return switch (slot) {
 			case HEAD -> 39;
@@ -96,6 +112,7 @@ public final class EquipSwapServer {
 			case LEGS -> 37;
 			case FEET -> 36;
 			case BODY -> 41;
+			case OFFHAND -> 40;
 			default -> -1;
 		};
 	}

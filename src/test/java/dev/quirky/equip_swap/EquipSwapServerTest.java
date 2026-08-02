@@ -8,6 +8,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import dev.quirky.TestBootstrap;
+import dev.quirky.config.QuirkyConfig;
+import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityEquipment;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -25,6 +27,9 @@ class EquipSwapServerTest {
 		TestBootstrap.boot();
 		TestBootstrap.bindItem(Items.IRON_CHESTPLATE);
 		TestBootstrap.bindItem(Items.STONE);
+		TestBootstrap.bindItem(Items.TORCH);
+		TestBootstrap.bindItem(Items.DIAMOND_SWORD);
+		TestBootstrap.bindMinimalComponents(Items.SHIELD);
 	}
 
 	private static ServerPlayer creativePlayer() {
@@ -96,5 +101,74 @@ class EquipSwapServerTest {
 		player.getInventory().setItem(0, chestplate);
 
 		assertFalse(EquipSwapServer.trySwap(player, 1, 36));
+	}
+
+	@Test
+	void shieldSwapsIntoOffhand() {
+		ServerPlayer player = creativePlayer();
+		ItemStack shield = new ItemStack(Items.SHIELD);
+		player.getInventory().setItem(9, shield);
+
+		assertTrue(EquipSwapServer.trySwap(player, 0, 9));
+
+		assertEquals(shield, player.getInventory().getItem(40));
+		assertTrue(player.getInventory().getItem(9).isEmpty());
+		verify(player).onEquipItem(EquipmentSlot.OFFHAND, ItemStack.EMPTY, shield);
+	}
+
+	@Test
+	void torchSwapsIntoOffhand() {
+		ServerPlayer player = creativePlayer();
+		ItemStack torch = new ItemStack(Items.TORCH);
+		player.getInventory().setItem(9, torch);
+
+		assertTrue(EquipSwapServer.trySwap(player, 0, 9));
+
+		assertEquals(torch, player.getInventory().getItem(40));
+		assertTrue(player.getInventory().getItem(9).isEmpty());
+	}
+
+	@Test
+	void offhandSwapReplacesExistingItem() {
+		ServerPlayer player = creativePlayer();
+		ItemStack torch = new ItemStack(Items.TORCH);
+		ItemStack shield = new ItemStack(Items.SHIELD);
+		player.getInventory().setItem(40, torch);
+		player.getInventory().setItem(9, shield);
+
+		assertTrue(EquipSwapServer.trySwap(player, 0, 9));
+
+		assertEquals(shield, player.getInventory().getItem(40));
+		assertEquals(torch, player.getInventory().getItem(9));
+	}
+
+	@Test
+	void nonOffhandItemStillUsesOriginalPath() {
+		ServerPlayer player = creativePlayer();
+		ItemStack sword = new ItemStack(Items.DIAMOND_SWORD);
+		player.getInventory().setItem(9, sword);
+		when(player.getEquipmentSlotForItem(sword)).thenReturn(EquipmentSlot.MAINHAND);
+		when(player.isEquippableInSlot(sword, EquipmentSlot.MAINHAND)).thenReturn(true);
+
+		assertFalse(EquipSwapServer.trySwap(player, 0, 9));
+
+		assertEquals(sword, player.getInventory().getItem(9));
+		assertTrue(player.getInventory().getItem(40).isEmpty());
+	}
+
+	@Test
+	void offhandSwapDisabledByConfigRejects() {
+		QuirkyConfigHolder.set(new QuirkyConfig());
+		try {
+			QuirkyConfigHolder.get().offhandSwap = false;
+			ServerPlayer player = creativePlayer();
+			player.getInventory().setItem(9, new ItemStack(Items.SHIELD));
+
+			assertFalse(EquipSwapServer.trySwap(player, 0, 9));
+
+			assertTrue(player.getInventory().getItem(40).isEmpty());
+		} finally {
+			QuirkyConfigHolder.set(new QuirkyConfig());
+		}
 	}
 }
