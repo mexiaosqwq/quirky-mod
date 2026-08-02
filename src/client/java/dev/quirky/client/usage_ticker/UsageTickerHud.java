@@ -3,6 +3,7 @@ package dev.quirky.client.usage_ticker;
 import java.util.List;
 import java.util.Optional;
 
+import dev.quirky.QuirkyMod;
 import dev.quirky.client.usage_ticker.TickerSnapshot.TickerEvent;
 import dev.quirky.config.QuirkyConfigHolder;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -22,7 +23,9 @@ import net.minecraft.world.item.ItemStack;
  *
  * 渲染时机：MC 26.2 的 HUD 已改为 extract-render 管线（{@link GuiGraphicsExtractor}，
  * 原 Gui.render 与 HudRenderCallback 均不存在），故通过 Fabric API 25.3 的
- * {@link HudElementRegistry} 把挂件挂到原版快捷栏元素之后——HUD 隐藏（F1）时随快捷栏一并跳过。
+ * {@link HudElementRegistry} 把挂件附着到原版快捷栏元素之后——HUD 隐藏（F1）时随快捷栏一并跳过。
+ * 注意：26.2 用 {@code attachElementAfter}（往已有元素后插入新元素），
+ * {@code addLast} 会因原版 hotbar layer 已存在抛 "Layer with identifier minecraft:hotbar already exists"。
  */
 public final class UsageTickerHud {
 	/** 原版快捷栏：宽 182（半宽 91）、高 22，位于屏幕底部（见 Hud.extractItemHotbar）。 */
@@ -47,7 +50,11 @@ public final class UsageTickerHud {
 		var config = QuirkyConfigHolder.get();
 		itemElement = new TickerElement(config.tickerAnimTicks, config.tickerHoldTicks);
 		armorElement = new TickerElement(config.tickerAnimTicks, ArmorTicker.HOLD_TICKS);
-		HudElementRegistry.addLast(VanillaHudElements.HOTBAR, UsageTickerHud::render);
+		HudElementRegistry.attachElementAfter(
+			VanillaHudElements.HOTBAR,
+			QuirkyMod.id("usage_ticker"),
+			UsageTickerHud::render
+		);
 		ClientTickEvents.END_CLIENT_TICK.register(mc -> {
 			if (mc.player != null) {
 				tick(mc.player);

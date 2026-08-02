@@ -80,6 +80,7 @@ This environment does not push to remote repositories; merge and publish locally
 
 ## Agent-Specific Instructions
 
+- **子代理派发使用 pi-subagents**（根 AGENTS.md §13.6）：主对话说“用 scout/worker/... 做 X”或调用 `Agent` 工具（`subagent_type`/`prompt`/`description`/`run_in_background` 等）；后台 agent 用 `get_subagent_result` 取结果、`steer_subagent` 中途转向、`/agents` FleetView 管理。项目级 agent 定义放 `.pi/agents/*.md`（优先于全局 `~/.pi/agent/agents/`），本仓库的 Quirky 特化 agent（worker/reviewer 内置 26.2 API 实测要求）见 `.pi/agents/`。
 - **写实现计划（`docs/superpowers/plans/`）必须过 CodeGraph**：计划中引用的每个项目符号（类名、方法、mixin 注入点、注册模式、资源/配置文件路径）都必须先用 `codegraph explore` 验证与当前代码库一致（`.codegraph/` 存在时），发现不符立即修正计划，不得凭记忆写路径或签名。
 - **子代理工作区隔离**：派发子代理（含并行 worktree 模式）时，任务文本必须明确"只允许修改任务清单列出的文件"；新建文档必须放 `docs/superpowers/` 下；禁止在仓库根级新增/修改任务外文件（如 `docs/*.md` 根级文档、`AGENTS.md`）；会话日志/脚本一律放 worktree 目录内，用绝对路径避免污染其他 worktree。
 - **项目知识沉淀**：Quirky 特有的教训/机制结论（26.2 API 实测、bug 根因、构建坑）写入 hermes-memory（`~/.pi/agent/pi-hermes-memory/MEMORY.md`），旧 `.learnings/` 已废弃不再写入；程序性步骤用 skill 体系（`~/.pi/agent/pi-hermes-memory/skills/`）。
