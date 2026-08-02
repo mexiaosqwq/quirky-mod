@@ -3,7 +3,7 @@
   "minVersion": "0.8",
   "package": "dev.quirky.client.mixin",
   "compatibilityLevel": "JAVA_25",
-  "mixins": ["ClockTooltipMixin", "AbstractContainerScreenAccessor"],
+  "mixins": ["ClockTooltipMixin", "AbstractContainerScreenAccessor", "SectionCompilerMixin", "FlameParticleMixin"],
   "injectors": {
     "defaultRequire": 1
   }

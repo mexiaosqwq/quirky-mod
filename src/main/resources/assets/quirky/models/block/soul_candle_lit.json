@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/template_candle",
+  "textures": {
+    "all": "quirky:block/quirky_soul_candle_flame",
+    "particle": "quirky:block/quirky_soul_candle_flame"
+  }
+}
