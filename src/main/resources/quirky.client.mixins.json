@@ -13,7 +13,8 @@
     "CameraSetupMixin",
     "DeathScreenDelayMixin",
     "GuiDeathScreenDelayMixin",
-    "DeathCamSkipMixin"
+    "DeathCamSkipMixin",
+    "LocalPlayerAIStepMixin"
   ],
   "injectors": {
     "defaultRequire": 1
