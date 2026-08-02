@@ -31,6 +31,7 @@ public final class TestBootstrap {
 		setBootstrapped(true);
 		BuiltInRegistries.REGISTRY.keySet();
 		ModBlocks.register();
+		ModBlockEntityTypes.register(); // BlockEntityType 构造会创建 intrusive holder，必须在注册窗口内加载
 		ModItems.register();
 		ModEntities.register(); // EntityType 构造会创建 intrusive holder，必须在注册窗口内加载
 		setBootstrapped(false);

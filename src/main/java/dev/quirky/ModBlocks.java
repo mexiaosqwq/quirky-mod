@@ -3,6 +3,7 @@ package dev.quirky;
 import dev.quirky.block.CloudBlock;
 import dev.quirky.block.MetalButtonBlock;
 import dev.quirky.block.ObsidianPressurePlateBlock;
+import dev.quirky.block.WoodenHopperBlock;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -19,6 +20,11 @@ public final class ModBlocks {
 	private static final ResourceKey<Block> GOLD_BUTTON_ID = ResourceKey.create(Registries.BLOCK, QuirkyMod.id("gold_button"));
 	private static final ResourceKey<Block> IRON_BUTTON_ID = ResourceKey.create(Registries.BLOCK, QuirkyMod.id("iron_button"));
 	private static final ResourceKey<Block> OBSIDIAN_PRESSURE_PLATE_ID = ResourceKey.create(Registries.BLOCK, QuirkyMod.id("obsidian_pressure_plate"));
+import net.minecraft.world.level.material.MapColor;
+
+public final class ModBlocks {
+	private static final ResourceKey<Block> CLOUD_ID = ResourceKey.create(Registries.BLOCK, QuirkyMod.id("cloud"));
+	private static final ResourceKey<Block> WOODEN_HOPPER_ID = ResourceKey.create(Registries.BLOCK, QuirkyMod.id("wooden_hopper"));
 
 	public static final CloudBlock CLOUD = new CloudBlock(
 		BlockBehaviour.Properties.of()
@@ -64,6 +70,13 @@ public final class ModBlocks {
 			.requiresCorrectToolForDrops()
 			.sound(SoundType.STONE)
 			.pushReaction(PushReaction.DESTROY)
+	public static final WoodenHopperBlock WOODEN_HOPPER = new WoodenHopperBlock(
+		BlockBehaviour.Properties.of()
+			.setId(WOODEN_HOPPER_ID)
+			.mapColor(MapColor.WOOD)
+			.strength(3.0F)
+			.sound(SoundType.WOOD)
+			.noOcclusion()
 	);
 
 	private ModBlocks() {
@@ -74,5 +87,6 @@ public final class ModBlocks {
 		Registry.register(BuiltInRegistries.BLOCK, GOLD_BUTTON_ID, GOLD_BUTTON);
 		Registry.register(BuiltInRegistries.BLOCK, IRON_BUTTON_ID, IRON_BUTTON);
 		Registry.register(BuiltInRegistries.BLOCK, OBSIDIAN_PRESSURE_PLATE_ID, OBSIDIAN_PRESSURE_PLATE);
+		Registry.register(BuiltInRegistries.BLOCK, WOODEN_HOPPER_ID, WOODEN_HOPPER);
 	}
 }
