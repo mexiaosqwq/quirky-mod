@@ -41,17 +41,17 @@
 ### 5.1 潜影盒 tooltip（客户端）
 
 行为：
-- 悬停任意潜影盒（16 色 + 普通）时，tooltip 内显示盒内 3x9 内容物网格；空格子留空。
-- 内容从物品 `DataComponents.CONTAINER` 读取（实施时以 26.2 反编译源码确认组件路径）。
-- 显示 27 格物品图标 + 数量；与地图预览同样式背景。
+- 悬停任意潜影盒（16 色 + 普通）时，tooltip 内显示盒内 9x3 内容物网格（与原版潜影盒 UI 一致，宽 > 高）；空格子留空。
+- 内容从物品 `DataComponents.CONTAINER` 读取（实施时以 26.2 反编译源码确认组件路径）；无 CONTAINER 组件的空盒显示空网格。
+- 仅对潜影盒生效（`ItemTags.SHULKER_BOXES`）；箱子/熔炉等其他带 CONTAINER 组件的物品不渲染。
 - 仅客户端，服务端无需改动。
 
 实现：
 - `Item.getTooltipImage` mixin（MapTooltipMixin 模式）：潜影盒返回 `ShulkerTooltipComponent(containerList)`。
-- 客户端 `ClientShulkerTooltipComponent implements ClientTooltipComponent`：`extractImage` 内逐格绘制物品图标与数量（`GuiGraphicsExtractor` 的物品绘制 API 以本地源码为准），宽高按 3x9 网格计算（每格 16px + 内边距）。
+- 客户端 `ClientShulkerTooltipComponent implements ClientTooltipComponent`：`extractImage` 内逐格绘制物品图标与数量（`GuiGraphicsExtractor` 的物品绘制 API 以本地源码为准），宽高按 9x3 网格计算（每格 16px + 内边距）。
 - `QuirkyModClient` 的 `ClientTooltipComponentCallback` 注册转换。
 
-验收：悬停潜影盒出现 3x9 内容预览；空格无图标；带物品数量显示；其他物品 tooltip 不变。
+验收：悬停潜影盒出现 9x3 内容预览；空格无图标；带物品数量显示；箱子/熔炉等非潜影盒容器 tooltip 不变。
 
 ### 5.2 食物 tooltip（客户端）
 
@@ -79,7 +79,7 @@
 
 实现：
 - 解析 `DataComponents.ATTRIBUTE_MODIFIERS`（按槽位过滤主手/护甲槽修饰符）+ 物品基础属性（`Item.getDefaultAttributeModifiers`）。
-- 图标为自绘 16x16 sprite：`textures/gui/quirky/attribute/{attack_damage,attack_speed,armor,toughness,knockback,movement}.png`。
+- 图标为自绘 16x16 sprite：`textures/gui/sprites/attribute/{attack_damage,attack_speed,armor,toughness,knockback,movement}.png`（26.2 GUI atlas 只扫描 `textures/gui/sprites/` 目录，sprite id 对应 `quirky:attribute/xxx`，不带 `gui/` 前缀）。
 - 渲染：自定义 `AttributeTooltipComponent`（图标 + 数值文本行）；Shift 判定用 `Screen.hasShiftDown()`。
 
 验收：钻石剑显示 7 攻击伤害 + 1.6 攻速；锋利 V 显示 9.5（7+2.5，公式以实测为准）；钻石胸甲显示 8 护甲 + 2 韧性；Shift 显示原版文本。
@@ -234,6 +234,7 @@
 行为（对齐 Quark 经典行为）：
 - 传输速度：铁漏斗的 1/4（每 32 tick 移动 1 个物品，铁为 8 tick）。
 - 红石锁定无效：被红石信号激活时**不暂停**传输（与原版铁漏斗相反）。
+- 朝向下方且下方为空气、无容器可吐时：把物品从漏斗口漏出为掉落物（原版铁漏斗无此行为，物品会永远积在漏斗里）。仅朝下生效，且受 `block_drops` 游戏规则约束；下方为实心方块或容器满时不漏出。
 - 合成：5 木板 + 1 箱子（原版漏斗形状）。
 - 木制可作熔炉燃料：物品挂 `minecraft:fuel` 组件，燃烧时长 ~15 秒（300 tick）。
 
@@ -242,7 +243,7 @@
 - 方块实体注册（`BlockEntityType`，ModEntities 或独立 BE 注册）；网络/同步沿用 HopperBlockEntity。
 - 资源：blockstates（facing/enabled 变体）、models（木纹漏斗）、items 双文件、纹理、lang。
 
-验收：木漏斗 4 倍慢传输；红石信号下不停止；与箱子/熔炉/漏斗矿车正常交互；破坏掉落内容物。
+验收：木漏斗 4 倍慢传输；红石信号下不停止；与箱子/熔炉/漏斗矿车正常交互；破坏掉落内容物；朝下悬空时物品漏出为掉落物。
 
 ## 6. 配置项（QuirkyConfig 新增）
 
@@ -260,7 +261,7 @@ toggles 分类新增布尔开关：`soulLighting`、`greenerGrass`、`shulkerToo
 新物品/方块（每项含 items/ 双文件，对照 bottled_cloud 逐项核对）：
 - `gold_button`、`iron_button`、`obsidian_pressure_plate`、`wooden_hopper`：blockstates/ + models/block/ + models/item/ + items/ + textures/block/ + lang。
 - `torch_arrow`：items/ + models/item/ + textures/item/ + lang。
-- 属性图标：`textures/gui/quirky/attribute/*.png`（6 张 16x16）。
+- 属性图标：`textures/gui/sprites/attribute/*.png`（6 张 16x16）。
 - 灵魂蜡烛火焰：`textures/block/quirky_soul_candle_flame.png`。
 - 配方：`data/quirky/recipe/{gold_button,iron_button,obsidian_pressure_plate,torch_arrow,wooden_hopper}.json`。
 - lang：en_us.json、zh_cn.json 全部新键（物品名 + tooltip.quirky.* 说明键）。
