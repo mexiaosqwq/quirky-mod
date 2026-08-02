@@ -73,6 +73,16 @@ This environment does not push to remote repositories; merge and publish locally
 
 - **26.2 物品模型必须双文件**：新增物品时必须同时提供 `assets/quirky/items/<id>.json`（新格式定义 `{"model": {"type": "minecraft:model", "model": "quirky:item/<id>"}}`）与 `assets/quirky/models/item/<id>.json`（实际模型）；只写旧格式 `models/item/` 不生效 → 物品与实体渲染紫黑棋盘格（云瓶 4e85dff、图腾均踩过此坑）。新物品资源清单对照 `bottled_cloud` 逐项核对：items/ + models/item/ + textures/item/ + lang 键 + 注册代码。
 
+- **Cloth Config 26.2 适配**（javap + v26.2 源码实测）：无 `BoundedAbove/Below`、无 `Gui.Slider`、无 `@ServerConfig`——仅 `BoundedDiscrete(long min,max)`（int/long，自动 slider）且不强制反序列化边界，运行时自行 clamp；`AutoConfig.getConfigScreen` 不存在，用 `AutoConfigClient.getConfigScreen` 返回 `Supplier<Screen>`；`ConfigHolder.load()` 返回 boolean 不抛异常，失败时内部 resetToDefault 换新实例——热重载按返回值分支、成功后重新注入静态 holder；GUI 翻译键 tooltip 后缀是 `@Tooltip` 非 `.tooltip`，无缺键回退。依赖 `cloth-config-fabric:26.2.155` + `modmenu:20.0.0-beta.2`，Loom 无 modApi/modCompileOnly（用 implementation/compileOnly）。配置读取走静态 `QuirkyConfigHolder`（测试注入默认实例，不碰 AutoConfig/文件系统）。
+
+- **实体定位基准注意 floor 语义**：`Entity.blockPosition()` = `new BlockPos(Mth.floor(x), Mth.floor(y), Mth.floor(z))`（mcsrc Entity.java:3801）——站非整高方块（土径/耕地 15/16、半砖、雪层）顶部时脚底带小数（如 64.9375），floor 后基准低 1 格（图腾贴地根因）。需要精确相对位置时用 `getY()`（double）而非 blockPosition。
+
+- **自定义箭必须补 `#minecraft:arrows` item tag**：`data/minecraft/tags/item/arrows.json` 含该箭 id，否则弓无法装填（26.2 弹药判定按 tag）；命中不可放置位置时既卡箭又掉物品会"双回收"（1 箭变 2 物）——只能保留一条回收路径。
+
+- **HUD 元素注册用 attach 系列**：26.2 `HudElementRegistryImpl` 静态块已把 23 个原版元素注册为 RootLayer，`addLast(VanillaHudElements.HOTBAR, ...)` 的 validateUnique 第一次就命中已存在 layer → 永远 "Layer with identifier minecraft:hotbar already exists" 崩溃。**正确 API = `attachElementAfter(rootId, elementId, element)` / `attachElementBefore`**。项目 id 生成统一定 `QuirkyMod.id(path)`。
+
+- **tooltip 扩展统一模式** = `Item.getTooltipImage(ItemStack) → Optional<TooltipComponent>`（HEAD 注入 `(ItemStack, CallbackInfoReturnable<Optional<TooltipComponent>>)`），服务端组件 + 客户端 ClientTooltipComponent + `ClientTooltipComponentCallback` 注册（潜影盒/食物/属性 tooltip 均走此路径）。画物品用 `graphics.item(stack,x,y)` + `graphics.itemDecorations(font,stack,x,y)`。
+
 - Cloud placement must skip blocks intersecting the player's own bounding box; otherwise the cloud can spawn inside the player.
 - Instant-use items must run the same reach/validity check on client and server before returning success, so a failed use cannot consume the item locally.
 - Map tooltip drawing must stay inside the reported `getWidth`/`getHeight` bounds; the parchment border and map content must align to the component origin.

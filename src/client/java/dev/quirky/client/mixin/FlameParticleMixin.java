@@ -5,6 +5,7 @@ import dev.quirky.client.soul_lighting.SoulLightingModels;
 import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.FlameParticle;
+import net.minecraft.client.particle.SingleQuadParticle;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.BlockPos;
 import org.spongepowered.asm.mixin.Mixin;
@@ -16,8 +17,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /**
  * 灵魂火焰粒子注入点：火把/蜡烛的 {@link FlameParticle} 生成时，若粒子所在光源正下方
  * （y-1）为灵魂方块，则把 sprite 替换为粒子图集中的 {@code soul_fire_flame}。
+ *
+ * 26.2 崩溃教训：mixin 的 {@code @Shadow} 只匹配目标类**本类**成员——{@code setSprite}
+ * 声明在父类 {@link SingleQuadParticle}，@Mixin(FlameParticle) + @Shadow setSprite 会
+ * 抛 "was not located in the target class"。因此目标类改为 {@link SingleQuadParticle}
+ * （setSprite 为本类方法），注入构造器并用 instanceof 过滤只处理 FlameParticle。
+ * FlameParticle 使用 7 参构造器（火把/蜡烛共用），4 参构造器是其他粒子的，不注入。
  */
-@Mixin(FlameParticle.class)
+@Mixin(SingleQuadParticle.class)
 public abstract class FlameParticleMixin {
 	@Shadow
 	protected abstract void setSprite(TextureAtlasSprite icon);
@@ -34,6 +41,9 @@ public abstract class FlameParticleMixin {
 		TextureAtlasSprite sprite,
 		CallbackInfo ci
 	) {
+		if (!((Object) this instanceof FlameParticle)) {
+			return;
+		}
 		if (!QuirkyConfigHolder.get().soulLighting) {
 			return;
 		}
