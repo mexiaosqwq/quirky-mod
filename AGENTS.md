@@ -62,7 +62,16 @@ Use conventional commit prefixes from this repository's history: `feat:`, `fix:`
 
 This environment does not push to remote repositories; merge and publish locally or through the host UI.
 
+## Execution & Cleanup Notes
+
+- Once a request is explicit and confirmed, run the safety check and execute end-to-end in the same turn; do not pause between announced intermediate steps.
+- Use the simplest implementation for simple requests (copy is copy; do not introduce symlinks or migration scaffolding).
+- For destructive deletion, list targets and ask first unless the user already named them; after confirmation, delete and verify in one pass.
+- Before deleting a git repository, preserve history with `git bundle create <backup>.bundle --all`; scan external references and fix broken links in the same cleanup.
+
 ## Known Quirky Pitfalls
+
+- **26.2 物品模型必须双文件**：新增物品时必须同时提供 `assets/quirky/items/<id>.json`（新格式定义 `{"model": {"type": "minecraft:model", "model": "quirky:item/<id>"}}`）与 `assets/quirky/models/item/<id>.json`（实际模型）；只写旧格式 `models/item/` 不生效 → 物品与实体渲染紫黑棋盘格（云瓶 4e85dff、图腾均踩过此坑）。新物品资源清单对照 `bottled_cloud` 逐项核对：items/ + models/item/ + textures/item/ + lang 键 + 注册代码。
 
 - Cloud placement must skip blocks intersecting the player's own bounding box; otherwise the cloud can spawn inside the player.
 - Instant-use items must run the same reach/validity check on client and server before returning success, so a failed use cannot consume the item locally.
@@ -70,5 +79,7 @@ This environment does not push to remote repositories; merge and publish locally
 - Client visuals still require desktop-client manual verification; build success alone does not prove hand-feel details.
 
 ## Agent-Specific Instructions
+
+- **写实现计划（`docs/superpowers/plans/`）必须过 CodeGraph**：计划中引用的每个项目符号（类名、方法、mixin 注入点、注册模式、资源/配置文件路径）都必须先用 `codegraph explore` 验证与当前代码库一致（`.codegraph/` 存在时），发现不符立即修正计划，不得凭记忆写路径或签名。
 
 Agents must follow the root `AGENTS.md` constraints and the Superpowers subagent workflow. Dispatched agents must not create nested agents, must report `Status`, build output, and file changes, and must not modify files outside their assigned task scope. External review feedback is verified against the code before being implemented; reviewer suggestions are not applied blindly.
