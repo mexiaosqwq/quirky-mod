@@ -393,19 +393,30 @@ Expected: 编译失败（ModEntities/TotemEntity 不存在）
 package dev.quirky;
 
 import dev.quirky.totem.TotemEntity;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 
 public final class ModEntities {
+	public static final ResourceKey<EntityType<?>> TOTEM_ID = ResourceKey.create(Registries.ENTITY_TYPE, QuirkyMod.id("totem_of_holding"));
 	public static final EntityType<TotemEntity> TOTEM = EntityType.Builder.of(TotemEntity::new, MobCategory.MISC)
 		.sized(0.5F, 0.6F)
 		.clientTrackingRange(8)
-		.build(QuirkyMod.id("totem_of_holding"));
+		.build(TOTEM_ID);
 
 	private ModEntities() {
 	}
+
+	public static void register() {
+		Registry.register(BuiltInRegistries.ENTITY_TYPE, TOTEM_ID, TOTEM);
+	}
 }
 ```
+
+（26.2 实测：`EntityType.Builder.build(ResourceKey)` 只构造不注册，需 `Registry.register`——照 ModBlocks/ModItems 既有模式；`QuirkyMod.onInitialize` 加 `ModEntities.register()`；`TestBootstrap.boot()` 在注册窗口内（与 ModBlocks/ModItems.register() 并列）加 `ModEntities.register()`——EntityType 构造创建 intrusive holder 需在注册表冻结前，且惰性类加载会晚于冻结导致测试崩溃）
 
 - [ ] **Step 4: 实现** `src/main/java/dev/quirky/totem/TotemEntity.java`
 
