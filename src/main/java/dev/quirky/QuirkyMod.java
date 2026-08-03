@@ -6,6 +6,7 @@ import dev.quirky.config.QuirkyReloadCommand;
 import dev.quirky.deathcam.DeathCamServer;
 import dev.quirky.equip_swap.EquipSwapServer;
 import dev.quirky.harvest.HarvestHandler;
+import dev.quirky.quiver.QuiverContents;
 import me.shedaniel.autoconfig.AutoConfig;
 import me.shedaniel.autoconfig.serializer.JanksonConfigSerializer;
 import net.fabricmc.api.ModInitializer;
@@ -24,6 +25,8 @@ public class QuirkyMod implements ModInitializer {
 		QuirkyConfigHolder.set(AutoConfig.getConfigHolder(QuirkyConfig.class).getConfig());
 		ModBlocks.register();
 		ModBlockEntityTypes.register();
+		// 自定义 DataComponent 必须在注册表冻结前注册（onInitialize 阶段仍可写）
+		QuiverContents.register();
 		ModItems.register();
 		ModEntities.register();
 		HarvestHandler.init();

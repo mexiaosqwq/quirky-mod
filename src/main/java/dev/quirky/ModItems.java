@@ -1,10 +1,12 @@
 package dev.quirky;
 
 import dev.quirky.item.BottledCloudItem;
+import dev.quirky.item.QuiverItem;
 import dev.quirky.torch_arrow.TorchArrowItem;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
 import net.fabricmc.fabric.api.registry.FuelValueEvents;
 import net.minecraft.core.Registry;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
@@ -12,6 +14,7 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.DyedItemColor;
 
 public final class ModItems {
 	private static final ResourceKey<Item> BOTTLED_CLOUD_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("bottled_cloud"));
@@ -21,6 +24,7 @@ public final class ModItems {
 	private static final ResourceKey<Item> OBSIDIAN_PRESSURE_PLATE_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("obsidian_pressure_plate"));
 	private static final ResourceKey<Item> TORCH_ARROW_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("torch_arrow"));
 	private static final ResourceKey<Item> WOODEN_HOPPER_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("wooden_hopper"));
+	private static final ResourceKey<Item> QUIVER_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("quiver"));
 
 	public static final Item BOTTLED_CLOUD = new BottledCloudItem(
 		new Item.Properties().stacksTo(1).craftRemainder(Items.GLASS_BOTTLE).usingConvertsTo(Items.GLASS_BOTTLE).setId(BOTTLED_CLOUD_ID)
@@ -54,6 +58,14 @@ public final class ModItems {
 		new Item.Properties().setId(WOODEN_HOPPER_ID)
 	);
 
+	public static final Item QUIVER = new QuiverItem(
+		new Item.Properties()
+			.stacksTo(1)
+			// 皮革染色：挂默认 DYED_COLOR 组件即获得炼药锅水洗褪色 + 染料合成染色
+			.component(DataComponents.DYED_COLOR, new DyedItemColor(DyedItemColor.LEATHER_COLOR))
+			.setId(QUIVER_ID)
+	);
+
 	private ModItems() {
 	}
 
@@ -65,8 +77,12 @@ public final class ModItems {
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("obsidian_pressure_plate"), OBSIDIAN_PRESSURE_PLATE);
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("torch_arrow"), TORCH_ARROW);
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("wooden_hopper"), WOODEN_HOPPER);
+		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("quiver"), QUIVER);
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES)
-			.register(output -> output.accept(BOTTLED_CLOUD));
+			.register(output -> {
+				output.accept(BOTTLED_CLOUD);
+				output.accept(QUIVER);
+			});
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.REDSTONE_BLOCKS)
 			.register(output -> {
 				output.accept(GOLD_BUTTON);
