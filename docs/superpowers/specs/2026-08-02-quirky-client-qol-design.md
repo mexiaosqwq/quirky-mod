@@ -149,14 +149,15 @@
 ### 5.8 远距中键拾取（客户端）
 
 行为：
-- 中键拾取（pick block）距离扩展：创造默认 100 格、生存默认 12 格，config 可调（创造 16~256、生存 4~64）。
-- 其余拾取行为与 26.2 原版一致（创造取方块/生存切同种物品）。
+- 中键拾取（pick block）距离扩展：**仅创造模式**，创造默认 100 格、config 可调（创造 16~256）。生存模式维持原版距离（26.2 服务端距离校验，生存远距无法生效，合理边界）。
+- 其余拾取行为与 26.2 原版一致（创造取方块）。
 
-实现：
-- mixin `Minecraft.pickBlock`（或原版拾取射线入口）：启用时用扩展距离对 `level.clip` 重新射线，命中结果进入原版拾取逻辑。
-- config：`pickRangeCreative`、`pickRangeSurvival`。
+实现（26.2 实测）：
+- 26.2 中键拾取为「客户端发 `ServerboundPickItemFromBlockPacket(pos)` → 服务端 `isWithinBlockInteractionRange(pos)` 距离校验后执行」，原版距离 4.5/5 格。旧的「重定向 hitResult 让原版流程跑远距 pos」会被服务端距离校验拒绝（超距 pos 整个 if 跳过）。
+- mixin `Minecraft.pickBlockOrEntity` 内 getType 检查（hitResult 第 1 次 GETFIELD，ordinal 1）：MISS + longPick + 创造模式 → 扩展距离 `level.clip` 重射线，命中方块则客户端构造克隆物品（`BlockState#getCloneItemStack(level, pos, false)`，**不带方块实体 NBT**）经 `gameMode.handleCreativeModeItemAdd` 放入当前热栏槽（创造模式客户端权威，服务端 `handleSetCreativeModeSlot` 无距离校验），返回 MISS 短路原版（不发超距 pos 包）；非 MISS 原样返回保持原版近距/实体拾取。
+- config：`pickRangeCreative`（生存 `pickRangeSurvival` 保留字段但远距不生效）。
 
-验收：创造模式中键可拾取 100 格外的方块；生存模式中键可拾取 12 格外背包已有的同种方块；config 生效。
+验收：创造模式中键可拾取 100 格外的方块（客户端接管，不走服务端距离校验）；生存模式远距不生效（已知边界，26.2 服务端校验）；近距/实体拾取与原版一致；config 创造距离生效。
 
 ### 5.9 自动爬梯（客户端）
 

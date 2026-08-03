@@ -74,7 +74,7 @@
   "text.autoconfig.quirky.option.deathCam": "死亡电影镜头",
   "text.autoconfig.quirky.option.deathCam.@Tooltip": "死亡后镜头从贴近尸体处缓缓拉远展示，再进入死亡界面。",
   "text.autoconfig.quirky.option.longPick": "远距中键拾取",
-  "text.autoconfig.quirky.option.longPick.@Tooltip": "扩展鼠标中键拾取方块的距离。",
+  "text.autoconfig.quirky.option.longPick.@Tooltip": "扩展鼠标中键拾取方块的距离（仅创造模式；26.2 服务端距离校验，生存不生效）。",
   "text.autoconfig.quirky.option.ladderSnap": "自动爬梯",
   "text.autoconfig.quirky.option.ladderSnap.@Tooltip": "爬梯子/藤蔓时抬头自动上升、低头下降、平视缓慢下滑（不自动爬）。",
   "text.autoconfig.quirky.option.offhandSwap": "副手快速装备",
@@ -88,5 +88,5 @@
   "text.autoconfig.quirky.option.pickRangeCreative": "创造拾取距离",
   "text.autoconfig.quirky.option.pickRangeCreative.@Tooltip": "创造模式中键拾取方块的距离。",
   "text.autoconfig.quirky.option.pickRangeSurvival": "生存拾取距离",
-  "text.autoconfig.quirky.option.pickRangeSurvival.@Tooltip": "生存模式中键拾取方块的距离。"
+  "text.autoconfig.quirky.option.pickRangeSurvival.@Tooltip": "生存模式中键拾取方块的距离（26.2 服务端校验，不生效）。"
 }
