@@ -15,8 +15,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /**
- * 属性 tooltip 横排布局断言（对齐 Quark 紧凑横条，16x16 图标）：
- * 单元格 = 16(图标) + 2(间距) + 文本宽，单元格间 8px；总宽 = 单元格求和，高 = 单行 16px。
+ * 属性 tooltip 横排布局断言（与食物行统一度量：9x9 图标、16px 行高、间距 2/4）：
+ * 单元格 = 9(图标) + 2(间距) + 文本宽，单元格间 4px；总宽 = 单元格求和，高 = 单行 16px。
  */
 class ClientAttributeTooltipComponentTest {
 
@@ -42,8 +42,8 @@ class ClientAttributeTooltipComponentTest {
 			))
 		);
 
-		// (16 + 2 + 6) + 8 + (16 + 2 + 15) = 65
-		assertEquals(65, client.getWidth(font));
+		// (9 + 2 + 6) + 4 + (9 + 2 + 15) = 47
+		assertEquals(47, client.getWidth(font));
 	}
 
 	@Test
@@ -72,7 +72,7 @@ class ClientAttributeTooltipComponentTest {
 			))
 		);
 
-		// 横排：无论多少属性都只占一行（16px 图标行高）
+		// 横排：无论多少属性都只占一行（与食物行同 16px 行高）
 		assertEquals(16, one.getHeight(font));
 		assertEquals(16, two.getHeight(font));
 		assertEquals(16, four.getHeight(font));

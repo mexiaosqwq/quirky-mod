@@ -77,8 +77,8 @@
   - 🛡 护甲值、韧性
   - 击退抗性、移动速度（有则显示）
 - 附魔伤害计算：锋利/亡灵杀手/节肢杀手按 26.2 原版公式计入攻击伤害（实施时以反编译源码与实测验证公式）。
-- **紧凑横条布局（对齐 Quark AttributeTooltips）**：全部属性排成单行横排 `[16x16 图标][数值]`，单元格步进 = 18 + 文本宽 + 8，行高 16px，不做槽位分组（26.2 原版物品单组即可容纳）。
-- **未按 Shift 时隐藏原版 "Attribute Modifiers" 竖排文本段**（`ItemStack.addAttributeTooltips` HEAD 取消，`AttributeTextHideMixin`，客户端 mixin），由横条替代；按住 Shift 时隐藏横条、放行原版文本（对照查看，与 Quark removeAttributeTooltips 一致）。
+- **紧凑横条布局（对齐 Quark AttributeTooltips）**：全部属性排成单行横排 `[9x9 图标][数值]`（16x16 原稿最近邻缩放 9x9，逐图像素网格验证可辨），与食物行共用 {@code TooltipRowMetrics} 度量（16px 行高、垂直居中、图标-文本间距 2、单元格间距 4），不做槽位分组（26.2 原版物品单组即可容纳）。
+- **未按 Shift 时隐藏原版 "Attribute Modifiers" 竖排文本段**（`ItemStack.addAttributeTooltips` HEAD 取消，`AttributeTextHideMixin`，客户端 mixin），由横条替代；按住 Shift 时隐藏横条、放行原版文本（对照查看，与 Quark removeAttributeTooltips 一致）。隐藏条件与横条显示条件互斥等价（`AttributeTooltipVisibility`）：横条无替代内容（仅携带非 6 类修饰符的物品，如 max_health/luck）时不隐藏原版段，避免属性信息静默丢失；创造/配方搜索索引路径（`SessionSearchTrees` 传 null player）放行，属性文本保留可搜索。
 
 实现：
 - 解析 `DataComponents.ATTRIBUTE_MODIFIERS`（按槽位过滤主手/护甲槽修饰符）+ 物品基础属性（`Item.getDefaultAttributeModifiers`）。

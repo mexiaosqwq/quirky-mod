@@ -11,16 +11,16 @@ import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent
 import net.minecraft.client.renderer.RenderPipelines;
 
 /**
- * 属性 tooltip 的客户端绘制组件：所有属性排成单行横排 {@code [16x16 图标][数值]}，
- * 对齐 Quark AttributeTooltips 的紧凑横条样式（Quark 为 9x9 图标 + 每格 text+20 步进，
- * 此处沿用已定稿的 16x16 图标，单元格步进 = 18 + 文本宽 + 8）。
+ * 属性 tooltip 的客户端绘制组件：所有属性排成单行横排 {@code [9x9 图标][数值]}，
+ * 度量与食物行统一（{@link TooltipRowMetrics}：16px 行高、垂直居中、间距 2/4），
+ * 对齐 Quark AttributeTooltips 紧凑横条（9x9 图标 + 8px 文本）。16x16 原稿经
+ * 最近邻缩放 9x9 仍保持全部图标可辨（像素网格逐图验证）。
  * 按住 Shift 时隐藏横条（getWidth/getHeight 返回 0 且不绘制），原版属性文本段
  * 由 AttributeTextHideMixin 在未按 Shift 时隐藏，两者互斥对齐 Quark 行为。
+ * 可见性判定集中在 {@link AttributeTooltipVisibility}，此处只负责横排几何。
  */
 public class ClientAttributeTooltipComponent implements ClientTooltipComponent {
-	private static final int ICON_SIZE = 16;
-	private static final int ICON_TEXT_GAP = 2;
-	private static final int CELL_GAP = 8;
+	private static final int ICON_SIZE = 9;
 	private static final int TEXT_COLOR = 0xFFFFFFFF;
 
 	private final List<AttributeLine> lines;
@@ -37,16 +37,16 @@ public class ClientAttributeTooltipComponent implements ClientTooltipComponent {
 		int width = 0;
 		for (AttributeLine line : lines) {
 			if (width > 0) {
-				width += CELL_GAP;
+				width += TooltipRowMetrics.CELL_GAP;
 			}
-			width += ICON_SIZE + ICON_TEXT_GAP + font.width(line.text());
+			width += ICON_SIZE + TooltipRowMetrics.ICON_TEXT_GAP + font.width(line.text());
 		}
 		return width;
 	}
 
 	@Override
 	public int getHeight(Font font) {
-		return shiftHidesLines() || lines.isEmpty() ? 0 : ICON_SIZE;
+		return shiftHidesLines() || lines.isEmpty() ? 0 : TooltipRowMetrics.LINE_HEIGHT;
 	}
 
 	@Override
@@ -54,17 +54,17 @@ public class ClientAttributeTooltipComponent implements ClientTooltipComponent {
 		if (shiftHidesLines()) {
 			return;
 		}
+		int yIcon = TooltipRowMetrics.iconY(y, ICON_SIZE);
+		int yText = TooltipRowMetrics.textY(y);
 		int cursorX = x;
 		for (AttributeLine line : lines) {
-			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, line.icon(), cursorX, y, ICON_SIZE, ICON_SIZE);
-			graphics.text(font, line.text(), cursorX + ICON_SIZE + ICON_TEXT_GAP, y + (ICON_SIZE - 8) / 2, TEXT_COLOR);
-			cursorX += ICON_SIZE + ICON_TEXT_GAP + font.width(line.text()) + CELL_GAP;
+			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, line.icon(), cursorX, yIcon, ICON_SIZE, ICON_SIZE);
+			graphics.text(font, line.text(), cursorX + ICON_SIZE + TooltipRowMetrics.ICON_TEXT_GAP, yText, TEXT_COLOR);
+			cursorX += ICON_SIZE + TooltipRowMetrics.ICON_TEXT_GAP + font.width(line.text()) + TooltipRowMetrics.CELL_GAP;
 		}
 	}
 
 	private static boolean shiftHidesLines() {
-		Minecraft minecraft = Minecraft.getInstance();
-		// 单测环境无客户端实例，视为未按 Shift
-		return minecraft != null && minecraft.hasShiftDown();
+		return AttributeTooltipVisibility.shiftHidesCompactRow(Minecraft.getInstance());
 	}
 }
