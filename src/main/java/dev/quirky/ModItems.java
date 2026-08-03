@@ -1,18 +1,14 @@
 package dev.quirky;
 
+import dev.quirky.item.BoomerangItem;
 import dev.quirky.item.BottledCloudItem;
-<<<<<<< HEAD
-<<<<<<< HEAD
-import dev.quirky.item.ParrotEggItem;
-=======
-import dev.quirky.item.FishBaitItem;
-import dev.quirky.item.SeedPouchItem;
->>>>>>> feat/batch-b-farm-fish
-=======
 import dev.quirky.item.EnderPouchItem;
+import dev.quirky.item.FishBaitItem;
+import dev.quirky.item.ParrotEggItem;
 import dev.quirky.item.PetWhistleItem;
 import dev.quirky.item.QuiverItem;
->>>>>>> feat/batch-c-storage-pets
+import dev.quirky.item.RopeItem;
+import dev.quirky.item.SeedPouchItem;
 import dev.quirky.torch_arrow.TorchArrowItem;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
 import net.fabricmc.fabric.api.registry.FuelValueEvents;
@@ -35,18 +31,15 @@ public final class ModItems {
 	private static final ResourceKey<Item> OBSIDIAN_PRESSURE_PLATE_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("obsidian_pressure_plate"));
 	private static final ResourceKey<Item> TORCH_ARROW_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("torch_arrow"));
 	private static final ResourceKey<Item> WOODEN_HOPPER_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("wooden_hopper"));
-<<<<<<< HEAD
-<<<<<<< HEAD
 	private static final ResourceKey<Item> PARROT_EGG_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("parrot_egg"));
-=======
 	private static final ResourceKey<Item> SEED_POUCH_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("seed_pouch"));
 	private static final ResourceKey<Item> FISH_BAIT_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("fish_bait"));
->>>>>>> feat/batch-b-farm-fish
-=======
 	private static final ResourceKey<Item> QUIVER_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("quiver"));
 	private static final ResourceKey<Item> ENDER_POUCH_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("ender_pouch"));
 	private static final ResourceKey<Item> PET_WHISTLE_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("pet_whistle"));
->>>>>>> feat/batch-c-storage-pets
+	private static final ResourceKey<Item> ROPE_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("rope"));
+	private static final ResourceKey<Item> ROPE_LANTERN_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("rope_lantern"));
+	private static final ResourceKey<Item> BOOMERANG_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("boomerang"));
 
 	public static final Item BOTTLED_CLOUD = new BottledCloudItem(
 		new Item.Properties().stacksTo(1).craftRemainder(Items.GLASS_BOTTLE).usingConvertsTo(Items.GLASS_BOTTLE).setId(BOTTLED_CLOUD_ID)
@@ -80,19 +73,18 @@ public final class ModItems {
 		new Item.Properties().setId(WOODEN_HOPPER_ID)
 	);
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 	public static final Item PARROT_EGG = new ParrotEggItem(
 		new Item.Properties().stacksTo(16).setId(PARROT_EGG_ID)
-=======
+	);
+
 	public static final Item SEED_POUCH = new SeedPouchItem(
 		new Item.Properties().stacksTo(1).setId(SEED_POUCH_ID)
 	);
 
 	public static final Item FISH_BAIT = new FishBaitItem(
 		new Item.Properties().stacksTo(16).setId(FISH_BAIT_ID)
->>>>>>> feat/batch-b-farm-fish
-=======
+	);
+
 	public static final Item QUIVER = new QuiverItem(
 		new Item.Properties()
 			.stacksTo(1)
@@ -107,7 +99,23 @@ public final class ModItems {
 
 	public static final Item PET_WHISTLE = new PetWhistleItem(
 		new Item.Properties().stacksTo(1).setId(PET_WHISTLE_ID)
->>>>>>> feat/batch-c-storage-pets
+	);
+
+	/** 绳捆：自定放置逻辑（向下延伸/潜行批量铺/挂点判定），见 {@link RopeItem}。 */
+	public static final Item ROPE = new RopeItem(
+		ModBlocks.ROPE,
+		new Item.Properties().setId(ROPE_ID)
+	);
+
+	/** 挂灯绳段：由绳段+灯笼在游戏中转换而来（创造可拿取），放置/延伸同绳。 */
+	public static final Item ROPE_LANTERN = new RopeItem(
+		ModBlocks.ROPE_LANTERN,
+		new Item.Properties().setId(ROPE_LANTERN_ID)
+	);
+
+	/** 回旋镖：250 耐久玩具，投掷拾取/轻伤，每次完整飞行消耗 1 点耐久。 */
+	public static final Item BOOMERANG = new BoomerangItem(
+		new Item.Properties().setId(BOOMERANG_ID).durability(250)
 	);
 
 	private ModItems() {
@@ -121,29 +129,28 @@ public final class ModItems {
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("obsidian_pressure_plate"), OBSIDIAN_PRESSURE_PLATE);
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("torch_arrow"), TORCH_ARROW);
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("wooden_hopper"), WOODEN_HOPPER);
-<<<<<<< HEAD
-<<<<<<< HEAD
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("parrot_egg"), PARROT_EGG);
-=======
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("seed_pouch"), SEED_POUCH);
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("fish_bait"), FISH_BAIT);
->>>>>>> feat/batch-b-farm-fish
-		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES)
-			.register(output -> output.accept(BOTTLED_CLOUD));
-		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES)
-			.register(output -> output.accept(SEED_POUCH));
-=======
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("quiver"), QUIVER);
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("ender_pouch"), ENDER_POUCH);
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("pet_whistle"), PET_WHISTLE);
+		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("rope"), ROPE);
+		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("rope_lantern"), ROPE_LANTERN);
+		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("boomerang"), BOOMERANG);
+
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES)
 			.register(output -> {
 				output.accept(BOTTLED_CLOUD);
+				output.accept(PARROT_EGG);
+				output.accept(SEED_POUCH);
 				output.accept(QUIVER);
 				output.accept(ENDER_POUCH);
 				output.accept(PET_WHISTLE);
+				output.accept(ROPE);
+				output.accept(ROPE_LANTERN);
+				output.accept(BOOMERANG);
 			});
->>>>>>> feat/batch-c-storage-pets
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.REDSTONE_BLOCKS)
 			.register(output -> {
 				output.accept(GOLD_BUTTON);
@@ -152,16 +159,10 @@ public final class ModItems {
 				output.accept(WOODEN_HOPPER);
 			});
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.COMBAT)
-<<<<<<< HEAD
-			.register(output -> output.accept(TORCH_ARROW));
-		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES)
-			.register(output -> output.accept(PARROT_EGG));
-=======
 			.register(output -> {
 				output.accept(TORCH_ARROW);
 				output.accept(FISH_BAIT);
 			});
->>>>>>> feat/batch-b-farm-fish
 		// TOTEM_OF_HOLDING 不进创造页签：纯内部渲染素材（死亡点图腾实体显示用），玩家不应拿到
 		// 木漏斗可作熔炉燃料（300 tick = 15 秒）：26.2 没有 DataComponents.FUEL，燃料改由服务端
 		// FuelValues 数据驱动，Fabric 通过 FuelValueEvents.BUILD 事件向 Builder 追加条目。

@@ -25,12 +25,9 @@ public class QuirkyMod implements ModInitializer {
 		QuirkyConfigHolder.set(AutoConfig.getConfigHolder(QuirkyConfig.class).getConfig());
 		ModBlocks.register();
 		ModBlockEntityTypes.register();
-<<<<<<< HEAD
 		ModParticles.register();
-=======
 		// 自定义 DataComponent 必须在注册表冻结前注册（onInitialize 阶段仍可写）
 		QuiverContents.register();
->>>>>>> feat/batch-c-storage-pets
 		ModItems.register();
 		ModEntities.register();
 		HarvestHandler.init();

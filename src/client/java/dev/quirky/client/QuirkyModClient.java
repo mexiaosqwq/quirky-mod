@@ -5,6 +5,7 @@ import dev.quirky.ModParticles;
 import dev.quirky.client.deathcam.DeathCamClient;
 import dev.quirky.client.equip_swap.EquipSwapClient;
 import dev.quirky.client.particle.DyedCampfireSmokeProvider;
+import dev.quirky.client.render.BoomerangRenderer;
 import dev.quirky.client.tooltips.ClientAttributeTooltipComponent;
 import dev.quirky.client.tooltips.ClientFoodTooltipComponent;
 import dev.quirky.client.tooltips.ClientMapTooltipComponent;
@@ -51,13 +52,11 @@ public class QuirkyModClient implements ClientModInitializer {
 		});
 		EntityRenderers.register(ModEntities.TOTEM, TotemEntityRenderer::new);
 		EntityRenderers.register(ModEntities.TORCH_ARROW, TorchArrowRenderer::new);
-<<<<<<< HEAD
 		// 染色营火烟粒子工厂：fabric-particles-v1 的 PendingParticleProvider 提供 SpriteSet
 		ParticleProviderRegistry.getInstance().register(ModParticles.DYED_CAMPFIRE_SMOKE, DyedCampfireSmokeProvider::new);
-=======
 		// 鱼饵球投掷物渲染为物品图标；诱鱼区用 NoopRenderer（不渲染但必须有渲染器，否则客户端 getRenderer 返回 null 崩溃）
 		EntityRenderers.register(ModEntities.FISH_BAIT, ThrownItemRenderer::new);
 		EntityRenderers.register(ModEntities.BAIT_ZONE, NoopRenderer::new);
->>>>>>> feat/batch-b-farm-fish
+		EntityRenderers.register(ModEntities.BOOMERANG, BoomerangRenderer::new);
 	}
 }

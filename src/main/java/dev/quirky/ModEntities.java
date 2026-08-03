@@ -1,11 +1,9 @@
 package dev.quirky;
 
-<<<<<<< HEAD
 import dev.quirky.parrotegg.ParrotEggEntity;
-=======
 import dev.quirky.fishbait.BaitZoneEntity;
 import dev.quirky.fishbait.FishBaitEntity;
->>>>>>> feat/batch-b-farm-fish
+import dev.quirky.entity.BoomerangEntity;
 import dev.quirky.torch_arrow.TorchArrowEntity;
 import dev.quirky.totem.TotemEntity;
 import net.minecraft.core.Registry;
@@ -18,12 +16,10 @@ import net.minecraft.world.entity.MobCategory;
 public final class ModEntities {
 	private static final ResourceKey<EntityType<?>> TOTEM_ID = ResourceKey.create(Registries.ENTITY_TYPE, QuirkyMod.id("totem_of_holding"));
 	private static final ResourceKey<EntityType<?>> TORCH_ARROW_ID = ResourceKey.create(Registries.ENTITY_TYPE, QuirkyMod.id("torch_arrow"));
-<<<<<<< HEAD
 	private static final ResourceKey<EntityType<?>> PARROT_EGG_ID = ResourceKey.create(Registries.ENTITY_TYPE, QuirkyMod.id("parrot_egg"));
-=======
 	private static final ResourceKey<EntityType<?>> FISH_BAIT_ID = ResourceKey.create(Registries.ENTITY_TYPE, QuirkyMod.id("fish_bait"));
 	private static final ResourceKey<EntityType<?>> BAIT_ZONE_ID = ResourceKey.create(Registries.ENTITY_TYPE, QuirkyMod.id("bait_zone"));
->>>>>>> feat/batch-b-farm-fish
+	private static final ResourceKey<EntityType<?>> BOOMERANG_ID = ResourceKey.create(Registries.ENTITY_TYPE, QuirkyMod.id("boomerang"));
 
 	public static final EntityType<TotemEntity> TOTEM = EntityType.Builder.of(TotemEntity::new, MobCategory.MISC)
 		.sized(0.8F, 0.8F)
@@ -38,18 +34,13 @@ public final class ModEntities {
 		.updateInterval(20)
 		.build(TORCH_ARROW_ID);
 
-<<<<<<< HEAD
 	public static final EntityType<ParrotEggEntity> PARROT_EGG = EntityType.Builder.<ParrotEggEntity>of(ParrotEggEntity::new, MobCategory.MISC)
-=======
 	public static final EntityType<FishBaitEntity> FISH_BAIT = EntityType.Builder.<FishBaitEntity>of(FishBaitEntity::new, MobCategory.MISC)
->>>>>>> feat/batch-b-farm-fish
 		.noLootTable()
 		.sized(0.25F, 0.25F)
 		.clientTrackingRange(4)
 		.updateInterval(10)
-<<<<<<< HEAD
 		.build(PARROT_EGG_ID);
-=======
 		.build(FISH_BAIT_ID);
 
 	public static final EntityType<BaitZoneEntity> BAIT_ZONE = EntityType.Builder.<BaitZoneEntity>of(BaitZoneEntity::new, MobCategory.MISC)
@@ -58,7 +49,12 @@ public final class ModEntities {
 		.clientTrackingRange(16)
 		.updateInterval(20)
 		.build(BAIT_ZONE_ID);
->>>>>>> feat/batch-b-farm-fish
+	public static final EntityType<BoomerangEntity> BOOMERANG = EntityType.Builder.<BoomerangEntity>of(BoomerangEntity::new, MobCategory.MISC)
+		.noLootTable()
+		.sized(0.4F, 0.4F)
+		.clientTrackingRange(4)
+		.updateInterval(20)
+		.build(BOOMERANG_ID);
 
 	private ModEntities() {
 	}
@@ -66,11 +62,9 @@ public final class ModEntities {
 	public static void register() {
 		Registry.register(BuiltInRegistries.ENTITY_TYPE, TOTEM_ID, TOTEM);
 		Registry.register(BuiltInRegistries.ENTITY_TYPE, TORCH_ARROW_ID, TORCH_ARROW);
-<<<<<<< HEAD
 		Registry.register(BuiltInRegistries.ENTITY_TYPE, PARROT_EGG_ID, PARROT_EGG);
-=======
 		Registry.register(BuiltInRegistries.ENTITY_TYPE, FISH_BAIT_ID, FISH_BAIT);
 		Registry.register(BuiltInRegistries.ENTITY_TYPE, BAIT_ZONE_ID, BAIT_ZONE);
->>>>>>> feat/batch-b-farm-fish
+		Registry.register(BuiltInRegistries.ENTITY_TYPE, BOOMERANG_ID, BOOMERANG);
 	}
 }
