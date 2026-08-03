@@ -49,10 +49,15 @@
 
 ## 安装
 
-1. 为 Minecraft 26.2 安装 Fabric Loader。
-2. 下载或自行构建 `quirky-0.1.0.jar`。
-3. 把 jar 放入 `.minecraft/mods/`。
+1. 为 Minecraft 26.2 安装 [Fabric Loader](https://fabricmc.net/use/)。
+2. 下载并安装**前置依赖**（放入 `.minecraft/mods/`）：
+   - [Fabric API](https://modrinth.com/mod/fabric-api)（必需）
+   - [Cloth Config API](https://modrinth.com/mod/cloth-config)（必需）
+   - [ModMenu](https://modrinth.com/mod/modmenu)（可选，推荐，用于游戏内配置界面）
+3. 下载或自行构建 `quirky-0.1.0.jar`，一并放入 `.minecraft/mods/`。
 4. 使用 Fabric 配置启动游戏。
+
+> 缺少必需前置时游戏会拒绝加载本模组并提示缺失依赖；ModMenu 仅影响能否在游戏内打开配置界面，配置文件仍可直接编辑 `config/quirky.json5`。
 
 ## 构建
 
