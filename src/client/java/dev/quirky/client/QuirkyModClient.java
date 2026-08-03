@@ -20,6 +20,8 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.particle.v1.ParticleProviderRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.ClientTooltipComponentCallback;
 import net.minecraft.client.renderer.entity.EntityRenderers;
+import net.minecraft.client.renderer.entity.NoopRenderer;
+import net.minecraft.client.renderer.entity.ThrownItemRenderer;
 
 public class QuirkyModClient implements ClientModInitializer {
 	@Override
@@ -44,7 +46,13 @@ public class QuirkyModClient implements ClientModInitializer {
 		});
 		EntityRenderers.register(ModEntities.TOTEM, TotemEntityRenderer::new);
 		EntityRenderers.register(ModEntities.TORCH_ARROW, TorchArrowRenderer::new);
+<<<<<<< HEAD
 		// 染色营火烟粒子工厂：fabric-particles-v1 的 PendingParticleProvider 提供 SpriteSet
 		ParticleProviderRegistry.getInstance().register(ModParticles.DYED_CAMPFIRE_SMOKE, DyedCampfireSmokeProvider::new);
+=======
+		// 鱼饵球投掷物渲染为物品图标；诱鱼区用 NoopRenderer（不渲染但必须有渲染器，否则客户端 getRenderer 返回 null 崩溃）
+		EntityRenderers.register(ModEntities.FISH_BAIT, ThrownItemRenderer::new);
+		EntityRenderers.register(ModEntities.BAIT_ZONE, NoopRenderer::new);
+>>>>>>> feat/batch-b-farm-fish
 	}
 }

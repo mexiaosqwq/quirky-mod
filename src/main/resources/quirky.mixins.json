@@ -10,6 +10,7 @@
     "CampfireBlockMixin",
     "ContainerTooltipMixin",
     "DoubleDoorMixin",
+    "FishingHookBaitMixin",
     "MapTooltipMixin",
     "MelonSeedMixin",
     "ServerPlayerMixin",

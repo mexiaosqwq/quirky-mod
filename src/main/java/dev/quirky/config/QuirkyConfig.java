@@ -69,6 +69,7 @@ public class QuirkyConfig implements ConfigData {
 	@ConfigEntry.Gui.Tooltip
 	public boolean ladderSnap = true;
 
+<<<<<<< HEAD
 	// ==== 批 A：弓箭叮声 / 起床保护 / 鹦鹉蛋 / 营火染色烟 ====
 
 	@ConfigEntry.Category("toggles")
@@ -107,6 +108,34 @@ public class QuirkyConfig implements ConfigData {
 	@ConfigEntry.Category("toggles")
 	@ConfigEntry.Gui.Tooltip
 	public boolean dyedCampfireGlow = true;
+=======
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean seedPouchEnabled = true;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.BoundedDiscrete(min = 0, max = 2)
+	@ConfigEntry.Gui.Tooltip
+	public int seedPouchRadius = 1;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean fishBaitEnabled = true;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.BoundedDiscrete(min = 10, max = 300)
+	@ConfigEntry.Gui.Tooltip
+	public int fishBaitDurationSeconds = 90;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.BoundedDiscrete(min = 2, max = 8)
+	@ConfigEntry.Gui.Tooltip
+	public int fishBaitRadius = 4;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean fishBaitRainBonus = true;
+>>>>>>> feat/batch-b-farm-fish
 
 	// ==== 图腾手感参数（服务端）====
 

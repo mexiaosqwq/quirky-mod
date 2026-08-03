@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "minecraft:leather",
+    "minecraft:string",
+    "minecraft:string",
+    "minecraft:wheat_seeds"
+  ],
+  "result": {
+    "id": "quirky:seed_pouch",
+    "count": 1
+  }
+}
