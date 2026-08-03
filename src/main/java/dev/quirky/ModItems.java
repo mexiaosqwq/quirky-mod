@@ -1,6 +1,7 @@
 package dev.quirky;
 
 import dev.quirky.item.BottledCloudItem;
+import dev.quirky.item.SeedPouchItem;
 import dev.quirky.torch_arrow.TorchArrowItem;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
 import net.fabricmc.fabric.api.registry.FuelValueEvents;
@@ -21,6 +22,7 @@ public final class ModItems {
 	private static final ResourceKey<Item> OBSIDIAN_PRESSURE_PLATE_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("obsidian_pressure_plate"));
 	private static final ResourceKey<Item> TORCH_ARROW_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("torch_arrow"));
 	private static final ResourceKey<Item> WOODEN_HOPPER_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("wooden_hopper"));
+	private static final ResourceKey<Item> SEED_POUCH_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("seed_pouch"));
 
 	public static final Item BOTTLED_CLOUD = new BottledCloudItem(
 		new Item.Properties().stacksTo(1).craftRemainder(Items.GLASS_BOTTLE).usingConvertsTo(Items.GLASS_BOTTLE).setId(BOTTLED_CLOUD_ID)
@@ -54,6 +56,10 @@ public final class ModItems {
 		new Item.Properties().setId(WOODEN_HOPPER_ID)
 	);
 
+	public static final Item SEED_POUCH = new SeedPouchItem(
+		new Item.Properties().stacksTo(1).setId(SEED_POUCH_ID)
+	);
+
 	private ModItems() {
 	}
 
@@ -65,8 +71,11 @@ public final class ModItems {
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("obsidian_pressure_plate"), OBSIDIAN_PRESSURE_PLATE);
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("torch_arrow"), TORCH_ARROW);
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("wooden_hopper"), WOODEN_HOPPER);
+		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("seed_pouch"), SEED_POUCH);
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES)
 			.register(output -> output.accept(BOTTLED_CLOUD));
+		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES)
+			.register(output -> output.accept(SEED_POUCH));
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.REDSTONE_BLOCKS)
 			.register(output -> {
 				output.accept(GOLD_BUTTON);
