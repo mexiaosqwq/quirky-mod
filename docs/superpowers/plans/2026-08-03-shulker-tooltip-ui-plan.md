@@ -124,7 +124,7 @@ Run the same focused Gradle test from Task 1. Expected: PASS.
 
 - [ ] **Step 1: Change tests to the one-argument component constructor and verify RED**
 
-Replace test construction with `new ShulkerTooltipComponent(contents)`, remove the `DyeColor` import and color assertion, and keep one colored-box test using the same contents-only component to prove the client visual is color-independent. Run the focused test and confirm compilation fails because production still exposes only the old two-argument constructor.
+Replace test construction with `new ShulkerTooltipComponent(contents)`, remove the `DyeColor` import and color assertion, and remove the old colored-background test because the production component no longer carries a color field. The desktop client checklist remains the source of truth for ordinary versus dyed box appearance. Run the focused test and confirm compilation fails because production still exposes only the old two-argument constructor.
 
 - [ ] **Step 2: Remove color from the service component**
 
@@ -173,7 +173,7 @@ git diff master...HEAD --stat
 git status --short --branch
 ```
 
-Confirm only the approved design/plan documents and the three implementation/test files changed; no resources or unrelated tooltip code changed.
+Confirm only the approved design/plan documents and the four implementation/test files changed; no resources or unrelated tooltip code changed.
 
 - [ ] **Step 2: Run the required build**
 
