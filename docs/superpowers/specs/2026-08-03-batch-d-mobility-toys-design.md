@@ -18,7 +18,7 @@
   - 光照透明、不阻挡视线，可含水（waterlogged 属性，水流中照常垂挂）。
 - **支撑规则**：绳必须悬挂在"完整固体方块底部"、**栅栏/墙/地狱栅栏顶部**（常见挂点，探险时随处可挂）或"另一段绳"之下；失去支撑时**自下而上连锁掉落为物品**（一段段掉，带掉落音效——手感细节）。
 - **挂灯照井（有机扩展）**：手持灯笼对绳段右键 → 该段变为"挂灯绳段"（新方块 `quirky:rope_lantern`，亮度 15），消耗 1 个灯笼；破坏时绳与灯笼双双掉落回收。边爬绳边照亮矿井，不用再一手爬绳一手插火把。
-- **天然防摔（climbable tag 白嫖福利）**：坠落中撞上绳柱会自动重置摔落高度（原版攀爬物语义）——绳兼作应急安全绳，铺绳下井摔了也不疼（计划阶段手动实测确认）。
+- **坠落防摔（主动实现，非 tag 白嫖）**：26.2 已验证攀爬物不会自动重置摔落高度（`LivingEntity.checkFallDamage` :366 无 climbable 豁免；`lastClimbablePos` 仅被追踪无消费者）——防摔必须自己实现：`entityInside` 钩子（mcsrc `CampfireBlock.java:110-120` 同款 6 参签名，基类 `BlockBehaviour.entityInside` :376）内，对垂直下落（`getDeltaMovement().y() < 0`）且非潜行的实体：`resetFallDistance()`（Entity.java:2893）+ 垂直速度钳制到 -0.15（缓滑手感）；潜行 = 不抓绳直接穿过（给高手留快坠操作）。
 - **放置规则**：
   - 对固体方块底面右键 → 在其下方放一段绳。
   - **对已有绳段右键（手持绳）** → 在其正下方延伸一段（下方为空气时）；这是"一路往下铺"的主操作。
@@ -31,7 +31,7 @@
 |---|---|
 | 放置/延伸 | `SoundEvents.WOOL_PLACE` 类软质音效（项目 BottledCloudItem 已验证可用；音量 0.6，音高随延伸次数轻微递降，"一段段放绳"的节奏感）+ 少量绳纤维粒子（"抖开"的细节） |
 | 连锁掉落 | 每段 `SoundEvents.WOOL_BREAK`（音量 0.4）+ 少量线状粒子（`ITEM` 粒子用线物品） |
-| 攀爬 | 原版藤蔓/梯子攀爬音效天然生效（climbable tag 附带），不额外加 |
+| 攀爬 | 原版玩家爬梯/藤蔓音效路径天然生效（`LivingEntity.onClimbable` :1711 驱动攀爬逻辑，已验证）；具体音色选择待实机确认 |
 | 批量铺绳 | 快速连续的放置音（每段间隔 1 tick 播放，形成"唰——"的下滑声） |
 
 ### 1.4 配方
@@ -58,7 +58,8 @@
 
 ### 1.7 实现要点与风险
 
-- 新方块 + BlockItem + tag 文件（`data/minecraft/tags/block/climbable.json` 追加 `quirky:rope` 与 `quirky:rope_lantern`——注意是**合并**进该 tag 的新文件，不是覆盖；数据包 namespace 用 `minecraft` tag 路径加入自有方块是标准做法）。
+- 新方块 + BlockItem + tag 文件（`data/minecraft/tags/block/climbable.json`：`{"replace": false, "values": ["quirky:rope", "quirky:rope_lantern"]}`——项目已有 `arrows.json` 同款 replace:false 覆盖原版 tag 的先例；**注意该 tag 含脚手架+全部藤蔓+梯子，replace:false 不覆盖它们**）。
+- 防摔实现（已验证锚点）：`entityInside(BlockState, Level, BlockPos, Entity, InsideBlockEffectApplier, boolean isPrecise)` 6 参签名（CampfireBlock.java:110-120 同款），`Entity.resetFallDistance()`（Entity.java:2893）。
 - `rope_lantern` 是第二个方块（绳+灯笼模型，光照 15），资源走方块清单；挂灯交互 = 右键时方块替换（保留 waterlogged 状态）。
 - 连锁掉落逻辑抽纯函数（输入：世界列快照；输出：应掉落的段列表），单测覆盖。
 - 风险点：
@@ -69,7 +70,7 @@
 ### 1.8 验证
 
 - 单测：支撑判定、连锁掉落段计算、批量铺设停止条件。
-- 手动：桌面客户端放置/延伸/批量铺/攀爬/打断连锁/含水/挂灯照明/坠落抓绳防摔。
+- 手动：桌面客户端放置/延伸/批量铺/攀爬/打断连锁/含水/挂灯照明/坠落抓绳防摔（含潜行穿透分支）。
 
 ---
 
@@ -146,13 +147,16 @@
 ### 2.7 实现要点与风险
 
 - 新实体注册进 `ModEntities`（参照 TorchArrowEntity 注册模式）；物品+实体渲染走新物品双文件清单+实体渲染器注册。
-- 飞行物理自实现（tick 内位置积分+返程转向），不依赖原版弹射物基类（避免 AbstractArrow 的重力/pickup 语义污染）。
+- 飞行物理自实现（tick 内位置积分+返程转向）。**基类选型（已验证）**：26.2 `Projectile`（`entity/projectile/Projectile.java:42`，`extends Entity implements TraceableEntity`）的 `onHit(HitResult)` :291 / `onHitEntity` :310 / `onHitBlock` :313 均为**具体方法可覆写**（非抽象）——选 `extends Projectile` 且完全自实现 tick 物理（覆写 `tick` :105），换取：可合法调用方块激活 `state.onProjectileHit(level, state, hit, this)`（`BlockBehaviour.onProjectileHit` :393，BlockStateBase 包装 :878——钟/木按钮等弹射物激活机制原版即走此入口，已验证），又不背 AbstractArrow 的重力/pickup 语义。实现时用 javap 核对 Projectile 构造与需实现成员（过 mixin/API 审计）。
 - "每生物每次飞行只伤一次"：实体持 `Set<UUID>`（NBT 序列化）。
 - 撞碎方块：新增 tag 文件 `data/quirky/tags/block/boomerang_unbreakable.json`；可碎判定抽纯函数（输入：破坏速度+免疫判定+冒险模式；输出：必碎/摇骰/不可碎），其中破坏速度与冒险模式分支可单测，tag 分支单测环境无数据包数据（项目已知教训）只能手动验证。
 - 风险点：
   - 客户端模型旋转渲染 + 实体位置插值（项目教训：视觉位置=实体位置必须一致，用实体的实际位置驱动渲染）。
   - 返程追踪活玩家：`Entity` 引用用 UUID 查找，防内存悬挂。
-- 伤害走 `hurtServer`（26.2 服务端伤害 API，参考 docs/26.2-mechanics-notes.md）。
+- 伤害走 `hurtServer(ServerLevel, DamageSource, float)`（已验证 `LivingEntity.java:1169`，26.2 服务端伤害 API，参考 docs/26.2-mechanics-notes.md）。
+- 耐久：`Item.Properties.durability(int)`（已验证 `Item.java:405`）。
+- 碎块判定（已验证锚点）：`BlockState.getDestroySpeed(BlockGetter, BlockPos)`（`BlockBehaviour.BlockStateBase` :644，返回 0.0 即必碎分支）+ 免疫 tag + 冒险模式分支；tag 分支单测环境无数据包数据，手动验证。
+- 客户端渲染：仿 `ThrownItemRenderer`（已验证存在，`client/renderer/entity/ThrownItemRenderer.java`）用物品模型渲染 + 自转动画。
 
 ### 2.8 验证
 
