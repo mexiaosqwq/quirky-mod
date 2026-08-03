@@ -17,7 +17,6 @@
   "tooltip.quirky.food.remove_effect": "移除效果：%s",
   "tooltip.quirky.food.clear_all_effects": "清除所有状态效果",
   "tooltip.quirky.food.random_teleport": "随机传送",
-  "tooltip.quirky.shulker.empty": "空",
   "tooltip.quirky.map.scale": "比例 1:%s",
   "tooltip.quirky.map.scale_locked": "%s（已锁定）",
   "text.autoconfig.quirky.title": "Quirky 配置",

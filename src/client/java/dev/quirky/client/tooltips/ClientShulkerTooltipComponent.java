@@ -6,7 +6,6 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.core.NonNullList;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
@@ -45,24 +44,15 @@ public class ClientShulkerTooltipComponent implements ClientTooltipComponent {
 
 	@Override
 	public void extractImage(Font font, int x, int y, int w, int h, GuiGraphicsExtractor graphics) {
-		boolean empty = true;
 		for (int slot = 0; slot < items.size(); slot++) {
 			int sx = x + PADDING + (slot % COLS) * SLOT_SIZE;
 			int sy = y + PADDING + (slot / COLS) * SLOT_SIZE;
 			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, SLOT_SPRITE, sx, sy, SLOT_SIZE, SLOT_SIZE);
 			ItemStack stack = items.get(slot);
 			if (!stack.isEmpty()) {
-				empty = false;
 				graphics.item(stack, sx + ICON_OFFSET, sy + ICON_OFFSET);
 				graphics.itemDecorations(font, stack, sx + ICON_OFFSET, sy + ICON_OFFSET);
 			}
-		}
-		// 空盒：网格不变，中央显示空状态文案
-		if (empty) {
-			Component label = Component.translatable("tooltip.quirky.shulker.empty");
-			int textX = x + (getWidth(font) - font.width(label)) / 2;
-			int textY = y + (getHeight(font) - TooltipRowMetrics.TEXT_HEIGHT) / 2;
-			graphics.text(font, label, textX, textY, 0x8AFFFFFF);
 		}
 	}
 }

@@ -17,7 +17,6 @@
   "tooltip.quirky.food.remove_effect": "Removes %s",
   "tooltip.quirky.food.clear_all_effects": "Clears all effects",
   "tooltip.quirky.food.random_teleport": "Randomly teleports",
-  "tooltip.quirky.shulker.empty": "Empty",
   "tooltip.quirky.map.scale": "Scale 1:%s",
   "tooltip.quirky.map.scale_locked": "%s (Locked)",
   "text.autoconfig.quirky.title": "Quirky Config",

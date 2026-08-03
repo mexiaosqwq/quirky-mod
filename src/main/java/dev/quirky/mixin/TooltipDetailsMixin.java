@@ -39,9 +39,11 @@ public abstract class TooltipDetailsMixin {
 		// 只对潜影盒生效：箱子/熔炉等其他容器物品也可能带 CONTAINER 组件，
 		// 不限定 tag 会把它们也渲染成潜影盒网格
 		if (stack.is(ItemTags.SHULKER_BOXES)) {
-			// 空盒无 CONTAINER 组件，用空内容兜底（仍显示 9x3 空网格）。
+			// 空盒不显示槽位网格（2026-08-03 用户要求：空盒无内容预览，避免空网格占位）
 			ItemContainerContents contents = stack.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
-			cir.setReturnValue(Optional.of(new ShulkerTooltipComponent(contents)));
+			if (contents.nonEmptyItems().iterator().hasNext()) {
+				cir.setReturnValue(Optional.of(new ShulkerTooltipComponent(contents)));
+			}
 		}
 	}
 

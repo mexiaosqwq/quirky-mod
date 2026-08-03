@@ -6,18 +6,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-
-import java.util.List;
 
 import dev.quirky.TestBootstrap;
 import dev.quirky.tooltips.ShulkerTooltipComponent;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -88,30 +84,5 @@ class ClientShulkerTooltipComponentTest {
 		assertTrue(renderedStack.getValue().is(Items.STONE));
 		assertEquals(3, renderedStack.getValue().getCount());
 		verify(graphics).itemDecorations(eq(font), any(ItemStack.class), eq(5), eq(5));
-	}
-
-	@Test
-	void emptyBoxDrawsEmptyStateLabel() {
-		ShulkerTooltipComponent component = new ShulkerTooltipComponent(ItemContainerContents.EMPTY);
-		ClientShulkerTooltipComponent client = new ClientShulkerTooltipComponent(component);
-		Font font = mock(Font.class);
-		GuiGraphicsExtractor graphics = mock(GuiGraphicsExtractor.class);
-
-		client.extractImage(font, 0, 0, client.getWidth(font), client.getHeight(font), graphics);
-
-		verify(graphics).text(eq(font), any(Component.class), anyInt(), anyInt(), anyInt());
-	}
-
-	@Test
-	void nonEmptyBoxSkipsEmptyStateLabel() {
-		ItemContainerContents contents = ItemContainerContents.fromItems(List.of(new ItemStack(Items.STONE)));
-		ShulkerTooltipComponent component = new ShulkerTooltipComponent(contents);
-		ClientShulkerTooltipComponent client = new ClientShulkerTooltipComponent(component);
-		Font font = mock(Font.class);
-		GuiGraphicsExtractor graphics = mock(GuiGraphicsExtractor.class);
-
-		client.extractImage(font, 0, 0, client.getWidth(font), client.getHeight(font), graphics);
-
-		verify(graphics, never()).text(eq(font), any(Component.class), anyInt(), anyInt(), anyInt());
 	}
 }
