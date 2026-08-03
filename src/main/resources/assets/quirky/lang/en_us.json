@@ -70,7 +70,7 @@
   "text.autoconfig.quirky.option.foodTooltip": "Food Tooltip",
   "text.autoconfig.quirky.option.foodTooltip.@Tooltip": "Show hunger and saturation values with icons on food items.",
   "text.autoconfig.quirky.option.attributeTooltip": "Attribute Tooltip",
-  "text.autoconfig.quirky.option.attributeTooltip.@Tooltip": "Show attack damage (with enchants), attack speed, armor and toughness with icons. Hold Shift for vanilla tooltip.",
+  "text.autoconfig.quirky.option.attributeTooltip.@Tooltip": "Show attack damage (with enchants), attack speed, armor and toughness as icons in a compact row, replacing the vanilla attribute section. Hold Shift for the vanilla tooltip.",
   "text.autoconfig.quirky.option.usageTicker": "Usage Ticker",
   "text.autoconfig.quirky.option.usageTicker.@Tooltip": "Slide out item count on pickup/use and armor durability bars on damage.",
   "text.autoconfig.quirky.option.deathCam": "Death Camera",

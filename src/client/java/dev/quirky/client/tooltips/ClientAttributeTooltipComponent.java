@@ -11,13 +11,16 @@ import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent
 import net.minecraft.client.renderer.RenderPipelines;
 
 /**
- * 属性图标 tooltip 的客户端绘制组件：每行 16x16 图标 + 数值文本，行高 14px 紧凑排布。
- * 按住 Shift 时隐藏自定义行（getWidth/getHeight 返回 0 且不绘制），原版文本行始终保留。
+ * 属性 tooltip 的客户端绘制组件：所有属性排成单行横排 {@code [16x16 图标][数值]}，
+ * 对齐 Quark AttributeTooltips 的紧凑横条样式（Quark 为 9x9 图标 + 每格 text+20 步进，
+ * 此处沿用已定稿的 16x16 图标，单元格步进 = 18 + 文本宽 + 8）。
+ * 按住 Shift 时隐藏横条（getWidth/getHeight 返回 0 且不绘制），原版属性文本段
+ * 由 AttributeTextHideMixin 在未按 Shift 时隐藏，两者互斥对齐 Quark 行为。
  */
 public class ClientAttributeTooltipComponent implements ClientTooltipComponent {
 	private static final int ICON_SIZE = 16;
 	private static final int ICON_TEXT_GAP = 2;
-	private static final int LINE_HEIGHT = 14;
+	private static final int CELL_GAP = 8;
 	private static final int TEXT_COLOR = 0xFFFFFFFF;
 
 	private final List<AttributeLine> lines;
@@ -28,19 +31,22 @@ public class ClientAttributeTooltipComponent implements ClientTooltipComponent {
 
 	@Override
 	public int getWidth(Font font) {
-		if (shiftHidesLines()) {
+		if (shiftHidesLines() || lines.isEmpty()) {
 			return 0;
 		}
 		int width = 0;
 		for (AttributeLine line : lines) {
-			width = Math.max(width, ICON_SIZE + ICON_TEXT_GAP + font.width(line.text()));
+			if (width > 0) {
+				width += CELL_GAP;
+			}
+			width += ICON_SIZE + ICON_TEXT_GAP + font.width(line.text());
 		}
 		return width;
 	}
 
 	@Override
 	public int getHeight(Font font) {
-		return shiftHidesLines() ? 0 : lines.size() * LINE_HEIGHT;
+		return shiftHidesLines() || lines.isEmpty() ? 0 : ICON_SIZE;
 	}
 
 	@Override
@@ -48,11 +54,11 @@ public class ClientAttributeTooltipComponent implements ClientTooltipComponent {
 		if (shiftHidesLines()) {
 			return;
 		}
-		int cursorY = y;
+		int cursorX = x;
 		for (AttributeLine line : lines) {
-			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, line.icon(), x, cursorY, ICON_SIZE, ICON_SIZE);
-			graphics.text(font, line.text(), x + ICON_SIZE + ICON_TEXT_GAP, cursorY + (LINE_HEIGHT - 8) / 2, TEXT_COLOR);
-			cursorY += LINE_HEIGHT;
+			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, line.icon(), cursorX, y, ICON_SIZE, ICON_SIZE);
+			graphics.text(font, line.text(), cursorX + ICON_SIZE + ICON_TEXT_GAP, y + (ICON_SIZE - 8) / 2, TEXT_COLOR);
+			cursorX += ICON_SIZE + ICON_TEXT_GAP + font.width(line.text()) + CELL_GAP;
 		}
 	}
 

@@ -77,14 +77,15 @@
   - 🛡 护甲值、韧性
   - 击退抗性、移动速度（有则显示）
 - 附魔伤害计算：锋利/亡灵杀手/节肢杀手按 26.2 原版公式计入攻击伤害（实施时以反编译源码与实测验证公式）。
-- 按住 Shift 时隐藏自定义行、显示原版 tooltip（对照查看）。
+- **紧凑横条布局（对齐 Quark AttributeTooltips）**：全部属性排成单行横排 `[16x16 图标][数值]`，单元格步进 = 18 + 文本宽 + 8，行高 16px，不做槽位分组（26.2 原版物品单组即可容纳）。
+- **未按 Shift 时隐藏原版 "Attribute Modifiers" 竖排文本段**（`ItemStack.addAttributeTooltips` HEAD 取消，`AttributeTextHideMixin`，客户端 mixin），由横条替代；按住 Shift 时隐藏横条、放行原版文本（对照查看，与 Quark removeAttributeTooltips 一致）。
 
 实现：
 - 解析 `DataComponents.ATTRIBUTE_MODIFIERS`（按槽位过滤主手/护甲槽修饰符）+ 物品基础属性（`Item.getDefaultAttributeModifiers`）。
 - 图标为自绘 16x16 sprite：`textures/gui/sprites/attribute/{attack_damage,attack_speed,armor,toughness,knockback,movement}.png`（26.2 GUI atlas 只扫描 `textures/gui/sprites/` 目录，sprite id 对应 `quirky:attribute/xxx`，不带 `gui/` 前缀）。
-- 渲染：自定义 `AttributeTooltipComponent`（图标 + 数值文本行）；Shift 判定用 `Screen.hasShiftDown()`。
+- 渲染：自定义 `AttributeTooltipComponent`（图标 + 数值文本横排单元格）；Shift 判定用 `Minecraft.getInstance().hasShiftDown()`（与 Quark Screen.hasShiftDown 等价）。
 
-验收：钻石剑显示 7 攻击伤害 + 1.6 攻速；锋利 V 显示 9.5（7+2.5，公式以实测为准）；钻石胸甲显示 8 护甲 + 2 韧性；Shift 显示原版文本。
+验收：钻石剑显示横排 7 攻击伤害 + 1.6 攻速（一行内）；锋利 V 显示 9.5（7+2.5，公式以实测为准）；钻石胸甲显示横排 8 护甲 + 2 韧性；未按 Shift 时无原版属性文本段；Shift 显示原版文本、隐藏横条。
 
 ### 5.4 使用量挂件（客户端）
 
@@ -160,14 +161,14 @@
 ### 5.9 自动爬梯（客户端）
 
 行为（用户定制：基岩版式自动爬梯，无居中吸附）：
-- 玩家在梯子/藤蔓上时，**抬头（pitch < -30°）自动上升、低头（pitch > 30°）自动下降、平视悬停**——爬梯只需抬头。
-- 按 W/S/空格/Shift 时手动优先，不干预；脚手架不自动爬（玩家在其上自由走动）。
+- 玩家在**梯子（LADDER）**上时，**抬头（pitch < -15°）自动上升、低头（pitch > 15°）自动下降、平视缓慢下滑（不自动爬）**——爬梯只需抬头。
+- 按 W/S/空格/Shift 时手动优先，不干预；**仅梯子触发**（藤蔓/脚手架/活板门排除——路过藤蔓墙/脚手架会被莫名吸附爬升，用户验收反馈）。
 
 实现：
-- mixin `Player.travel` HEAD（目标类 Player——LocalPlayer 未覆写 travel，26.2 mixin 的 method 选择器只匹配本类方法）：`LadderSnapHelper.climbVelocity(pitch, manual)`（抬头 0.2/平视 0.08（抵消重力实现悬停）/低头 −0.15，经重力与竖直摩擦后净上升 ≈0.116 b/t 对齐原版 W 爬梯；travel 内 `handleOnClimbable` 保留 delta.y）。
+- mixin `Player.travel` HEAD（目标类 Player——LocalPlayer 未覆写 travel，26.2 mixin 的 method 选择器只匹配本类方法）：`LadderSnapHelper.climbVelocity(pitch, manual)`（抬头 0.2（净 ≈0.116 b/t）/平视 0.05（缓慢下滑不爬）/低头 −0.15，经重力与竖直摩擦后净上升 ≈0.116 b/t 对齐原版 W 爬梯；travel 内 `handleOnClimbable` 保留 delta.y）。
 - config：`ladderSnap` 开关（语义 = 自动爬梯）。
 
-验收：爬上梯子后抬头自动上升、低头下降、平视停住；按 W/S 仍可手动爬；脚手架行走不受影响。
+验收：梯子上抬头自动上升、低头下降、平视缓慢下滑不爬；按 W/S 仍可手动爬；路过藤蔓墙/脚手架不会被自动吸附。
 
 ### 5.10 装备替换·副手扩展（客户端 + 服务端）
 

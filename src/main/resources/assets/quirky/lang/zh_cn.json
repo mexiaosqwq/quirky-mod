@@ -70,7 +70,7 @@
   "text.autoconfig.quirky.option.foodTooltip": "食物信息提示",
   "text.autoconfig.quirky.option.foodTooltip.@Tooltip": "食物提示中显示饥饿值与饱和度（带图标）。",
   "text.autoconfig.quirky.option.attributeTooltip": "属性图标提示",
-  "text.autoconfig.quirky.option.attributeTooltip.@Tooltip": "显示攻击伤害（含附魔）、攻速、护甲与韧性图标；按住 Shift 查看原版提示。",
+  "text.autoconfig.quirky.option.attributeTooltip.@Tooltip": "以紧凑横条图标显示攻击伤害（含附魔）、攻速、护甲与韧性，替代原版属性文本段；按住 Shift 查看原版提示。",
   "text.autoconfig.quirky.option.usageTicker": "使用量挂件",
   "text.autoconfig.quirky.option.usageTicker.@Tooltip": "拾取/消耗物品时滑出数量，护甲掉耐久时滑出耐久条。",
   "text.autoconfig.quirky.option.deathCam": "死亡电影镜头",

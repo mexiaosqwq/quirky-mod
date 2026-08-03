@@ -29,11 +29,12 @@ public abstract class LocalPlayerAIStepMixin {
 		if (!((Object) this instanceof LocalPlayer player)) {
 			return;
 		}
-		if (!QuirkyConfigHolder.get().ladderSnap || !player.onClimbable()) {
+		if (!QuirkyConfigHolder.get().ladderSnap) {
 			return;
 		}
-		// 脚手架在 #minecraft:climbable 中，但玩家在其上应自由走动，不自动爬
-		if (player.getInBlockState().is(Blocks.SCAFFOLDING)) {
+		// 只对梯子（LADDER）自动爬：藤蔓/脚手架/活板门虽在 #minecraft:climbable 中，
+		// 但路过藤蔓墙/脚手架会被"莫名"吸附爬升（用户验收反馈），排除后范围清晰可控
+		if (!player.getInBlockState().is(Blocks.LADDER)) {
 			return;
 		}
 		boolean manual = player.input.keyPresses.forward()
