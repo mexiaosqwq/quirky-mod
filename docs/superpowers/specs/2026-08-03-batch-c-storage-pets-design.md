@@ -145,7 +145,7 @@
 | 事件 | 反馈 |
 |---|---|
 | 吹哨 | 山羊角音色：`SoundEvents.GOAT_HORN_SOUND_VARIANTS`（已验证，8 种变体，每次吹哨随机选一种——有收集感和辨识度；音量 1.0、传播远一点，符合"召集"语义） |
-| 幻翼被掼下 | 每只幻翼 `SoundEvents.PHANTOM_SWOOP`（计划阶段验证存在性）+ 落地扬尘粒子 |
+| 幻翼被掼下 | 每只幻翼 `SoundEvents.PHANTOM_SWOOP`（已验证）+ 落地扬尘粒子 |
 | 宠物响应 | 每只宠物头顶 3-5 个 `HEART` 粒子 |
 | 远距离传送到达 | `PORTAL` 粒子 + `SoundEvents.ENDERMAN_TELEPORT`（已验证；音量 0.3） |
 | 范围内无宠物 | 哨音照吹，无粒子（玩家自知） |
