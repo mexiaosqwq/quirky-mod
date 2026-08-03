@@ -69,6 +69,49 @@ public class QuirkyConfig implements ConfigData {
 	@ConfigEntry.Gui.Tooltip
 	public boolean ladderSnap = true;
 
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean quiverEnabled = true;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean enderPouchEnabled = true;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean enderPouchEnderResonance = true;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean petWhistleEnabled = true;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean petWhistleTeleportBeyondRadius = true;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean petWhistleTauntPhantoms = true;
+
+	// ==== 箭袋参数（服务端）====
+
+	@ConfigEntry.Category("quiver")
+	@ConfigEntry.BoundedDiscrete(min = 1, max = 8)
+	@ConfigEntry.Gui.Tooltip
+	public int quiverCapacity = 4;
+
+	// ==== 宠物口哨参数（服务端）====
+
+	@ConfigEntry.Category("pet_whistle")
+	@ConfigEntry.BoundedDiscrete(min = 8, max = 64)
+	@ConfigEntry.Gui.Tooltip
+	public int petWhistleRadius = 24;
+
+	@ConfigEntry.Category("pet_whistle")
+	@ConfigEntry.BoundedDiscrete(min = 1, max = 5)
+	@ConfigEntry.Gui.Tooltip
+	public int petWhistlePhantomMax = 3;
+
 	// ==== 图腾手感参数（服务端）====
 
 	@ConfigEntry.Category("totem")
