@@ -35,6 +35,7 @@ class TickerSnapshotTest {
 		TestBootstrap.bindItem(Items.DIAMOND_HELMET);
 		TestBootstrap.bindItem(Items.DIAMOND_CHESTPLATE);
 		TestBootstrap.bindItem(Items.DIAMOND_PICKAXE);
+		TestBootstrap.bindItem(Items.TORCH);
 		TestBootstrap.bindMinimalComponents(Items.CARVED_PUMPKIN);
 	}
 
@@ -189,6 +190,36 @@ class TickerSnapshotTest {
 		assertTrue(event.isPresent());
 		assertEquals(0, event.get().newCount());
 		assertFalse(event.get().newCount() > 0);
+	}
+
+	@Test
+	void diffEquipment_offhandChange_fires() {
+		// 副手装火把等装备槽摆放：总数不变但装备槽变化 → 触发（对齐 Quark offhand 元素，旧槽位 diff 行为）
+		List<Item> beforeEquip = List.of(Items.AIR, Items.AIR, Items.AIR);
+		List<Item> afterEquip = List.of(Items.TORCH, Items.AIR, Items.AIR);
+
+		assertEquals(Optional.of(Items.TORCH), TickerSnapshot.diffEquipment(beforeEquip, afterEquip));
+	}
+
+	@Test
+	void diffEquipment_noChange_noEvent() {
+		List<Item> equip = List.of(Items.TORCH, Items.AIR, Items.AIR);
+
+		assertTrue(TickerSnapshot.diffEquipment(equip, equip).isEmpty());
+	}
+
+	@Test
+	void diffEquipment_removedFromSlot_noEvent() {
+		// 装备槽清空（切到空）：无物品可显示，不触发（主手切空同理）
+		List<Item> beforeEquip = List.of(Items.TORCH, Items.AIR, Items.AIR);
+		List<Item> afterEquip = List.of(Items.AIR, Items.AIR, Items.AIR);
+
+		assertTrue(TickerSnapshot.diffEquipment(beforeEquip, afterEquip).isEmpty());
+	}
+
+	@Test
+	void diffEquipment_nullBaseline_noEvent() {
+		assertTrue(TickerSnapshot.diffEquipment(null, List.of(Items.TORCH, Items.AIR, Items.AIR)).isEmpty());
 	}
 
 	// ---------- diffDurability（耐久挂件，右） ----------

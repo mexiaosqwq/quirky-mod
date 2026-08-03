@@ -37,7 +37,9 @@ public final class TickerSnapshot {
 		/** (可损坏物品 → 堆叠数 + 总耐久损耗)，按物品聚合。 */
 		Map<Item, DurabilityState> durability,
 		/** 4 个盔甲槽（36..39）的 (物品, 耐久)，槽位序。 */
-		List<ArmorSlot> armor
+		List<ArmorSlot> armor,
+		/** 其余装备槽（副手 40 / BODY 41 / SADDLE 42）的物品，槽位序，空槽为 AIR。 */
+		List<Item> equipment
 	) {}
 
 	/** 某可损坏物品的聚合耐久状态。 */
@@ -66,11 +68,14 @@ public final class TickerSnapshot {
 		Map<Item, Integer> totals = new LinkedHashMap<>();
 		Map<Item, DurabilityState> durability = new LinkedHashMap<>();
 		List<ArmorSlot> armor = new ArrayList<>(4);
+		List<Item> equipment = new ArrayList<>(3);
 		for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
 			ItemStack stack = inventory.getItem(slot);
 			if (stack.isEmpty()) {
 				if (slot >= ARMOR_SLOT_START && slot <= ARMOR_SLOT_END) {
 					armor.add(new ArmorSlot(Items.AIR, 0));
+				} else if (slot >= Inventory.SLOT_OFFHAND && slot <= Inventory.SLOT_SADDLE) {
+					equipment.add(Items.AIR);
 				}
 				continue;
 			}
@@ -83,9 +88,11 @@ public final class TickerSnapshot {
 			}
 			if (slot >= ARMOR_SLOT_START && slot <= ARMOR_SLOT_END) {
 				armor.add(new ArmorSlot(item, stack.isDamageableItem() ? stack.getDamageValue() : 0));
+			} else if (slot >= Inventory.SLOT_OFFHAND && slot <= Inventory.SLOT_SADDLE) {
+				equipment.add(item);
 			}
 		}
-		return new InventorySnapshot(totals, durability, armor);
+		return new InventorySnapshot(totals, durability, armor, equipment);
 	}
 
 	/**
@@ -137,6 +144,29 @@ public final class TickerSnapshot {
 			selected = best;
 		}
 		return Optional.of(new TickerEvent(selected, after.getOrDefault(selected, 0), deltas.get(selected)));
+	}
+
+	/**
+	 * 对比前后两份装备槽（副手/BODY/SADDLE）快照。
+	 *
+	 * @return 第一个发生变化的槽位中放入的物品（非 AIR）；清空槽位无物品可显示，返回空。
+	 *         before 为 {@code null}（基线未建立）返回空。
+	 *         数量/主手事件优先于装备槽事件，由调用方选择（见 UsageTickerHud.tick）。
+	 */
+	public static Optional<Item> diffEquipment(List<Item> before, List<Item> after) {
+		if (before == null || after == null) {
+			return Optional.empty();
+		}
+		int size = Math.min(before.size(), after.size());
+		for (int i = 0; i < size; i++) {
+			if (before.get(i) != after.get(i)) {
+				Item item = after.get(i);
+				if (item != Items.AIR) {
+					return Optional.of(item);
+				}
+			}
+		}
+		return Optional.empty();
 	}
 
 	/**

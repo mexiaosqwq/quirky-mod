@@ -93,6 +93,13 @@ public final class UsageTickerHud {
 			lastSnapshot == null ? null : lastSnapshot.totals(), snapshot.totals(),
 			lastMainHand, mainHand
 		);
+		if (event.isEmpty()) {
+			// 数量/主手无事件时，装备槽（副手/BODY/SADDLE）摆放变化兜底触发
+			Optional<Item> equipChanged = TickerSnapshot.diffEquipment(
+				lastSnapshot == null ? null : lastSnapshot.equipment(), snapshot.equipment()
+			);
+			event = equipChanged.map(item -> new TickerEvent(item, 1, 0));
+		}
 		List<Item> durability = TickerSnapshot.diffDurability(
 			lastSnapshot == null ? null : lastSnapshot.durability(), snapshot.durability(),
 			lastSnapshot == null ? null : lastSnapshot.armor(), snapshot.armor()
