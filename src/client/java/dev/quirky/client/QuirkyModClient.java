@@ -8,6 +8,7 @@ import dev.quirky.client.particle.DyedCampfireSmokeProvider;
 import dev.quirky.client.tooltips.ClientAttributeTooltipComponent;
 import dev.quirky.client.tooltips.ClientFoodTooltipComponent;
 import dev.quirky.client.tooltips.ClientMapTooltipComponent;
+import dev.quirky.client.tooltips.ClientQuiverTooltipComponent;
 import dev.quirky.client.tooltips.ClientShulkerTooltipComponent;
 import dev.quirky.client.totem.TotemEntityRenderer;
 import dev.quirky.client.torch_arrow.TorchArrowRenderer;
@@ -15,6 +16,7 @@ import dev.quirky.client.usage_ticker.UsageTickerHud;
 import dev.quirky.tooltips.AttributeTooltipComponent;
 import dev.quirky.tooltips.FoodTooltipComponent;
 import dev.quirky.tooltips.MapTooltipComponent;
+import dev.quirky.tooltips.QuiverTooltipComponent;
 import dev.quirky.tooltips.ShulkerTooltipComponent;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.particle.v1.ParticleProviderRegistry;
@@ -41,6 +43,9 @@ public class QuirkyModClient implements ClientModInitializer {
 			}
 			if (component instanceof AttributeTooltipComponent attribute) {
 				return new ClientAttributeTooltipComponent(attribute);
+			}
+			if (component instanceof QuiverTooltipComponent quiver) {
+				return new ClientQuiverTooltipComponent(quiver);
 			}
 			return null;
 		});

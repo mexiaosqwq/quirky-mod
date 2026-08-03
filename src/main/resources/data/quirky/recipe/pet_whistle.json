@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "S": "minecraft:stick",
+    "T": "minecraft:string",
+    "I": "minecraft:iron_nugget"
+  },
+  "pattern": [
+    " S ",
+    "ST ",
+    "I  "
+  ],
+  "result": {
+    "id": "quirky:pet_whistle",
+    "count": 1
+  }
+}

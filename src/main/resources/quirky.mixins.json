@@ -13,6 +13,8 @@
     "FishingHookBaitMixin",
     "MapTooltipMixin",
     "MelonSeedMixin",
+    "PhantomTauntMixin",
+    "QuiverTooltipMixin",
     "ServerPlayerMixin",
     "TooltipDetailsMixin",
     "WakeUpMixin",

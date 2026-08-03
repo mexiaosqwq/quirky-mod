@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_dye",
+  "dye": "#minecraft:dyes",
+  "group": "quirky_quiver",
+  "result": {
+    "id": "quirky:quiver"
+  },
+  "target": "quirky:quiver"
+}
