@@ -69,6 +69,39 @@ public class QuirkyConfig implements ConfigData {
 	@ConfigEntry.Gui.Tooltip
 	public boolean ladderSnap = true;
 
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean ropeEnabled = true;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean boomerangEnabled = true;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean boomerangBreakBlocks = true;
+
+	// ==== 机动与玩具参数（绳捆 / 回旋镖）====
+
+	@ConfigEntry.Category("mobility")
+	@ConfigEntry.BoundedDiscrete(min = 1, max = 64)
+	@ConfigEntry.Gui.Tooltip
+	public int ropeMaxExtendPerUse = 32;
+
+	@ConfigEntry.Category("mobility")
+	@ConfigEntry.BoundedDiscrete(min = 4, max = 24)
+	@ConfigEntry.Gui.Tooltip
+	public int boomerangRange = 12;
+
+	@ConfigEntry.Category("mobility")
+	@ConfigEntry.BoundedDiscrete(min = 0, max = 4)
+	@ConfigEntry.Gui.Tooltip
+	public int boomerangDamage = 2;
+
+	@ConfigEntry.Category("mobility")
+	@ConfigEntry.Gui.Tooltip
+	public float boomerangBreakChance = 0.05F;
+
 	// ==== 图腾手感参数（服务端）====
 
 	@ConfigEntry.Category("totem")
