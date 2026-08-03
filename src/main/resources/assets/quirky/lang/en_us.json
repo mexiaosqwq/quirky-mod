@@ -8,6 +8,7 @@
   "item.quirky.wooden_hopper": "Wooden Hopper",
   "item.quirky.quiver": "Quiver",
   "tooltip.quirky.quiver.empty": "Empty",
+  "item.quirky.ender_pouch": "Ender Pouch",
   "message.quirky.totem_spawned": "Your holding totem spawned in %s at (%s, %s, %s) — %s blocks from your spawn point",
   "message.quirky.totem_spawned_cross": "Your holding totem spawned in %s at (%s, %s, %s) — not in the same dimension as your spawn point",
   "tooltip.quirky.clock": "Day %s · %s",

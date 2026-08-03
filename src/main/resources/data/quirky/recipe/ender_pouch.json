@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "P": "minecraft:ender_pearl",
+    "L": "minecraft:leather",
+    "S": "minecraft:string"
+  },
+  "pattern": [
+    "LPL",
+    " S "
+  ],
+  "result": {
+    "id": "quirky:ender_pouch",
+    "count": 1
+  }
+}
