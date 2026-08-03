@@ -3,6 +3,7 @@ package dev.quirky.client;
 import dev.quirky.ModEntities;
 import dev.quirky.client.deathcam.DeathCamClient;
 import dev.quirky.client.equip_swap.EquipSwapClient;
+import dev.quirky.client.render.BoomerangRenderer;
 import dev.quirky.client.tooltips.ClientAttributeTooltipComponent;
 import dev.quirky.client.tooltips.ClientFoodTooltipComponent;
 import dev.quirky.client.tooltips.ClientMapTooltipComponent;
@@ -41,5 +42,6 @@ public class QuirkyModClient implements ClientModInitializer {
 		});
 		EntityRenderers.register(ModEntities.TOTEM, TotemEntityRenderer::new);
 		EntityRenderers.register(ModEntities.TORCH_ARROW, TorchArrowRenderer::new);
+		EntityRenderers.register(ModEntities.BOOMERANG, BoomerangRenderer::new);
 	}
 }

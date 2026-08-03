@@ -1,5 +1,6 @@
 package dev.quirky;
 
+import dev.quirky.item.BoomerangItem;
 import dev.quirky.item.BottledCloudItem;
 import dev.quirky.item.RopeItem;
 import dev.quirky.torch_arrow.TorchArrowItem;
@@ -24,6 +25,7 @@ public final class ModItems {
 	private static final ResourceKey<Item> WOODEN_HOPPER_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("wooden_hopper"));
 	private static final ResourceKey<Item> ROPE_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("rope"));
 	private static final ResourceKey<Item> ROPE_LANTERN_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("rope_lantern"));
+	private static final ResourceKey<Item> BOOMERANG_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("boomerang"));
 
 	public static final Item BOTTLED_CLOUD = new BottledCloudItem(
 		new Item.Properties().stacksTo(1).craftRemainder(Items.GLASS_BOTTLE).usingConvertsTo(Items.GLASS_BOTTLE).setId(BOTTLED_CLOUD_ID)
@@ -69,6 +71,11 @@ public final class ModItems {
 		new Item.Properties().setId(ROPE_LANTERN_ID)
 	);
 
+	/** 回旋镖：250 耐久玩具，投掷拾取/轻伤，每次完整飞行消耗 1 点耐久。 */
+	public static final Item BOOMERANG = new BoomerangItem(
+		new Item.Properties().setId(BOOMERANG_ID).durability(250)
+	);
+
 	private ModItems() {
 	}
 
@@ -82,6 +89,7 @@ public final class ModItems {
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("wooden_hopper"), WOODEN_HOPPER);
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("rope"), ROPE);
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("rope_lantern"), ROPE_LANTERN);
+		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("boomerang"), BOOMERANG);
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES)
 			.register(output -> output.accept(BOTTLED_CLOUD));
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.REDSTONE_BLOCKS)
@@ -95,6 +103,7 @@ public final class ModItems {
 			.register(output -> {
 				output.accept(ROPE);
 				output.accept(ROPE_LANTERN);
+				output.accept(BOOMERANG);
 			});
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.COMBAT)
 			.register(output -> output.accept(TORCH_ARROW));

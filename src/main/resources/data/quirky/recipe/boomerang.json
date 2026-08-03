@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "S": "minecraft:stick",
+    "F": "minecraft:feather"
+  },
+  "pattern": ["S S", " F "],
+  "result": {
+    "id": "quirky:boomerang",
+    "count": 1
+  }
+}
