@@ -71,11 +71,11 @@
 | 染色成功 | `SoundEvents.FIRE_EXTINGUISH`（已验证；音量 0.3，"丢进火里嘶一声"的手感）+ 一股对应颜色的烟雾粒子爆发 |
 | 持续冒烟 | 原版烟粒子替换为染色版本（颜色 = 染料 RGB，透明度与原版烟一致） |
 
-### 2.3 实现要点
+### 2.3 实现要点（均已对照 mcsrc/fabric jar 验证）
 
-- **数据存储**：mixin 给 `CampfireBlockEntity` 追加 `smokeColor`（int ARGB，-1 = 无色），写入 BE 的 save/load（26.2 BE 数据格式），并通过 BE update packet 同步客户端（客户端 `animateTick` 需要读到颜色）。
-- **粒子替换**：`CampfireBlock.animateTick` 中生成烟粒子的位置注入（mcsrc `CampfireBlock.java:235-237` 附近），有颜色时改用自定义粒子 `quirky:dyed_campfire_smoke`。
-- **自定义粒子**：复制原版 `CampfireSmokeParticle` 行为并支持颜色参数（若原版类 final 或构造器不兼容，则独立实现一份，约 60 行；粒子行为=缓慢上升+轻微漂移，与原版一致）。
+- **数据存储**：mixin 给 `CampfireBlockEntity` 追加 `smokeColor`（int ARGB，-1 = 无色），存取用 26.2 的 `loadAdditional(ValueInput)` / `saveAdditional(ValueOutput)`（已验 CampfireBlockEntity.java:130/147），并通过 BE update packet 同步客户端（客户端粒子生成需要读到颜色）。
+- **粒子替换注入点（已验）**：烟粒子由**静态方法** `CampfireBlock.makeParticles(Level, BlockPos, boolean, boolean)` 生成（CampfireBlock.java:233），两个调用方：`CampfireBlock.java:194`（animateTick，smoking=true）与 `CampfireBlockEntity.java:104`（BE tick，smoking=false）。策略：@Inject HEAD 该方法，读 pos 处 BE 的 smokeColor，有颜色则生成染色粒子并 `ci.cancel()`，无颜色走原版。
+- **自定义粒子（已验必要性）**：原版 `CampfireSmokeParticle extends SingleQuadParticle`，但**构造器私有**（已验），无法直接复用；自写 `DyedCampfireSmokeParticle`（复制原版行为：scale 3、lifetime 80-130/信号火 280-330、gravity 3e-6、上升漂移，+setColor），约 60 行。粒子类型注册仿 `ParticleTypes.BLOCK` 的 codec/streamCodec 模式（已验 ParticleTypes.java:15），选项类携带 ARGB int；工厂端用 fabric `ParticleProviderRegistry.getInstance().register(ParticleType, ParticleProvider)`（已 javap 验证 fabric-particles-v1 5.0.18）。
 - **熄灭清色**：mixin `CampfireBlock` 的熄灭路径（`douse` 等）重置 `smokeColor`。
 - 染料 → RGB 用 `DyeColor.getTextureDiffuseColor()`（已验 mcsrc `DyeColor.java:90`）。
 
@@ -95,7 +95,8 @@
 ### 3.1 行为
 
 - 新物品 `quirky:parrot_egg`，堆叠上限 16，投掷手感与鸡蛋一致（抛出弧线、无伤害、命中生物轻微击退归零伤害）。
-- 落地/命中：**50% 概率孵出 1 只幼年鹦鹉**（五种颜色随机），失败则只有碎壳效果。
+- 落地/命中：**50% 概率孵出 1 只鹦鹉**（五种颜色随机，构造器自动选色），失败则只有碎壳效果。
+  - **注意（已验 mcsrc）**：`Parrot.canBeABaby()` 返回 false（Parrot.java:157）——鹦鹉无幼年形态，孵出即成体；`setVariant` 为 private，但构造器已随机选色，无需手动设色。
 - **双胞胎彩蛋**：孵化成功时有 1/32 概率孵出两只（稀有惊喜，不破坏收集节奏）。
 - **筑巢本能（有机扩展）**：落在**丛林树叶/丛林原木**上的蛋孵化率提升（50%→75%）——在丛林里往树上扔蛋更划算，鼓励场景化玩法。
 - 碎壳粒子颜色跟随孵出的鹦鹉羽色（孵化失败时用随机色），细节上先"看到壳色"再"看到鹦鹉"。
@@ -107,7 +108,7 @@
 |---|---|
 | 投掷 | `SoundEvents.EGG_THROW`（已验证） |
 | 落地（无论成败） | 碎壳粒子（原版蛋壳同款粒子）+ `SoundEvents.ITEM_BREAK`（已验证）轻量变体 |
-| 孵化成功 | 幼年鹦鹉生成 + `SoundEvents.PARROT_AMBIENT`（已验证，啾啾叫）+ 少量爱心粒子 |
+| 孵化成功 | 鹦鹉生成 + `SoundEvents.PARROT_AMBIENT`（已验证，啾啾叫）+ 少量爱心粒子 |
 
 ### 3.3 获取途径
 
@@ -116,7 +117,7 @@
 
 ### 3.4 实现要点
 
-- 新实体 `ParrotEggEntity`（仿鸡蛋实体 `ThrownEggProjectile`），注册进 `ModEntities`。
+- 新实体 `ParrotEggEntity`：仿 26.2 鸡蛋实体 `ThrownEgg`（已验路径 `entity/projectile/throwableitemprojectile/ThrownEgg.java`：孵化用 `EntityTypes.X.create(level, EntitySpawnReason.TRIGGERED)` + `snapTo`，碎壳粒子走 `handleEntityEvent(byte 3)` 同款 ItemParticleOption 模式），注册进 `ModEntities`。
 - 新物品资源走双文件清单（`items/parrot_egg.json` + `models/item/` + 贴图 + lang，对照 `bottled_cloud` 清单）。
 
 ### 3.5 配置
@@ -150,7 +151,8 @@
 
 ### 4.3 实现要点
 
-- Mixin `Player.stopSleepInBed(boolean forcefulWakeUp, boolean updateLevelList)`（已验 mcsrc `Player.java:1321`）TAIL，客户端/服务端都会调用，需 `!level.isClientSide` 守卫只在服务端加效果。
+- Mixin `Player.stopSleepInBed(boolean forcefulWakeUp, boolean updateLevelList)`（已验 mcsrc `Player.java:1321`），客户端/服务端都会调用，需 `!level.isClientSide` 守卫只在服务端加效果。
+- **深睡判定（已验 API）**：`Player.isSleepingLongEnough()`（Player.java:1335，`isSleeping() && sleepCounter >= 100`）——必须在起床**前**读（方法 TAIL 时已不在睡眠状态），实现用双注入：HEAD 存 `@Unique` 快照、TAIL 消费。深睡 = `!forcefulWakeUp && 快照为 true`；中途主动起床（counter<100）与被惊醒（forceful=true）都拿 1/3 时长。
 - 效果时长/等级走配置；效果应用用原版 `addEffect(new MobEffectInstance(...))`，env 来源标为普通。
 
 ### 4.4 配置
