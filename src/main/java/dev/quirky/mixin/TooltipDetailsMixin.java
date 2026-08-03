@@ -13,12 +13,9 @@ import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemContainerContents;
-import net.minecraft.world.level.block.ShulkerBoxBlock;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -38,12 +35,9 @@ public abstract class TooltipDetailsMixin {
 		// 只对潜影盒生效：箱子/熔炉等其他容器物品也可能带 CONTAINER 组件，
 		// 不限定 tag 会把它们也渲染成潜影盒网格
 		if (stack.is(ItemTags.SHULKER_BOXES)) {
-			// 空盒无 CONTAINER 组件，用空内容兜底（仍显示 9x3 空网格）；
-			// 盒色随外表（16 色，普通盒 null），客户端据此给底槽配色
+			// 空盒无 CONTAINER 组件，用空内容兜底（仍显示 9x3 空网格）。
 			ItemContainerContents contents = stack.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
-			DyeColor color = stack.getItem() instanceof BlockItem blockItem
-				&& blockItem.getBlock() instanceof ShulkerBoxBlock shulker ? shulker.getColor() : null;
-			cir.setReturnValue(Optional.of(new ShulkerTooltipComponent(contents, color)));
+			cir.setReturnValue(Optional.of(new ShulkerTooltipComponent(contents)));
 		}
 	}
 
