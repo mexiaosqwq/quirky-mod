@@ -50,3 +50,15 @@ skills-lock.json
 .agents/
 .codex/
 .codegraph/
+chat-export-*.md
+
+# device screenshots
+
+Screenshot_*.jpg
+Screenshot_*.png
+
+# internal agent/dev config & docs (not for public repo)
+
+AGENTS.md
+.pi/
+docs/
