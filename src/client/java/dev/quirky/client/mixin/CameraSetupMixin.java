@@ -34,7 +34,9 @@ public class CameraSetupMixin {
 		if (DeathCamClient.frozen()) {
 			// 死亡界面期间保持镜头冻结视角（背景 = 镜头最后画面 + 原版红色渐变，无闪回）；
 			// 玩家重生/退出死亡界面后解除冻结，相机交还原版逻辑。
-			if (Minecraft.getInstance().gui.screen() instanceof DeathScreen) {
+			// TitleConfirmScreen（死亡界面点"退出到标题"的确认框）也保持冻结。
+			if (Minecraft.getInstance().gui.screen() instanceof DeathScreen
+				|| Minecraft.getInstance().gui.screen() instanceof DeathScreen.TitleConfirmScreen) {
 				((CameraAccessor) camera).quirky$invokeSetPosition(DeathCamClient.frozenPosition());
 				((CameraAccessor) camera).quirky$invokeSetRotation(
 					DeathCamClient.frozenYaw(), DeathCamClient.frozenPitch());

@@ -16,9 +16,8 @@ import org.jspecify.annotations.Nullable;
  * 普通盒用经典紫色调（深紫背景、淡紫边框）；16 色盒用盒色调（盒色 30% 背景、70% 边框）。
  */
 public class ClientShulkerTooltipComponent implements ClientTooltipComponent {
-	/** 槽尺寸：16 图标 + 2px 边距 */
+	/** 槽尺寸：18px（16 图标 + 2px 边距） */
 	private static final int SLOT_SIZE = 18;
-	private static final int ICON_SIZE = 16;
 	private static final int ICON_OFFSET = 1;
 	private static final int PADDING = 4;
 	private static final int COLS = 9;

@@ -17,7 +17,7 @@
 | Tooltip 扩展 | 潜影盒 tooltip、食物 tooltip、属性图标 tooltip |
 | HUD 交互 | 使用量挂件、死亡电影镜头 |
 | 渲染 tweak | 灵魂光源（仅粒子） |
-| 交互 tweak | 远距中键拾取、爬梯吸附、装备替换·副手扩展 |
+| 交互 tweak | 远距中键拾取、自动爬梯、装备替换·副手扩展 |
 | 新方块/物品 | 金按钮、铁按钮、黑曜石压力板、火把箭、木漏斗 |
 
 ## 3. 非目标
@@ -164,7 +164,7 @@
 - 按 W/S/空格/Shift 时手动优先，不干预；脚手架不自动爬（玩家在其上自由走动）。
 
 实现：
-- mixin `LocalPlayer.travel` HEAD：`LadderSnapHelper.climbVelocity(pitch, manual)`（速度 0.15 对齐原版爬梯上限；travel 内 `handleOnClimbable` 保留 delta.y）。
+- mixin `Player.travel` HEAD（目标类 Player——LocalPlayer 未覆写 travel，26.2 mixin 的 method 选择器只匹配本类方法）：`LadderSnapHelper.climbVelocity(pitch, manual)`（抬头 0.2/平视 0.08（抵消重力实现悬停）/低头 −0.15，经重力与竖直摩擦后净上升 ≈0.116 b/t 对齐原版 W 爬梯；travel 内 `handleOnClimbable` 保留 delta.y）。
 - config：`ladderSnap` 开关（语义 = 自动爬梯）。
 
 验收：爬上梯子后抬头自动上升、低头下降、平视停住；按 W/S 仍可手动爬；脚手架行走不受影响。
@@ -251,7 +251,6 @@ toggles 分类新增布尔开关：`soulLighting`、`shulkerTooltip`、`foodTool
 - `tickerHoldTicks`（20~200，默认 50）、`tickerAnimTicks`（2~20，默认 5）。
 - `deathCamDuration`（40~100 tick，默认 50）。
 - `pickRangeCreative`（16~256，默认 100）、`pickRangeSurvival`（4~64，默认 12）。
-- `ladderSnapStrength`（滑条 0.1~1.0，默认 0.5）。
 
 ## 7. 数据与资源清单
 
@@ -272,7 +271,7 @@ toggles 分类新增布尔开关：`soulLighting`、`shulkerTooltip`、`foodTool
   - 使用量挂件滑入滑出动画流畅、护甲耐久停止后收回；
   - 死亡镜头播放与跳过；
   - 灵魂光源四类方块表现正确、破坏还原；
-  - 远距拾取、爬梯吸附手感。
+  - 远距拾取、自动爬梯手感。
 
 ## 9. 风险与边界
 
