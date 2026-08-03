@@ -10,10 +10,10 @@
 
 | 批次 | 文件 | 机制 | 状态 |
 |---|---|---|---|
-| A | `2026-08-03-batch-a-light-touch.md` | 弓箭命中叮声、营火染色烟、鹦鹉蛋、安眠规则 | 待设计 |
-| B | `2026-08-03-batch-b-farm-fish.md` | 播种袋、鱼饵球 | 待设计 |
-| C | `2026-08-03-batch-c-storage-pets.md` | 箭袋、末影袋、宠物口哨 | 待设计 |
-| D | `2026-08-03-batch-d-mobility-toys.md` | 绳捆、回旋镖 | 待设计 |
+| A | `2026-08-03-batch-a-light-touch.md` | 弓箭命中叮声、营火染色烟、鹦鹉蛋、起床保护（原"安眠规则"因原版已有 `players_sleeping_percentage` gamerule 被替换） | 设计已写，待审阅 |
+| B | `2026-08-03-batch-b-farm-fish.md` | 播种袋、鱼饵球 | 设计已写，待审阅 |
+| C | `2026-08-03-batch-c-storage-pets.md` | 箭袋、末影袋、宠物口哨 | 设计已写，待审阅 |
+| D | `2026-08-03-batch-d-mobility-toys.md` | 绳捆、回旋镖 | 设计已写，待审阅 |
 
 ## 已排除的候选（用户未采纳）
 
