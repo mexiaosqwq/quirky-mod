@@ -22,6 +22,8 @@ import net.minecraft.client.renderer.RenderPipelines;
 public class ClientAttributeTooltipComponent implements ClientTooltipComponent {
 	private static final int ICON_SIZE = 9;
 	private static final int TEXT_COLOR = 0xFFFFFFFF;
+	/** 横排行最大宽度：超过则换行，避免六个属性挤爆 tooltip 边界。 */
+	private static final int MAX_ROW_WIDTH = 128;
 
 	private final List<AttributeLine> lines;
 
@@ -34,19 +36,37 @@ public class ClientAttributeTooltipComponent implements ClientTooltipComponent {
 		if (shiftHidesLines() || lines.isEmpty()) {
 			return 0;
 		}
-		int width = 0;
+		int maxRowWidth = 0;
+		int rowWidth = 0;
 		for (AttributeLine line : lines) {
-			if (width > 0) {
-				width += TooltipRowMetrics.CELL_GAP;
+			int cell = cellWidth(font, line);
+			if (rowWidth > 0 && rowWidth + TooltipRowMetrics.CELL_GAP + cell > MAX_ROW_WIDTH) {
+				maxRowWidth = Math.max(maxRowWidth, rowWidth);
+				rowWidth = cell;
+			} else {
+				rowWidth = rowWidth == 0 ? cell : rowWidth + TooltipRowMetrics.CELL_GAP + cell;
 			}
-			width += ICON_SIZE + TooltipRowMetrics.ICON_TEXT_GAP + font.width(line.text());
 		}
-		return width;
+		return Math.max(maxRowWidth, rowWidth);
 	}
 
 	@Override
 	public int getHeight(Font font) {
-		return shiftHidesLines() || lines.isEmpty() ? 0 : TooltipRowMetrics.LINE_HEIGHT;
+		if (shiftHidesLines() || lines.isEmpty()) {
+			return 0;
+		}
+		int rows = 1;
+		int rowWidth = 0;
+		for (AttributeLine line : lines) {
+			int cell = cellWidth(font, line);
+			if (rowWidth > 0 && rowWidth + TooltipRowMetrics.CELL_GAP + cell > MAX_ROW_WIDTH) {
+				rows++;
+				rowWidth = cell;
+			} else {
+				rowWidth = rowWidth == 0 ? cell : rowWidth + TooltipRowMetrics.CELL_GAP + cell;
+			}
+		}
+		return rows * TooltipRowMetrics.LINE_HEIGHT;
 	}
 
 	@Override
@@ -54,14 +74,25 @@ public class ClientAttributeTooltipComponent implements ClientTooltipComponent {
 		if (shiftHidesLines()) {
 			return;
 		}
-		int yIcon = TooltipRowMetrics.iconY(y, ICON_SIZE);
-		int yText = TooltipRowMetrics.textY(y);
+		int row = 0;
 		int cursorX = x;
 		for (AttributeLine line : lines) {
+			int cell = cellWidth(font, line);
+			if (cursorX > x && cursorX + cell - x > MAX_ROW_WIDTH) {
+				row++;
+				cursorX = x;
+			}
+			int rowY = y + row * TooltipRowMetrics.LINE_HEIGHT;
+			int yIcon = TooltipRowMetrics.iconY(rowY, ICON_SIZE);
+			int yText = TooltipRowMetrics.textY(rowY);
 			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, line.icon(), cursorX, yIcon, ICON_SIZE, ICON_SIZE);
 			graphics.text(font, line.text(), cursorX + ICON_SIZE + TooltipRowMetrics.ICON_TEXT_GAP, yText, TEXT_COLOR);
-			cursorX += ICON_SIZE + TooltipRowMetrics.ICON_TEXT_GAP + font.width(line.text()) + TooltipRowMetrics.CELL_GAP;
+			cursorX += cell + TooltipRowMetrics.CELL_GAP;
 		}
+	}
+
+	private static int cellWidth(Font font, AttributeLine line) {
+		return ICON_SIZE + TooltipRowMetrics.ICON_TEXT_GAP + font.width(line.text());
 	}
 
 	private static boolean shiftHidesLines() {

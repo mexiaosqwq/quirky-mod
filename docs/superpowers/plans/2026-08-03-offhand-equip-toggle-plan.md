@@ -163,7 +163,7 @@ void normalEquipmentIsRejectedWhenEquipSwapIsDisabled() {
 		when(player.getEquipmentSlotForItem(chestplate)).thenReturn(EquipmentSlot.CHEST);
 		when(player.isEquippableInSlot(chestplate, EquipmentSlot.CHEST)).thenReturn(true);
 
-		assertFalse(EquipSwapServer.trySwap(player, 0, 0));
+		assertFalse(EquipSwapServer.trySwap(player, 0, 36));
 		assertEquals(chestplate, player.getInventory().getItem(0));
 	} finally {
 		QuirkyConfigHolder.set(new QuirkyConfig());

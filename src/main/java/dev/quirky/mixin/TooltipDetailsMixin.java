@@ -16,6 +16,7 @@ import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemContainerContents;
+import net.minecraft.world.item.component.TooltipDisplay;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -29,6 +30,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class TooltipDetailsMixin {
 	@Inject(method = "getTooltipImage", at = @At("HEAD"), cancellable = true)
 	private void quirky$shulkerTooltip(ItemStack stack, CallbackInfoReturnable<Optional<TooltipComponent>> cir) {
+		if (cir.isCancelled()) {
+			return;
+		}
 		if (!QuirkyConfigHolder.get().shulkerTooltip) {
 			return;
 		}
@@ -43,6 +47,9 @@ public abstract class TooltipDetailsMixin {
 
 	@Inject(method = "getTooltipImage", at = @At("HEAD"), cancellable = true)
 	private void quirky$attributeTooltip(ItemStack stack, CallbackInfoReturnable<Optional<TooltipComponent>> cir) {
+		if (cir.isCancelled()) {
+			return;
+		}
 		if (!QuirkyConfigHolder.get().attributeTooltip) {
 			return;
 		}
@@ -55,13 +62,20 @@ public abstract class TooltipDetailsMixin {
 
 	@Inject(method = "getTooltipImage", at = @At("HEAD"), cancellable = true)
 	private void quirky$foodTooltip(ItemStack stack, CallbackInfoReturnable<Optional<TooltipComponent>> cir) {
+		if (cir.isCancelled()) {
+			return;
+		}
 		if (!QuirkyConfigHolder.get().foodTooltip) {
+			return;
+		}
+		TooltipDisplay display = stack.getOrDefault(DataComponents.TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT);
+		if (!display.shows(DataComponents.FOOD)) {
 			return;
 		}
 		// FOOD 组件无默认值：非食物物品 stack.get 返回 null
 		var food = stack.get(DataComponents.FOOD);
 		if (food != null) {
-			cir.setReturnValue(Optional.of(new FoodTooltipComponent(food)));
+			cir.setReturnValue(Optional.of(new FoodTooltipComponent(food, stack.get(DataComponents.CONSUMABLE))));
 		}
 	}
 }
