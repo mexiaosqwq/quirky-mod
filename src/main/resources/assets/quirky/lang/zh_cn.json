@@ -9,6 +9,7 @@
   "item.quirky.quiver": "箭袋",
   "tooltip.quirky.quiver.empty": "空",
   "item.quirky.ender_pouch": "末影袋",
+  "item.quirky.pet_whistle": "宠物口哨",
   "message.quirky.totem_spawned": "你的保留图腾生成于 %s (%s, %s, %s)，距你的出生点 %s 格",
   "message.quirky.totem_spawned_cross": "你的保留图腾生成于 %s (%s, %s, %s)，与你的出生点不在同一维度",
   "tooltip.quirky.clock": "第 %s 天 · %s",

@@ -2,6 +2,7 @@ package dev.quirky;
 
 import dev.quirky.item.BottledCloudItem;
 import dev.quirky.item.EnderPouchItem;
+import dev.quirky.item.PetWhistleItem;
 import dev.quirky.item.QuiverItem;
 import dev.quirky.torch_arrow.TorchArrowItem;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
@@ -27,6 +28,7 @@ public final class ModItems {
 	private static final ResourceKey<Item> WOODEN_HOPPER_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("wooden_hopper"));
 	private static final ResourceKey<Item> QUIVER_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("quiver"));
 	private static final ResourceKey<Item> ENDER_POUCH_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("ender_pouch"));
+	private static final ResourceKey<Item> PET_WHISTLE_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("pet_whistle"));
 
 	public static final Item BOTTLED_CLOUD = new BottledCloudItem(
 		new Item.Properties().stacksTo(1).craftRemainder(Items.GLASS_BOTTLE).usingConvertsTo(Items.GLASS_BOTTLE).setId(BOTTLED_CLOUD_ID)
@@ -72,6 +74,10 @@ public final class ModItems {
 		new Item.Properties().stacksTo(1).setId(ENDER_POUCH_ID)
 	);
 
+	public static final Item PET_WHISTLE = new PetWhistleItem(
+		new Item.Properties().stacksTo(1).setId(PET_WHISTLE_ID)
+	);
+
 	private ModItems() {
 	}
 
@@ -85,11 +91,13 @@ public final class ModItems {
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("wooden_hopper"), WOODEN_HOPPER);
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("quiver"), QUIVER);
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("ender_pouch"), ENDER_POUCH);
+		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("pet_whistle"), PET_WHISTLE);
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES)
 			.register(output -> {
 				output.accept(BOTTLED_CLOUD);
 				output.accept(QUIVER);
 				output.accept(ENDER_POUCH);
+				output.accept(PET_WHISTLE);
 			});
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.REDSTONE_BLOCKS)
 			.register(output -> {

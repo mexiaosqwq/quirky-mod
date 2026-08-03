@@ -8,6 +8,7 @@
     "DoubleDoorMixin",
     "MapTooltipMixin",
     "MelonSeedMixin",
+    "PhantomTauntMixin",
     "QuiverTooltipMixin",
     "ServerPlayerMixin",
     "TooltipDetailsMixin",
