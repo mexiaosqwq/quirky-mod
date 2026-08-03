@@ -1,6 +1,5 @@
 package dev.quirky.torch_arrow;
 
-import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Position;
 import net.minecraft.world.entity.LivingEntity;
@@ -18,17 +17,11 @@ public class TorchArrowItem extends ArrowItem {
 
 	@Override
 	public AbstractArrow createArrow(Level level, ItemStack itemStack, LivingEntity owner, @Nullable ItemStack firedFromWeapon) {
-		if (!QuirkyConfigHolder.get().torchArrow) {
-			return super.createArrow(level, itemStack, owner, firedFromWeapon);
-		}
 		return new TorchArrowEntity(level, owner, itemStack.copyWithCount(1), firedFromWeapon);
 	}
 
 	@Override
 	public Projectile asProjectile(Level level, Position position, ItemStack itemStack, Direction direction) {
-		if (!QuirkyConfigHolder.get().torchArrow) {
-			return super.asProjectile(level, position, itemStack, direction);
-		}
 		TorchArrowEntity arrow = new TorchArrowEntity(level, position.x(), position.y(), position.z(), itemStack.copyWithCount(1), null);
 		arrow.pickup = AbstractArrow.Pickup.ALLOWED;
 		return arrow;

@@ -14,7 +14,6 @@ class QuirkyConfigDefaultsTest {
 		assertTrue(c.harvestReplant);
 		assertTrue(c.doubleDoor);
 		assertTrue(c.clockTooltip);
-		assertTrue(c.cloudBottle);
 		assertTrue(c.equipSwap);
 		assertTrue(c.melonSeed);
 		assertTrue(c.totemOfHolding);
@@ -54,9 +53,7 @@ class QuirkyConfigDefaultsTest {
 		QuirkyConfig c = new QuirkyConfig();
 		assertTrue(c.soulLighting && c.shulkerTooltip
 			&& c.foodTooltip && c.attributeTooltip && c.usageTicker
-			&& c.deathCam && c.longPick && c.ladderSnap && c.offhandSwap
-			&& c.goldButton && c.ironButton && c.obsidianPlate
-			&& c.torchArrow && c.woodenHopper);
+			&& c.deathCam && c.longPick && c.ladderSnap && c.offhandSwap);
 		assertEquals(100, c.pickRangeCreative);
 		assertEquals(12, c.pickRangeSurvival);
 		assertEquals(50, c.deathCamDuration);

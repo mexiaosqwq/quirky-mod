@@ -36,7 +36,6 @@ public final class ModBlocks {
 	public static final MetalButtonBlock GOLD_BUTTON = new MetalButtonBlock(
 		MetalButtonBlock.METAL,
 		2,
-		true,
 		BlockBehaviour.Properties.of()
 			.setId(GOLD_BUTTON_ID)
 			.noCollision()
@@ -48,7 +47,6 @@ public final class ModBlocks {
 	public static final MetalButtonBlock IRON_BUTTON = new MetalButtonBlock(
 		MetalButtonBlock.METAL,
 		100,
-		false,
 		BlockBehaviour.Properties.of()
 			.setId(IRON_BUTTON_ID)
 			.noCollision()

@@ -7,7 +7,7 @@ import me.shedaniel.autoconfig.annotation.ConfigEntry;
 @Config(name = "quirky")
 public class QuirkyConfig implements ConfigData {
 
-	// ==== 机制开关（默认全开，关掉恢复原版行为）====
+	// ==== 行为类机制开关（默认全开，关掉即恢复原版行为）====
 
 	@ConfigEntry.Category("toggles")
 	@ConfigEntry.Gui.Tooltip
@@ -24,10 +24,6 @@ public class QuirkyConfig implements ConfigData {
 	@ConfigEntry.Category("toggles")
 	@ConfigEntry.Gui.Tooltip
 	public boolean clockTooltip = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean cloudBottle = true;
 
 	@ConfigEntry.Category("toggles")
 	@ConfigEntry.Gui.Tooltip
@@ -76,26 +72,6 @@ public class QuirkyConfig implements ConfigData {
 	@ConfigEntry.Category("toggles")
 	@ConfigEntry.Gui.Tooltip
 	public boolean offhandSwap = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean goldButton = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean ironButton = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean obsidianPlate = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean torchArrow = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean woodenHopper = true;
 
 	// ==== 图腾手感参数（服务端）====
 

@@ -1,7 +1,6 @@
 package dev.quirky.block.be;
 
 import dev.quirky.ModBlockEntityTypes;
-import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
@@ -116,9 +115,6 @@ public class WoodenHopperBlockEntity extends RandomizableContainerBlockEntity im
 			return;
 		}
 		entity.cooldownTime = 0;
-		if (!QuirkyConfigHolder.get().woodenHopper) {
-			return;
-		}
 		if (level.isClientSide()) {
 			return;
 		}
@@ -206,9 +202,6 @@ public class WoodenHopperBlockEntity extends RandomizableContainerBlockEntity im
 	public static void entityInside(
 		final Level level, final BlockPos pos, final BlockState state, final Entity entity, final WoodenHopperBlockEntity hopper
 	) {
-		if (!QuirkyConfigHolder.get().woodenHopper) {
-			return;
-		}
 		if (entity instanceof ItemEntity itemEntity
 			&& !itemEntity.getItem().isEmpty()
 			&& entity.getBoundingBox().move(-pos.getX(), -pos.getY(), -pos.getZ()).intersects(hopper.getSuckAabb())) {

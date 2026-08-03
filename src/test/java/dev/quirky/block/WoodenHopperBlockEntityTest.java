@@ -13,8 +13,6 @@ import dev.quirky.ModItems;
 import dev.quirky.QuirkyMod;
 import dev.quirky.TestBootstrap;
 import dev.quirky.block.be.WoodenHopperBlockEntity;
-import dev.quirky.config.QuirkyConfig;
-import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -106,29 +104,6 @@ class WoodenHopperBlockEntityTest {
 
 		assertEquals(1, target.getItem(0).getCount());
 		assertEquals(32, cooldownOf(hopper));
-	}
-
-	@Test
-	void doesNotTransferWhenConfigDisabled() {
-		// 机制开关关闭 = 木漏斗完全不传输（保留纯容器用途）
-		QuirkyConfig config = new QuirkyConfig();
-		config.woodenHopper = false;
-		QuirkyConfigHolder.set(config);
-		try {
-			BlockPos pos = new BlockPos(1, 64, 1);
-			WoodenHopperBlockEntity hopper = hopperWithItems(pos, new ItemStack(Items.STONE));
-			WoodenHopperBlockEntity target = emptyTarget(pos.below());
-			Level level = mockLevelWithTarget(pos, target);
-
-			for (int i = 0; i < 40; i++) {
-				WoodenHopperBlockEntity.pushItemsTick(level, pos, ModBlocks.WOODEN_HOPPER.defaultBlockState(), hopper);
-			}
-
-			assertEquals(1, hopper.getItem(0).getCount());
-			assertTrue(target.isEmpty());
-		} finally {
-			QuirkyConfigHolder.set(new QuirkyConfig());
-		}
 	}
 
 	@Test
