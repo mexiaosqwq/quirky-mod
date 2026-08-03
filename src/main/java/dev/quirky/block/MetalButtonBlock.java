@@ -42,7 +42,7 @@ public class MetalButtonBlock extends ButtonBlock {
 
 	public MetalButtonBlock(final BlockSetType type, final int holdTicks, final BlockBehaviour.Properties properties) {
 		super(type, holdTicks, properties);
-		// 父类 ButtonBlock 的 ticksToStayPressed 是 private，镜像存储一份供测试可读性（review S6）
+		// 父类 ButtonBlock 的 ticksToStayPressed 是 private，镜像存储一份供测试可读性
 		this.holdTicks = holdTicks;
 	}
 
