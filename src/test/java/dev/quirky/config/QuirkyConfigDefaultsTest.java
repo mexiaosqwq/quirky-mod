@@ -14,7 +14,7 @@ class QuirkyConfigDefaultsTest {
 		assertTrue(c.harvestReplant);
 		assertTrue(c.doubleDoor);
 		assertTrue(c.clockTooltip);
-		assertTrue(c.equipSwap);
+		assertTrue(c.equipSwap && c.offhandSwap);
 		assertTrue(c.melonSeed);
 		assertTrue(c.totemOfHolding);
 	}

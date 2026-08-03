@@ -31,6 +31,10 @@ public class QuirkyConfig implements ConfigData {
 
 	@ConfigEntry.Category("toggles")
 	@ConfigEntry.Gui.Tooltip
+	public boolean offhandSwap = true;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
 	public boolean melonSeed = true;
 
 	@ConfigEntry.Category("toggles")
@@ -68,10 +72,6 @@ public class QuirkyConfig implements ConfigData {
 	@ConfigEntry.Category("toggles")
 	@ConfigEntry.Gui.Tooltip
 	public boolean ladderSnap = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean offhandSwap = true;
 
 	// ==== 图腾手感参数（服务端）====
 

@@ -12,6 +12,9 @@ public final class OffhandSwapItems {
 
 	/** 这些物品右键可直接换入副手槽（仅当 offhandSwap 开关开启时）。 */
 	public static boolean isOffhandSwapItem(ItemStack stack) {
-		return stack.is(Items.SHIELD) || stack.is(Items.TORCH);
+		return stack.is(Items.SHIELD)
+			|| stack.is(Items.TORCH)
+			|| stack.is(Items.WIND_CHARGE)
+			|| stack.is(Items.FIREWORK_ROCKET);
 	}
 }

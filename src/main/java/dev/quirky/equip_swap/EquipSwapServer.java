@@ -3,6 +3,7 @@ package dev.quirky.equip_swap;
 import java.util.Optional;
 
 import dev.quirky.QuirkyMod;
+import dev.quirky.config.QuirkyConfig;
 import dev.quirky.config.QuirkyConfigHolder;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -25,9 +26,6 @@ public final class EquipSwapServer {
 	}
 
 	private static void handle(EquipSwapPayload payload, ServerPlayNetworking.Context context) {
-		if (!QuirkyConfigHolder.get().equipSwap) {
-			return;
-		}
 		context.server().execute(() -> trySwap(context.player(), payload.containerId(), payload.slotIndex()));
 	}
 
@@ -51,10 +49,11 @@ public final class EquipSwapServer {
 		if (stack.isEmpty()) {
 			return false;
 		}
-		// 副手交换仅在开关开启时生效；关闭时盾牌（带 EQUIPPABLE）回退原版装备路径，
-		// 火把无 EQUIPPABLE 组件则被拒（火把装副手是 mod 专属行为）。
-		boolean offhandItem = OffhandSwapItems.isOffhandSwapItem(stack) && QuirkyConfigHolder.get().offhandSwap;
-		if (!offhandItem && !stack.has(DataComponents.EQUIPPABLE)) {
+		QuirkyConfig config = QuirkyConfigHolder.get();
+		// 专属副手物品由 offhandSwap 控制；其他物品走 equipSwap 的 EQUIPPABLE 路径。
+		// 盾牌关闭 offhandSwap 时仍可通过自身 EQUIPPABLE 组件回退到普通装备路径。
+		boolean offhandItem = OffhandSwapItems.isOffhandSwapItem(stack) && config.offhandSwap;
+		if (!offhandItem && (!config.equipSwap || !stack.has(DataComponents.EQUIPPABLE))) {
 			return false;
 		}
 
