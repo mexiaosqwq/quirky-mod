@@ -69,6 +69,45 @@ public class QuirkyConfig implements ConfigData {
 	@ConfigEntry.Gui.Tooltip
 	public boolean ladderSnap = true;
 
+	// ==== 批 A：弓箭叮声 / 起床保护 / 鹦鹉蛋 / 营火染色烟 ====
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean arrowDingEnabled = true;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public float arrowDingVolume = 0.6F;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean wakeUpProtectionEnabled = true;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.BoundedDiscrete(min = 0, max = 60)
+	@ConfigEntry.Gui.Tooltip
+	public int wakeUpSlowFallingSeconds = 12;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean parrotEggEnabled = true;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public float parrotEggHatchChance = 0.5F;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public float parrotEggTwinChance = 0.03F;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean dyedCampfireSmokeEnabled = true;
+
+	@ConfigEntry.Category("toggles")
+	@ConfigEntry.Gui.Tooltip
+	public boolean dyedCampfireGlow = true;
+
 	// ==== 图腾手感参数（服务端）====
 
 	@ConfigEntry.Category("totem")
