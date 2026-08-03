@@ -18,11 +18,11 @@
 - **装入**：手持箭袋 **潜行+右键** → 把玩家背包里所有箭类物品吸入箭袋（直到装满 4 组），播放吸入音效。
 - **取出**：手持箭袋**右键**（不潜行）→ 从箭袋取出一组箭，优先放进副手空位，否则放进第一个背包空位，都满则掉落在玩家脚下（不吞物品）。
 - **清空**：手持箭袋对容器（箱子/漏斗等）无特殊处理——箭袋不是容器方块，不与容器交互。
-- **可染色**：箭袋走皮革染色方案（右键染料上色，颜色存入 component；炼药锅水洗褪色，与原版皮革盔甲一致）——给收集控一个个性化理由。
+- **可染色（已验 26.2 机制）**：直接用原版 `DataComponents.DYED_COLOR`（`DyedItemColor` record，含 `applyDyes(ItemStack, List<DyeColor>)` 静态助手）——物品带此组件即自动获得炼药锅水洗褪色（已验 CauldronInteractions.java:263-268 对任意带 DYED_COLOR 的物品生效）；染色配方走 26.2 数据驱动的 `DyeRecipe`（target+dye 字段，已验 DyeRecipe.java），新增一条 dye_recipe JSON 即可。
 
 ### 1.3 数据存储
 
-- 自定义 `DataComponent`：`quirky:quiver_contents`（item list 编解码，沿用 26.2 component 注册模式）。
+- 自定义 `DataComponent`：`quirky:quiver_contents`——值类型直接用原版 `ItemContainerContents`（自带 codec/streamCodec，项目潜影盒 tooltip 已用过该类型），注册仿 `DataComponents.CONTAINER` 模式（已验 DataComponents.java:315/435：`Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, ...)`）。
 - 物品 tooltip 显示内容摘要：复用项目 tooltip 扩展模式（`Item.getTooltipImage` → 服务端组件 → 客户端渲染），画 4 格缩略图+数量，风格对齐潜影盒 tooltip。
 - 箭袋物品掉落/死亡掉落时内容随组件保留（component 天然跟随 ItemStack）。
 
@@ -110,9 +110,10 @@
 ### 2.7 实现要点与风险
 
 - 无 mixin：`Item.use` 服务端分支用已验证的原版末影箱打开模式（mcsrc `EnderChestBlock.java:85-94`）：
-  - `PlayerEnderChestContainer container = player.getEnderChestInventory();`
+  - `PlayerEnderChestContainer container = player.getEnderChestInventory();`（类在 `world/inventory/PlayerEnderChestContainer.java`，extends SimpleContainer，已验）
   - `player.openMenu(new SimpleMenuProvider((id, inv, p) -> ChestMenu.threeRows(id, inv, container), 标题))`
   - `ServerPlayer.openMenu(MenuProvider)` 返回 `OptionalInt`（mcsrc `ServerPlayer.java:1318`），客户端收到后自动弹原版箱子界面。
+- 快速收纳用 `container.addItem(stack)`（Container 接口默认方法，返回剩余），满则失败反馈。
 - 风险点：末影库存是 `PlayerEnderChestContainer`（非普通 Container），`ChestMenu.threeRows` 与其 27 槽匹配，参照原版即可，无自定义槽位逻辑。
 
 ### 2.8 验证
@@ -184,8 +185,9 @@
 ### 3.7 实现要点与风险
 
 - 宠物部分无 mixin：`Item.use` 服务端 `level.getEntitiesOfClass(TamableAnimal/具体类, AABB, owner 过滤)`。
-- 目标类型：狼 `Wolf`、猫 `Cat`、鹦鹉 `Parrot`——已验继承链：`Parrot extends ShoulderRidingEntity`（`animal/parrot/ShoulderRidingEntity.java`）`extends TamableAnimal`，`isOwnedBy(LivingEntity)` 定义在 `TamableAnimal.java:181`，鹦鹉/狼/猫均可直接用。
-- **幻翼嘲讽是口哨唯一需要 mixin 的部分**（风险点）：`Phantom` 是自研 AI 的飞行生物（飞行控制器+自研 goal），强制落地需要：服务端设 `quirky:taunt_until` 时间戳（实体 NBT）+ mixin `Phantom` tick：嘲讽期内压制盘旋 goal、锁定吹哨玩家为目标、强制降至玩家身边地面点位。接触伤害走原版路径，不额外处理。实现前必须先读 mcsrc `Phantom.java` 的 goal/move-control 结构（不得凭记忆写注入点，交付前过 `quirky-mixin-runtime-audit`）。**降级预案**：若 AI 手术成本过高，降级为"传送到玩家身边+锁定目标"最小版（不压制盘旋，幻翼仍会试图升空但持续被拉向目标），行为仍成立。
+- 目标类型：狼 `Wolf`（`animal/wolf/Wolf.java:92`）、猫 `Cat`（`animal/feline/Cat.java:73`）、鹦鹉 `Parrot`——均 `extends TamableAnimal`（鹦鹉经 `ShoulderRidingEntity`），`isOwnedBy(LivingEntity)` 定义在 `TamableAnimal.java:181`，均已验。
+- 坐定切换：`TamableAnimal.setInSittingPose(boolean)`（:146，public）；持久化字段 `orderedToSit` 为 private（:44），若需同步持久化用 @Accessor（实现时定，过 mixin 审计）；寻路用 `Mob.getNavigation().moveTo(player, speed)`（Mob.java:214）。
+- **幻翼嘲讽实现路径（已验 Phantom 结构，mcsrc `entity/monster/Phantom.java`）**：`Phantom extends Mob`，持 `attackPhase`（CIRCLE/SWOOP）、私有字段 `anchorPoint`（:49，NBT 键 `anchor_pos`）、自研 goal 链（AttackStrategy:1 → SweepAttack:2 → CircleAroundAnchor:3，registerGoals :70-73）与 `PhantomMoveControl`。主方案：被选中幻翼传送到玩家身边 3-5 格（一次性）+ `setTarget(吹哨玩家)`（Mob.setTarget :249）+ @Shadow `anchorPoint` 重设为玩家位置上方 5 格（仿 :156 原版赋值）+ NBT 记 taunt 截止时间；嘲讽期 mixin `Phantom.tick` TAIL 每 tick 刷新 anchor/target 跟随玩家，使盘旋与俯冲都发生在玩家头顶——俯冲接触伤害走原版 SweepAttack 路径，可用剑稳定输出。**降级预案**：若 goal 行为实测不驯（盘旋半径过大/不俯冲），降级为嘲讽期内每 20 tick 把幻翼拉回玩家上方（位置强约束），行为仍成立。
 
 ### 3.8 验证
 
