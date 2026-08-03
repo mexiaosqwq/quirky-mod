@@ -79,6 +79,27 @@ class ClientAttributeTooltipComponentTest {
 	}
 
 	@Test
+	void denseLinesWrapToMultipleRows() {
+		Font font = mock(Font.class);
+		when(font.width("123.45")).thenReturn(30);
+		List<AttributeLine> dense = List.of(
+			line("attribute/attack_damage", "123.45"),
+			line("attribute/attack_speed", "123.45"),
+			line("attribute/armor", "123.45"),
+			line("attribute/toughness", "123.45"),
+			line("attribute/knockback", "123.45"),
+			line("attribute/luck", "123.45")
+		);
+		ClientAttributeTooltipComponent client = new ClientAttributeTooltipComponent(
+			new AttributeTooltipComponent(dense)
+		);
+
+		// 单元格 = 9+2+30 = 41；每行最多 2 个（41+4+41=86 ≤ 128，第三个 131 超限）→ 3 行
+		assertEquals(86, client.getWidth(font));
+		assertEquals(48, client.getHeight(font));
+	}
+
+	@Test
 	void emptyLinesYieldZeroSize() {
 		Font font = mock(Font.class);
 
