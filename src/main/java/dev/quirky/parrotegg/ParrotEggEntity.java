@@ -107,11 +107,12 @@ public class ParrotEggEntity extends ThrowableItemProjectile {
 		} else {
 			shellColor = ParrotEggHatchLogic.randomShellColor(this.random);
 		}
-		// 碎壳色粒子（先看到壳色，再看到鹦鹉）
+		// 碎壳色粒子（先看到壳色，再看到鹦鹉）+ 轻量碎壳音效（设计 §3.2，成败均播）
 		serverLevel.sendParticles(
 			ColorParticleOption.create(ParticleTypes.ENTITY_EFFECT, ARGB.color(255, shellColor)),
 			this.getX(), this.getY(), this.getZ(), 8, 0.2, 0.2, 0.2, 0.0
 		);
+		serverLevel.playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ITEM_BREAK, SoundSource.PLAYERS, 0.5F, 1.0F);
 		this.level().broadcastEntityEvent(this, (byte) 3);
 		this.discard();
 	}
