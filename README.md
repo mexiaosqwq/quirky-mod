@@ -1,3 +1,5 @@
+> 本项目主要由 deepseek-v4-flash AI 编写，作为模型 Mod 能力测试。
+
 # Quirky
 
 一个面向 Minecraft 26.2 的小型 Fabric 模组，提供一系列原版风格的小机制，灵感来自 Quark。模组依赖 Fabric API 与 cloth-config（必需依赖），ModMenu 为可选依赖（推荐，用于游戏内配置）。
