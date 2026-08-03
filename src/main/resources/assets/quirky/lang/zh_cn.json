@@ -62,7 +62,7 @@
   "text.autoconfig.quirky.option.swayPeriod.@Tooltip": "摇摆周期（tick），越大摇摆越慢。",
   "text.autoconfig.quirky.category.client_qol": "客户端实用功能",
   "text.autoconfig.quirky.option.soulLighting": "灵魂光源",
-  "text.autoconfig.quirky.option.soulLighting.@Tooltip": "火把/灯笼/蜡烛放在灵魂沙/灵魂土上时呈现灵魂青色火焰。",
+  "text.autoconfig.quirky.option.soulLighting.@Tooltip": "火把/蜡烛放在灵魂沙/灵魂土上时呈现灵魂青色火焰（26.2 灯笼不支持）。",
   "text.autoconfig.quirky.option.shulkerTooltip": "潜影盒预览",
   "text.autoconfig.quirky.option.shulkerTooltip.@Tooltip": "悬停潜影盒时在提示中显示盒内物品。",
   "text.autoconfig.quirky.option.foodTooltip": "食物信息提示",

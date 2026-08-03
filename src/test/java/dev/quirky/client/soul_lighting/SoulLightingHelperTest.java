@@ -29,8 +29,9 @@ class SoulLightingHelperTest {
 	void lightSourceCheck() {
 		assertTrue(SoulLightingHelper.isLightSource(Blocks.TORCH.defaultBlockState()));
 		assertTrue(SoulLightingHelper.isLightSource(Blocks.WALL_TORCH.defaultBlockState()));
-		assertTrue(SoulLightingHelper.isLightSource(Blocks.LANTERN.defaultBlockState()));
 		assertTrue(SoulLightingHelper.isLightSource(Blocks.CANDLE.defaultBlockState()));
+		// 灯笼无原版火焰粒子、且 26.2 模型贴图替换不可靠 → 不在覆盖面
+		assertFalse(SoulLightingHelper.isLightSource(Blocks.LANTERN.defaultBlockState()));
 		// 灵魂变体本身不再是可被替换的光源
 		assertFalse(SoulLightingHelper.isLightSource(Blocks.SOUL_TORCH.defaultBlockState()));
 		assertFalse(SoulLightingHelper.isLightSource(Blocks.SOUL_LANTERN.defaultBlockState()));

@@ -62,7 +62,7 @@
   "text.autoconfig.quirky.option.swayPeriod.@Tooltip": "Sway period in ticks; higher values sway slower.",
   "text.autoconfig.quirky.category.client_qol": "Client QoL",
   "text.autoconfig.quirky.option.soulLighting": "Soul Lighting",
-  "text.autoconfig.quirky.option.soulLighting.@Tooltip": "Torches, lanterns and candles on soul sand/soil glow with soul-blue fire.",
+  "text.autoconfig.quirky.option.soulLighting.@Tooltip": "Torches and candles on soul sand/soil glow with soul-blue fire (lanterns are not supported on 26.2).",
   "text.autoconfig.quirky.option.shulkerTooltip": "Shulker Box Tooltip",
   "text.autoconfig.quirky.option.shulkerTooltip.@Tooltip": "Show shulker box contents in the hover tooltip.",
   "text.autoconfig.quirky.option.foodTooltip": "Food Tooltip",
