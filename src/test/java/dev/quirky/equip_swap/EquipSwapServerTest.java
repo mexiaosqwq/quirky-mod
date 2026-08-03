@@ -31,6 +31,8 @@ class EquipSwapServerTest {
 		TestBootstrap.bindItem(Items.STONE);
 		TestBootstrap.bindItem(Items.TORCH);
 		TestBootstrap.bindItem(Items.DIAMOND_SWORD);
+		TestBootstrap.bindItem(Items.WIND_CHARGE);
+		TestBootstrap.bindItem(Items.FIREWORK_ROCKET);
 		TestBootstrap.bindMinimalComponents(Items.SHIELD);
 	}
 
@@ -131,6 +133,30 @@ class EquipSwapServerTest {
 	}
 
 	@Test
+	void windChargeSwapsIntoOffhand() {
+		ServerPlayer player = creativePlayer();
+		ItemStack windCharge = new ItemStack(Items.WIND_CHARGE, 3);
+		player.getInventory().setItem(9, windCharge);
+
+		assertTrue(EquipSwapServer.trySwap(player, 0, 9));
+
+		assertEquals(windCharge, player.getInventory().getItem(40));
+		assertTrue(player.getInventory().getItem(9).isEmpty());
+	}
+
+	@Test
+	void fireworkRocketSwapsIntoOffhand() {
+		ServerPlayer player = creativePlayer();
+		ItemStack fireworkRocket = new ItemStack(Items.FIREWORK_ROCKET, 16);
+		player.getInventory().setItem(9, fireworkRocket);
+
+		assertTrue(EquipSwapServer.trySwap(player, 0, 9));
+
+		assertEquals(fireworkRocket, player.getInventory().getItem(40));
+		assertTrue(player.getInventory().getItem(9).isEmpty());
+	}
+
+	@Test
 	void offhandSwapReplacesExistingItem() {
 		ServerPlayer player = creativePlayer();
 		ItemStack torch = new ItemStack(Items.TORCH);
@@ -159,6 +185,45 @@ class EquipSwapServerTest {
 	}
 
 	@Test
+	void dedicatedOffhandSwapWorksWhenEquipSwapIsDisabled() {
+		QuirkyConfig config = new QuirkyConfig();
+		config.equipSwap = false;
+		config.offhandSwap = true;
+		QuirkyConfigHolder.set(config);
+		try {
+			ServerPlayer player = creativePlayer();
+			ItemStack windCharge = new ItemStack(Items.WIND_CHARGE, 3);
+			player.getInventory().setItem(9, windCharge);
+
+			assertTrue(EquipSwapServer.trySwap(player, 0, 9));
+			assertEquals(windCharge, player.getInventory().getItem(40));
+			assertTrue(player.getInventory().getItem(9).isEmpty());
+		} finally {
+			QuirkyConfigHolder.set(new QuirkyConfig());
+		}
+	}
+
+	@Test
+	void normalEquipmentIsRejectedWhenEquipSwapIsDisabled() {
+		QuirkyConfig config = new QuirkyConfig();
+		config.equipSwap = false;
+		config.offhandSwap = true;
+		QuirkyConfigHolder.set(config);
+		try {
+			ServerPlayer player = creativePlayer();
+			ItemStack chestplate = new ItemStack(Items.IRON_CHESTPLATE);
+			player.getInventory().setItem(0, chestplate);
+			when(player.getEquipmentSlotForItem(chestplate)).thenReturn(EquipmentSlot.CHEST);
+			when(player.isEquippableInSlot(chestplate, EquipmentSlot.CHEST)).thenReturn(true);
+
+			assertFalse(EquipSwapServer.trySwap(player, 0, 36));
+			assertEquals(chestplate, player.getInventory().getItem(0));
+		} finally {
+			QuirkyConfigHolder.set(new QuirkyConfig());
+		}
+	}
+
+	@Test
 	void offhandSwapDisabledFallsBackToEquippablePath() {
 		QuirkyConfigHolder.set(new QuirkyConfig());
 		try {
@@ -175,6 +240,24 @@ class EquipSwapServerTest {
 			assertTrue(EquipSwapServer.trySwap(player, 0, 9));
 
 			assertEquals(shield, player.getInventory().getItem(40));
+		} finally {
+			QuirkyConfigHolder.set(new QuirkyConfig());
+		}
+	}
+
+	@Test
+	void fireworkRocketRejectedWhenOffhandSwapDisabled() {
+		QuirkyConfigHolder.set(new QuirkyConfig());
+		try {
+			QuirkyConfigHolder.get().offhandSwap = false;
+			ServerPlayer player = creativePlayer();
+			ItemStack fireworkRocket = new ItemStack(Items.FIREWORK_ROCKET);
+			player.getInventory().setItem(9, fireworkRocket);
+
+			assertFalse(EquipSwapServer.trySwap(player, 0, 9));
+
+			assertEquals(fireworkRocket, player.getInventory().getItem(9));
+			assertTrue(player.getInventory().getItem(40).isEmpty());
 		} finally {
 			QuirkyConfigHolder.set(new QuirkyConfig());
 		}
