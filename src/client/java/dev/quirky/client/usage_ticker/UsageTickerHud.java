@@ -22,11 +22,12 @@ import net.minecraft.world.item.Items;
 /**
  * 使用量挂件（对齐 Quark UsageTicker）：
  * 快捷栏左侧显示最近数量变化的物品（图标 + 背包总数），保持后滑回；
- * 快捷栏右侧显示耐久变化的物品（工具/副手/护甲通用，图标 + 耐久条），持续不变约 3 秒后滑回。
+ * 快捷栏右侧显示耐久变化——护甲按槽位独立显示在 4 个固定位置（哪件变化哪件弹，
+ * 对齐 Quark 槽位元素），工具/副手耐久变化显示在护甲位之后的浮动列表。
  *
  * 检测（通用，见 {@link TickerSnapshot}）：每 tick 一次遍历全背包快照并对比——
- * 数量变化（拾取/消耗/放置、主手切换）→ 左侧；耐久变化（损坏/修复）与盔甲槽变化（穿脱/换装）→ 右侧。
- * 同物品槽位重排（整理背包）聚合状态不变，不触发。
+ * 数量变化（拾取/消耗/放置、主手切换、装备槽摆放）→ 左侧；护甲槽变化（穿脱/换装/耐久升降）→
+ * 对应固定位；工具/副手耐久变化（损坏/修复）→ 浮动列表。同物品槽位重排（整理背包）聚合状态不变，不触发。
  *
  * 渲染时机：MC 26.2 的 HUD 已改为 extract-render 管线（{@link GuiGraphicsExtractor}，
  * 原 Gui.render 与 HudRenderCallback 均不存在），故通过 Fabric API 25.3 的
@@ -43,11 +44,15 @@ public final class UsageTickerHud {
 	private static final int ICON_Y_INSET = 3;
 	/** 挂件与快捷栏之间的间隙。 */
 	private static final int HOTBAR_GAP = 8;
+	/** 盔甲槽位区间（36..39，FEET→HEAD）。 */
+	private static final int ARMOR_SLOT_START = 36;
+	private static final int ARMOR_SLOT_COUNT = 4;
 
 	private static TickerElement itemElement;
-	private static TickerElement durabilityElement;
+	private static final TickerElement[] armorElements = new TickerElement[ARMOR_SLOT_COUNT];
+	private static TickerElement toolElement;
 	private static TickerEvent currentEvent;
-	private static List<Item> durabilityItems = List.of();
+	private static List<Item> toolItems = List.of();
 	/** null 表示基线未建立（玩家切换后首个 tick），见 {@link TickerSnapshot#diffTotals}。 */
 	private static InventorySnapshot lastSnapshot;
 	/** 主手物品走 26.2 客户端装备槽（equipment MAINHAND），热键切换有 1~2 tick 回显延迟，属正常。 */
@@ -60,7 +65,10 @@ public final class UsageTickerHud {
 	public static void init() {
 		var config = QuirkyConfigHolder.get();
 		itemElement = new TickerElement(config.tickerAnimTicks, config.tickerHoldTicks);
-		durabilityElement = new TickerElement(config.tickerAnimTicks, DurabilityTicker.HOLD_TICKS);
+		for (int i = 0; i < ARMOR_SLOT_COUNT; i++) {
+			armorElements[i] = new TickerElement(config.tickerAnimTicks, DurabilityTicker.HOLD_TICKS);
+		}
+		toolElement = new TickerElement(config.tickerAnimTicks, DurabilityTicker.HOLD_TICKS);
 		HudElementRegistry.attachElementAfter(
 			VanillaHudElements.HOTBAR,
 			QuirkyMod.id("usage_ticker"),
@@ -76,16 +84,22 @@ public final class UsageTickerHud {
 	private static void tick(Player player) {
 		if (!QuirkyConfigHolder.get().usageTicker) {
 			itemElement.reset();
-			durabilityElement.reset();
+			for (TickerElement element : armorElements) {
+				element.reset();
+			}
+			toolElement.reset();
 			return;
 		}
 		if (player != lastPlayer) {
 			lastPlayer = player;
 			lastSnapshot = null;
 			lastMainHand = Items.AIR;
-			durabilityItems = List.of();
+			toolItems = List.of();
 			itemElement.reset();
-			durabilityElement.reset();
+			for (TickerElement element : armorElements) {
+				element.reset();
+			}
+			toolElement.reset();
 		}
 		Item mainHand = player.getMainHandItem().getItem();
 		InventorySnapshot snapshot = TickerSnapshot.capture(player);
@@ -100,9 +114,11 @@ public final class UsageTickerHud {
 			);
 			event = equipChanged.map(item -> new TickerEvent(item, 1, 0));
 		}
-		List<Item> durability = TickerSnapshot.diffDurability(
-			lastSnapshot == null ? null : lastSnapshot.durability(), snapshot.durability(),
+		boolean[] armorChanged = TickerSnapshot.diffArmorSlots(
 			lastSnapshot == null ? null : lastSnapshot.armor(), snapshot.armor()
+		);
+		List<Item> durability = TickerSnapshot.diffToolDurability(
+			lastSnapshot == null ? null : lastSnapshot.durability(), snapshot.durability(), snapshot.armor()
 		);
 		lastSnapshot = snapshot;
 		lastMainHand = mainHand;
@@ -112,10 +128,13 @@ public final class UsageTickerHud {
 			currentEvent = event.get();
 		}
 		if (!durability.isEmpty()) {
-			durabilityItems = durability;
+			toolItems = durability;
 		}
 		itemElement.tick(itemActive);
-		durabilityElement.tick(!durability.isEmpty());
+		for (int i = 0; i < ARMOR_SLOT_COUNT; i++) {
+			armorElements[i].tick(armorChanged[i]);
+		}
+		toolElement.tick(!durability.isEmpty());
 	}
 
 	private static void render(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
@@ -132,13 +151,23 @@ public final class UsageTickerHud {
 		if (itemElement.isVisible() && currentEvent != null) {
 			renderItemTicker(graphics, minecraft, center - HOTBAR_HALF_WIDTH, hotbarY, partialTick);
 		}
-		if (durabilityElement.isVisible() && !durabilityItems.isEmpty()) {
-			DurabilityTicker.render(
-				graphics, minecraft,
-				center + HOTBAR_HALF_WIDTH + HOTBAR_GAP,
-				animatedY(hotbarY + ICON_Y_INSET, durabilityElement, partialTick),
-				durabilityItems
-			);
+		int rightX = center + HOTBAR_HALF_WIDTH + HOTBAR_GAP;
+		int baseY = hotbarY + ICON_Y_INSET;
+		// 护甲 4 个固定位，各元素独立动画（对齐 Quark：哪件变化哪件弹）
+		for (int i = 0; i < ARMOR_SLOT_COUNT; i++) {
+			if (armorElements[i].isVisible()) {
+				DurabilityTicker.renderSlot(graphics, minecraft,
+					rightX + i * (DurabilityTicker.SLOT_SIZE + DurabilityTicker.SLOT_GAP),
+					animatedY(baseY, armorElements[i], partialTick),
+					ARMOR_SLOT_START + i);
+			}
+		}
+		// 工具/副手耐久浮动列表（护甲位之后）
+		if (toolElement.isVisible() && !toolItems.isEmpty()) {
+			DurabilityTicker.renderToolList(graphics, minecraft,
+				rightX + ARMOR_SLOT_COUNT * (DurabilityTicker.SLOT_SIZE + DurabilityTicker.SLOT_GAP),
+				animatedY(baseY, toolElement, partialTick),
+				toolItems);
 		}
 	}
 

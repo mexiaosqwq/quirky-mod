@@ -1,5 +1,6 @@
 package dev.quirky.client.usage_ticker;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -222,7 +223,7 @@ class TickerSnapshotTest {
 		assertTrue(TickerSnapshot.diffEquipment(null, List.of(Items.TORCH, Items.AIR, Items.AIR)).isEmpty());
 	}
 
-	// ---------- diffDurability（耐久挂件，右） ----------
+	// ---------- diffArmorSlots / diffToolDurability（耐久挂件，右） ----------
 
 	private static ItemStack helmet(int damage) {
 		ItemStack stack = new ItemStack(Items.DIAMOND_HELMET);
@@ -256,128 +257,139 @@ class TickerSnapshotTest {
 	}
 
 	@Test
-	void diffDurability_nullBaseline_noEvent() {
-		assertTrue(TickerSnapshot.diffDurability(null, null, null, null).isEmpty());
+	void diffArmorSlots_nullBaseline_noChange() {
+		assertArrayEquals(new boolean[4], TickerSnapshot.diffArmorSlots(null, noArmor()));
 	}
 
 	@Test
-	void diffDurability_noChange_noEvent() {
-		Map<Item, DurabilityState> before = Map.of(Items.DIAMOND_PICKAXE, new DurabilityState(1, 5));
-		assertTrue(TickerSnapshot.diffDurability(
-			before, before, noArmor(), noArmor()
-		).isEmpty());
+	void diffArmorSlots_noChange_noChange() {
+		assertArrayEquals(new boolean[4], TickerSnapshot.diffArmorSlots(noArmor(), noArmor()));
 	}
 
 	@Test
-	void diffDurability_toolDurabilityDecrease_mining_triggers() {
+	void diffArmorSlots_durabilityDecrease_flagsThatSlot() {
+		boolean[] changed = TickerSnapshot.diffArmorSlots(armor(helmet(5)), armor(helmet(8)));
+
+		assertArrayEquals(new boolean[] {true, false, false, false}, changed);
+	}
+
+	@Test
+	void diffArmorSlots_equipping_flagsThatSlot() {
+		boolean[] changed = TickerSnapshot.diffArmorSlots(noArmor(), armor(helmet(5)));
+
+		assertArrayEquals(new boolean[] {true, false, false, false}, changed);
+	}
+
+	@Test
+	void diffArmorSlots_removing_emptySlotNotActivated() {
+		// 脱装备：槽位变空无物品可显示，不激活（对齐 Quark：空槽不显示）
+		boolean[] changed = TickerSnapshot.diffArmorSlots(armor(helmet(5)), noArmor());
+
+		assertArrayEquals(new boolean[4], changed);
+	}
+
+	@Test
+	void diffArmorSlots_switchingPiece_flagsThatSlot() {
+		boolean[] changed = TickerSnapshot.diffArmorSlots(armor(helmet(5)), armor(chestplate(3)));
+
+		assertArrayEquals(new boolean[] {true, false, false, false}, changed);
+	}
+
+	@Test
+	void diffArmorSlots_undamageableWornItem_flagsThatSlot() {
+		// 南瓜头等不可损坏穿戴物：穿脱走盔甲槽检测（不进入耐久聚合）
+		ItemStack pumpkin = new ItemStack(Items.CARVED_PUMPKIN);
+		boolean[] changed = TickerSnapshot.diffArmorSlots(noArmor(), armor(pumpkin));
+
+		assertArrayEquals(new boolean[] {true, false, false, false}, changed);
+	}
+
+	@Test
+	void diffToolDurability_nullBaseline_noEvent() {
+		assertTrue(TickerSnapshot.diffToolDurability(null, null, noArmor()).isEmpty());
+	}
+
+	@Test
+	void diffToolDurability_noChange_noEvent() {
+		Map<Item, DurabilityState> durability = Map.of(Items.DIAMOND_PICKAXE, new DurabilityState(1, 5));
+		assertTrue(TickerSnapshot.diffToolDurability(durability, durability, noArmor()).isEmpty());
+	}
+
+	@Test
+	void diffToolDurability_toolDurabilityDecrease_mining_triggers() {
 		Map<Item, DurabilityState> before = Map.of(Items.DIAMOND_PICKAXE, new DurabilityState(1, 5));
 		Map<Item, DurabilityState> after = Map.of(Items.DIAMOND_PICKAXE, new DurabilityState(1, 8));
 
 		assertEquals(List.of(Items.DIAMOND_PICKAXE),
-			TickerSnapshot.diffDurability(before, after, noArmor(), noArmor()));
+			TickerSnapshot.diffToolDurability(before, after, noArmor()));
 	}
 
 	@Test
-	void diffDurability_toolDurabilityIncrease_repair_triggers() {
+	void diffToolDurability_toolDurabilityIncrease_repair_triggers() {
 		Map<Item, DurabilityState> before = Map.of(Items.DIAMOND_PICKAXE, new DurabilityState(1, 8));
 		Map<Item, DurabilityState> after = Map.of(Items.DIAMOND_PICKAXE, new DurabilityState(1, 3));
 
 		assertEquals(List.of(Items.DIAMOND_PICKAXE),
-			TickerSnapshot.diffDurability(before, after, noArmor(), noArmor()));
+			TickerSnapshot.diffToolDurability(before, after, noArmor()));
 	}
 
 	@Test
-	void diffDurability_armorDurabilityDecrease_triggers() {
+	void diffToolDurability_armorDurability_notInToolList() {
+		// 护甲耐久变化走盔甲槽检测（固定位），不重复出现在工具浮动列表
 		Map<Item, DurabilityState> before = Map.of(Items.DIAMOND_HELMET, new DurabilityState(1, 5));
 		Map<Item, DurabilityState> after = Map.of(Items.DIAMOND_HELMET, new DurabilityState(1, 8));
-		List<ArmorSlot> beforeArmor = armor(helmet(5));
 		List<ArmorSlot> afterArmor = armor(helmet(8));
 
-		assertEquals(List.of(Items.DIAMOND_HELMET),
-			TickerSnapshot.diffDurability(before, after, beforeArmor, afterArmor));
+		assertTrue(TickerSnapshot.diffToolDurability(before, after, afterArmor).isEmpty());
 	}
 
 	@Test
-	void diffDurability_equippingArmor_showsCurrentWorn() {
-		// 穿装备：聚合状态不变（物品仍在 43 槽内），盔甲槽变化触发 → 显示当前穿戴
-		Map<Item, DurabilityState> durability = Map.of(Items.DIAMOND_HELMET, new DurabilityState(1, 5));
-
-		assertEquals(List.of(Items.DIAMOND_HELMET),
-			TickerSnapshot.diffDurability(durability, durability, noArmor(), armor(helmet(5))));
-	}
-
-	@Test
-	void diffDurability_removingArmor_showsRemainingWorn() {
-		Map<Item, DurabilityState> durability = Map.of(
-			Items.DIAMOND_HELMET, new DurabilityState(1, 5),
-			Items.DIAMOND_CHESTPLATE, new DurabilityState(1, 3)
-		);
-		List<ArmorSlot> beforeArmor = armor(helmet(5), chestplate(3));
-		List<ArmorSlot> afterArmor = armor(helmet(5), ItemStack.EMPTY);
+	void diffToolDurability_armorDurabilityInInventory_notExcluded() {
+		// 背包里（未穿）的护甲被修复：不在盔甲槽 → 仍走工具聚合列表
+		Map<Item, DurabilityState> before = Map.of(Items.DIAMOND_HELMET, new DurabilityState(1, 8));
+		Map<Item, DurabilityState> after = Map.of(Items.DIAMOND_HELMET, new DurabilityState(1, 3));
 
 		assertEquals(List.of(Items.DIAMOND_HELMET),
-			TickerSnapshot.diffDurability(durability, durability, beforeArmor, afterArmor));
+			TickerSnapshot.diffToolDurability(before, after, noArmor()));
 	}
 
 	@Test
-	void diffDurability_switchingArmorPiece_showsNewPiece() {
-		// 换装：新旧甲都在背包（聚合不变），盔甲槽变化 → 显示新装备
-		Map<Item, DurabilityState> durability = Map.of(
-			Items.DIAMOND_HELMET, new DurabilityState(1, 5),
-			Items.DIAMOND_CHESTPLATE, new DurabilityState(1, 3)
-		);
-
-		assertEquals(List.of(Items.DIAMOND_CHESTPLATE),
-			TickerSnapshot.diffDurability(durability, durability, armor(helmet(5)), armor(chestplate(3))));
-	}
-
-	@Test
-	void diffDurability_pickingUpNewTool_noEvent() {
+	void diffToolDurability_pickingUpNewTool_noEvent() {
 		// 拾取新工具：数量变化由左侧挂件处理，右侧不重复触发（before 无该物品条目）
 		Map<Item, DurabilityState> before = Map.of();
 		Map<Item, DurabilityState> after = Map.of(Items.DIAMOND_PICKAXE, new DurabilityState(1, 5));
 
-		assertTrue(TickerSnapshot.diffDurability(before, after, noArmor(), noArmor()).isEmpty());
+		assertTrue(TickerSnapshot.diffToolDurability(before, after, noArmor()).isEmpty());
 	}
 
 	@Test
-	void diffDurability_twoToolsDamaged_sameTick_listsBoth() {
+	void diffToolDurability_twoToolsDamaged_sameTick_listsBoth() {
 		Map<Item, DurabilityState> before = new LinkedHashMap<>();
 		before.put(Items.DIAMOND_PICKAXE, new DurabilityState(1, 5));
-		before.put(Items.DIAMOND_HELMET, new DurabilityState(1, 3));
+		before.put(Items.IRON_SWORD, new DurabilityState(1, 3));
 		Map<Item, DurabilityState> after = new LinkedHashMap<>();
 		after.put(Items.DIAMOND_PICKAXE, new DurabilityState(1, 8));
-		after.put(Items.DIAMOND_HELMET, new DurabilityState(1, 6));
+		after.put(Items.IRON_SWORD, new DurabilityState(1, 6));
 
-		assertEquals(List.of(Items.DIAMOND_PICKAXE, Items.DIAMOND_HELMET),
-			TickerSnapshot.diffDurability(before, after, noArmor(), noArmor()));
+		assertEquals(List.of(Items.DIAMOND_PICKAXE, Items.IRON_SWORD),
+			TickerSnapshot.diffToolDurability(before, after, noArmor()));
 	}
 
 	@Test
-	void diffDurability_pickupAndDamageSameTick_noEvent() {
+	void diffToolDurability_pickupAndDamageSameTick_noEvent() {
 		// 同 tick 拾取新镐 + 旧镐损坏：堆叠数变化 → 由左侧处理，右侧不重复（规格：count 不变才算纯耐久事件）
 		Map<Item, DurabilityState> before = Map.of(Items.DIAMOND_PICKAXE, new DurabilityState(1, 5));
 		Map<Item, DurabilityState> after = Map.of(Items.DIAMOND_PICKAXE, new DurabilityState(2, 10));
 
-		assertTrue(TickerSnapshot.diffDurability(before, after, noArmor(), noArmor()).isEmpty());
+		assertTrue(TickerSnapshot.diffToolDurability(before, after, noArmor()).isEmpty());
 	}
 
 	@Test
-	void diffDurability_undamageableWornItem_triggers() {
-		// 南瓜头等不可损坏穿戴物：穿脱走盔甲槽检测（不进入 durability 聚合）
-		Map<Item, DurabilityState> durability = Map.of();
-		ItemStack pumpkin = new ItemStack(Items.CARVED_PUMPKIN);
-
-		assertEquals(List.of(Items.CARVED_PUMPKIN),
-			TickerSnapshot.diffDurability(durability, durability, noArmor(), armor(pumpkin)));
-	}
-
-	@Test
-	void diffDurability_inventorySort_noEvent() {
-		// 整理背包：聚合状态与盔甲槽都不变 → 不触发
+	void diffToolDurability_inventorySort_noEvent() {
+		// 整理背包：聚合状态不变 → 不触发
 		Map<Item, DurabilityState> durability = Map.of(Items.DIAMOND_PICKAXE, new DurabilityState(1, 5));
 
-		assertTrue(TickerSnapshot.diffDurability(durability, durability, noArmor(), noArmor()).isEmpty());
+		assertTrue(TickerSnapshot.diffToolDurability(durability, durability, noArmor()).isEmpty());
 	}
 
 	private static ItemStack chestplate(int damage) {

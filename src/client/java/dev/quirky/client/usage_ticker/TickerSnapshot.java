@@ -170,37 +170,56 @@ public final class TickerSnapshot {
 	}
 
 	/**
-	 * 对比前后两份耐久快照与盔甲槽快照。
+	 * 逐槽对比前后两份盔甲槽快照（槽位序 36..39）。
 	 *
-	 * @return 需要右侧耐久挂件显示的物品列表（先聚合耐久变化、后盔甲槽当前穿戴，去重）；
-	 *         无变化返回空列表。规则：
+	 * @return boolean[4]：该槽 (物品, 耐久) 有变化且变化后**槽位非空**（穿脱/换装/耐久升降）为 true——
+	 *         槽位变空（脱装备）无物品可显示，不激活（对齐 Quark：空槽不显示）。
+	 *         before 为 {@code null}（基线未建立）全 false。
+	 */
+	public static boolean[] diffArmorSlots(List<ArmorSlot> before, List<ArmorSlot> after) {
+		boolean[] changed = new boolean[4];
+		if (before == null || after == null || before.size() != 4 || after.size() != 4) {
+			return changed;
+		}
+		for (int i = 0; i < 4; i++) {
+			ArmorSlot prev = before.get(i);
+			ArmorSlot curr = after.get(i);
+			if (curr.item() != Items.AIR && !Objects.equals(prev, curr)) {
+				changed[i] = true;
+			}
+		}
+		return changed;
+	}
+
+	/**
+	 * 对比前后两份耐久快照，收集**工具/副手**（非盔甲槽）的耐久变化。
+	 *
+	 * @return 需要右侧浮动位显示的物品列表（聚合遍历序，去重）；无变化返回空列表。规则：
 	 *         <ul>
-	 *           <li>可损坏物品聚合 {@code totalDamage} 变化且堆叠数不变（损坏/修复，工具/副手/护甲通用）→ 显示该物品；</li>
-	 *           <li>盔甲槽 (物品, 耐久) 任一变化（穿脱/换装）→ 显示当前穿戴的护甲组。</li>
+	 *           <li>可损坏物品聚合 {@code totalDamage} 变化且堆叠数不变（损坏/修复）→ 收集；</li>
+	 *           <li>当前盔甲槽中的物品排除（护甲走 {@link #diffArmorSlots} 固定位，不重复显示）。</li>
 	 *         </ul>
 	 *         数量变化（拾取/消耗新工具等）由 {@link #diffTotals} 负责，这里不重复触发；
 	 *         before 为 {@code null}（基线未建立）返回空列表。
 	 */
-	public static List<Item> diffDurability(Map<Item, DurabilityState> before, Map<Item, DurabilityState> after,
-			List<ArmorSlot> beforeArmor, List<ArmorSlot> afterArmor) {
-		if (before == null || after == null || beforeArmor == null || afterArmor == null) {
+	public static List<Item> diffToolDurability(Map<Item, DurabilityState> before, Map<Item, DurabilityState> after,
+			List<ArmorSlot> afterArmor) {
+		if (before == null || after == null || afterArmor == null) {
 			return List.of();
 		}
+		List<Item> wornArmor = new ArrayList<>(4);
+		for (ArmorSlot slot : afterArmor) {
+			if (slot.item() != Items.AIR) {
+				wornArmor.add(slot.item());
+			}
+		}
 		List<Item> changed = new ArrayList<>();
-		// 1. 聚合耐久变化（堆叠数不变才算纯耐久事件）
 		for (Map.Entry<Item, DurabilityState> entry : after.entrySet()) {
 			DurabilityState prev = before.get(entry.getKey());
 			DurabilityState curr = entry.getValue();
-			if (prev != null && prev.count() == curr.count() && prev.totalDamage() != curr.totalDamage()) {
+			if (prev != null && prev.count() == curr.count() && prev.totalDamage() != curr.totalDamage()
+					&& !wornArmor.contains(entry.getKey())) {
 				changed.add(entry.getKey());
-			}
-		}
-		// 2. 盔甲槽变化 → 显示当前穿戴组（穿脱/换装）
-		if (!Objects.equals(beforeArmor, afterArmor)) {
-			for (ArmorSlot slot : afterArmor) {
-				if (slot.item() != Items.AIR && !changed.contains(slot.item())) {
-					changed.add(slot.item());
-				}
 			}
 		}
 		return changed;
