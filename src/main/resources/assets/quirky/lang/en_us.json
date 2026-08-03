@@ -93,5 +93,5 @@
   "text.autoconfig.quirky.option.tickerAnimTicks": "Ticker Animation (ticks)",
   "text.autoconfig.quirky.option.tickerAnimTicks.@Tooltip": "Slide in/out animation length.",
   "text.autoconfig.quirky.option.deathCamDuration": "Death Camera (ticks)",
-  "text.autoconfig.quirky.option.deathCamDuration.@Tooltip": "Duration of the death pullback camera.",
+  "text.autoconfig.quirky.option.deathCamDuration.@Tooltip": "Duration of the death pullback camera."
 }

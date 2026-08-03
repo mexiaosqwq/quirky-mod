@@ -93,5 +93,5 @@
   "text.autoconfig.quirky.option.tickerAnimTicks": "挂件动画时长（刻）",
   "text.autoconfig.quirky.option.tickerAnimTicks.@Tooltip": "滑入/滑出动画长度。",
   "text.autoconfig.quirky.option.deathCamDuration": "死亡镜头时长（刻）",
-  "text.autoconfig.quirky.option.deathCamDuration.@Tooltip": "死亡拉远镜头的播放时长。",
+  "text.autoconfig.quirky.option.deathCamDuration.@Tooltip": "死亡拉远镜头的播放时长。"
 }
