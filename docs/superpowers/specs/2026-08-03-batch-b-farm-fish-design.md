@@ -58,9 +58,9 @@
 - `seedPouchEnabled`（bool，默认 true）
 - `seedPouchRadius`（int，0-2 对应 1×1/3×3/5×5，默认 1 即 3×3）——给想更猛或更保守的玩家留口，半径参数同时用于扫描函数。
 
-### 1.7 实现要点与风险
+### 1.7 实现要点与风险（已验证锚点）
 
-- 纯交互物品，无 mixin：`Item.useOn` 内完成扫描+种植+消耗。
+- 纯交互物品，无 mixin：`Item.useOn(UseOnContext)`（已验 Item.java:179）内完成扫描+种植+消耗；项目收割机制已验证 fabric `UseBlockCallback` 事件模式（HarvestHandler），两者不冲突（收割处理成熟作物，播种袋处理可种植位置）。
 - 扫描与"选种子"逻辑抽成纯函数（输入：格子状态列表+背包快照；输出：每格种什么+消耗清单），便于单测。
 - 风险点：直接用 `level.setBlock` 种作物（不走 BlockItem.place，避免上下文构造的客户端副作用），但必须 canSurvive 预检，否则作物会在下一 tick 被原版破坏逻辑打落。
 
@@ -119,9 +119,9 @@
 - `fishBaitDurationSeconds`（int，10-300，默认 90）——雨天自动 ×5/3（150s）
 - `fishBaitRadius`（int，2-8，默认 4）
 
-### 2.7 实现要点与风险
+### 2.7 实现要点与风险（已验证锚点）
 
-- Mixin：`FishingHook` 服务器 tick 中 `timeUntilLured--` 附近注入（mcsrc `FishingHook.java:349` 附近），追加一次区域内判定递减。注入点需在计划阶段用 codegraph/javap 精确定位（mixin 运行时审计）。
+- Mixin 策略（已验 FishingHook 结构）：`FishingHook.tick()`（FishingHook.java:153）内分支链为 nibble → timeUntilHooked → timeUntilLured，递减语句 `timeUntilLured -= fishingSpeed`（局部变量 fishingSpeed 声明于 :299，字段 nibble/timeUntilHooked/timeUntilLured :64-66）。策略：@Shadow 三个字段，@Inject HEAD 快照"本 tick 是否执行递减分支"（nibble==0 && timeUntilHooked==0 && timeUntilLured>0），@Inject TAIL 若快照为真且浮漂在诱鱼区内 → 额外再减一次（clamp ≥0）。判定确定性：分支执行 ⇔ HEAD 条件成立。
 - 区域判定性能：每浮漂每 tick 做一次 `level.getEntities(EntityType 过滤, AABB)`——浮漂数量极少，开销可忽略；不引入自定义 spatial 索引。
 - 诱鱼区实体：无重力、无碰撞、不可见、tick 倒计时自毁，注册进 `ModEntities`。
 
