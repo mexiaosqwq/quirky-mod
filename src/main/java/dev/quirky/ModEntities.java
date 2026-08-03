@@ -1,5 +1,7 @@
 package dev.quirky;
 
+import dev.quirky.fishbait.BaitZoneEntity;
+import dev.quirky.fishbait.FishBaitEntity;
 import dev.quirky.torch_arrow.TorchArrowEntity;
 import dev.quirky.totem.TotemEntity;
 import net.minecraft.core.Registry;
@@ -12,6 +14,8 @@ import net.minecraft.world.entity.MobCategory;
 public final class ModEntities {
 	private static final ResourceKey<EntityType<?>> TOTEM_ID = ResourceKey.create(Registries.ENTITY_TYPE, QuirkyMod.id("totem_of_holding"));
 	private static final ResourceKey<EntityType<?>> TORCH_ARROW_ID = ResourceKey.create(Registries.ENTITY_TYPE, QuirkyMod.id("torch_arrow"));
+	private static final ResourceKey<EntityType<?>> FISH_BAIT_ID = ResourceKey.create(Registries.ENTITY_TYPE, QuirkyMod.id("fish_bait"));
+	private static final ResourceKey<EntityType<?>> BAIT_ZONE_ID = ResourceKey.create(Registries.ENTITY_TYPE, QuirkyMod.id("bait_zone"));
 
 	public static final EntityType<TotemEntity> TOTEM = EntityType.Builder.of(TotemEntity::new, MobCategory.MISC)
 		.sized(0.8F, 0.8F)
@@ -26,11 +30,27 @@ public final class ModEntities {
 		.updateInterval(20)
 		.build(TORCH_ARROW_ID);
 
+	public static final EntityType<FishBaitEntity> FISH_BAIT = EntityType.Builder.<FishBaitEntity>of(FishBaitEntity::new, MobCategory.MISC)
+		.noLootTable()
+		.sized(0.25F, 0.25F)
+		.clientTrackingRange(4)
+		.updateInterval(10)
+		.build(FISH_BAIT_ID);
+
+	public static final EntityType<BaitZoneEntity> BAIT_ZONE = EntityType.Builder.<BaitZoneEntity>of(BaitZoneEntity::new, MobCategory.MISC)
+		.noLootTable()
+		.sized(0.5F, 0.5F)
+		.clientTrackingRange(16)
+		.updateInterval(20)
+		.build(BAIT_ZONE_ID);
+
 	private ModEntities() {
 	}
 
 	public static void register() {
 		Registry.register(BuiltInRegistries.ENTITY_TYPE, TOTEM_ID, TOTEM);
 		Registry.register(BuiltInRegistries.ENTITY_TYPE, TORCH_ARROW_ID, TORCH_ARROW);
+		Registry.register(BuiltInRegistries.ENTITY_TYPE, FISH_BAIT_ID, FISH_BAIT);
+		Registry.register(BuiltInRegistries.ENTITY_TYPE, BAIT_ZONE_ID, BAIT_ZONE);
 	}
 }

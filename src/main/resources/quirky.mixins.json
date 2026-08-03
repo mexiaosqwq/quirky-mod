@@ -6,6 +6,7 @@
   "mixins": [
     "ContainerTooltipMixin",
     "DoubleDoorMixin",
+    "FishingHookBaitMixin",
     "MapTooltipMixin",
     "MelonSeedMixin",
     "ServerPlayerMixin",

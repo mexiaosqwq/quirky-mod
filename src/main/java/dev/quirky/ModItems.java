@@ -1,6 +1,7 @@
 package dev.quirky;
 
 import dev.quirky.item.BottledCloudItem;
+import dev.quirky.item.FishBaitItem;
 import dev.quirky.item.SeedPouchItem;
 import dev.quirky.torch_arrow.TorchArrowItem;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
@@ -23,6 +24,7 @@ public final class ModItems {
 	private static final ResourceKey<Item> TORCH_ARROW_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("torch_arrow"));
 	private static final ResourceKey<Item> WOODEN_HOPPER_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("wooden_hopper"));
 	private static final ResourceKey<Item> SEED_POUCH_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("seed_pouch"));
+	private static final ResourceKey<Item> FISH_BAIT_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("fish_bait"));
 
 	public static final Item BOTTLED_CLOUD = new BottledCloudItem(
 		new Item.Properties().stacksTo(1).craftRemainder(Items.GLASS_BOTTLE).usingConvertsTo(Items.GLASS_BOTTLE).setId(BOTTLED_CLOUD_ID)
@@ -60,6 +62,10 @@ public final class ModItems {
 		new Item.Properties().stacksTo(1).setId(SEED_POUCH_ID)
 	);
 
+	public static final Item FISH_BAIT = new FishBaitItem(
+		new Item.Properties().stacksTo(16).setId(FISH_BAIT_ID)
+	);
+
 	private ModItems() {
 	}
 
@@ -72,6 +78,7 @@ public final class ModItems {
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("torch_arrow"), TORCH_ARROW);
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("wooden_hopper"), WOODEN_HOPPER);
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("seed_pouch"), SEED_POUCH);
+		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("fish_bait"), FISH_BAIT);
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES)
 			.register(output -> output.accept(BOTTLED_CLOUD));
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES)
@@ -84,7 +91,10 @@ public final class ModItems {
 				output.accept(WOODEN_HOPPER);
 			});
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.COMBAT)
-			.register(output -> output.accept(TORCH_ARROW));
+			.register(output -> {
+				output.accept(TORCH_ARROW);
+				output.accept(FISH_BAIT);
+			});
 		// TOTEM_OF_HOLDING 不进创造页签：纯内部渲染素材（死亡点图腾实体显示用），玩家不应拿到
 		// 木漏斗可作熔炉燃料（300 tick = 15 秒）：26.2 没有 DataComponents.FUEL，燃料改由服务端
 		// FuelValues 数据驱动，Fabric 通过 FuelValueEvents.BUILD 事件向 Builder 追加条目。
