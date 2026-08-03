@@ -1,9 +1,10 @@
 package dev.quirky.client.usage_ticker;
 
-import java.util.Map;
+import java.util.List;
 import java.util.Optional;
 
 import dev.quirky.QuirkyMod;
+import dev.quirky.client.usage_ticker.TickerSnapshot.InventorySnapshot;
 import dev.quirky.client.usage_ticker.TickerSnapshot.TickerEvent;
 import dev.quirky.config.QuirkyConfigHolder;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -21,10 +22,11 @@ import net.minecraft.world.item.Items;
 /**
  * 使用量挂件（对齐 Quark UsageTicker）：
  * 快捷栏左侧显示最近数量变化的物品（图标 + 背包总数），保持后滑回；
- * 快捷栏右侧显示 4 件护甲的耐久条，耐久连续不变约 3 秒后滑回。
+ * 快捷栏右侧显示耐久变化的物品（工具/副手/护甲通用，图标 + 耐久条），持续不变约 3 秒后滑回。
  *
- * 检测：每 tick 按物品累加 41 槽总数并对比相邻 tick（拾取/消耗事件），
- * 主手物品切换也触发；整理背包（同物品槽位重排）总数不变不触发。
+ * 检测（通用，见 {@link TickerSnapshot}）：每 tick 一次遍历全背包快照并对比——
+ * 数量变化（拾取/消耗/放置、主手切换）→ 左侧；耐久变化（损坏/修复）与盔甲槽变化（穿脱/换装）→ 右侧。
+ * 同物品槽位重排（整理背包）聚合状态不变，不触发。
  *
  * 渲染时机：MC 26.2 的 HUD 已改为 extract-render 管线（{@link GuiGraphicsExtractor}，
  * 原 Gui.render 与 HudRenderCallback 均不存在），故通过 Fabric API 25.3 的
@@ -43,10 +45,11 @@ public final class UsageTickerHud {
 	private static final int HOTBAR_GAP = 8;
 
 	private static TickerElement itemElement;
-	private static TickerElement armorElement;
+	private static TickerElement durabilityElement;
 	private static TickerEvent currentEvent;
-	/** null 表示基线未建立（玩家切换后首个 tick），见 {@link TickerSnapshot#diff}。 */
-	private static Map<Item, Integer> lastTotals;
+	private static List<Item> durabilityItems = List.of();
+	/** null 表示基线未建立（玩家切换后首个 tick），见 {@link TickerSnapshot#diffTotals}。 */
+	private static InventorySnapshot lastSnapshot;
 	/** 主手物品走 26.2 客户端装备槽（equipment MAINHAND），热键切换有 1~2 tick 回显延迟，属正常。 */
 	private static Item lastMainHand = Items.AIR;
 	private static Player lastPlayer;
@@ -57,7 +60,7 @@ public final class UsageTickerHud {
 	public static void init() {
 		var config = QuirkyConfigHolder.get();
 		itemElement = new TickerElement(config.tickerAnimTicks, config.tickerHoldTicks);
-		armorElement = new TickerElement(config.tickerAnimTicks, ArmorTicker.HOLD_TICKS);
+		durabilityElement = new TickerElement(config.tickerAnimTicks, DurabilityTicker.HOLD_TICKS);
 		HudElementRegistry.attachElementAfter(
 			VanillaHudElements.HOTBAR,
 			QuirkyMod.id("usage_ticker"),
@@ -73,29 +76,38 @@ public final class UsageTickerHud {
 	private static void tick(Player player) {
 		if (!QuirkyConfigHolder.get().usageTicker) {
 			itemElement.reset();
-			armorElement.reset();
+			durabilityElement.reset();
 			return;
 		}
 		if (player != lastPlayer) {
 			lastPlayer = player;
-			lastTotals = null;
+			lastSnapshot = null;
 			lastMainHand = Items.AIR;
 			itemElement.reset();
-			armorElement.reset();
-			ArmorTicker.reset();
+			durabilityElement.reset();
 		}
 		Item mainHand = player.getMainHandItem().getItem();
-		Map<Item, Integer> totals = TickerSnapshot.captureTotals(player);
-		Optional<TickerEvent> event = TickerSnapshot.diff(lastTotals, totals, lastMainHand, mainHand);
-		lastTotals = totals;
+		InventorySnapshot snapshot = TickerSnapshot.capture(player);
+		Optional<TickerEvent> event = TickerSnapshot.diffTotals(
+			lastSnapshot == null ? null : lastSnapshot.totals(), snapshot.totals(),
+			lastMainHand, mainHand
+		);
+		List<Item> durability = TickerSnapshot.diffDurability(
+			lastSnapshot == null ? null : lastSnapshot.durability(), snapshot.durability(),
+			lastSnapshot == null ? null : lastSnapshot.armor(), snapshot.armor()
+		);
+		lastSnapshot = snapshot;
 		lastMainHand = mainHand;
 		// 数量归零（消耗最后一件）时物品已消失，无从显示，不触发。
-		boolean active = event.isPresent() && event.get().newCount() > 0;
-		if (active) {
+		boolean itemActive = event.isPresent() && event.get().newCount() > 0;
+		if (itemActive) {
 			currentEvent = event.get();
 		}
-		itemElement.tick(active);
-		armorElement.tick(ArmorTicker.tick(player));
+		if (!durability.isEmpty()) {
+			durabilityItems = durability;
+		}
+		itemElement.tick(itemActive);
+		durabilityElement.tick(!durability.isEmpty());
 	}
 
 	private static void render(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
@@ -112,11 +124,12 @@ public final class UsageTickerHud {
 		if (itemElement.isVisible() && currentEvent != null) {
 			renderItemTicker(graphics, minecraft, center - HOTBAR_HALF_WIDTH, hotbarY, partialTick);
 		}
-		if (armorElement.isVisible()) {
-			ArmorTicker.render(
+		if (durabilityElement.isVisible() && !durabilityItems.isEmpty()) {
+			DurabilityTicker.render(
 				graphics, minecraft,
 				center + HOTBAR_HALF_WIDTH + HOTBAR_GAP,
-				animatedY(hotbarY + ICON_Y_INSET, armorElement, partialTick)
+				animatedY(hotbarY + ICON_Y_INSET, durabilityElement, partialTick),
+				durabilityItems
 			);
 		}
 	}
