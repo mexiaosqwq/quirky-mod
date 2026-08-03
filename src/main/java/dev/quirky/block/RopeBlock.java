@@ -122,7 +122,9 @@ public class RopeBlock extends Block implements SimpleWaterloggedBlock {
 			}
 			boolean waterlogged = state.getValue(WATERLOGGED);
 			level.setBlock(pos, ModBlocks.ROPE_LANTERN.defaultBlockState().setValue(WATERLOGGED, waterlogged), 3);
-			itemStack.consume(1, player);
+			if (!player.hasInfiniteMaterials()) {
+				itemStack.consume(1, player);
+			}
 			level.playSound(null, pos, SoundEvents.WOOL_PLACE, SoundSource.BLOCKS, 0.6F, 1.0F);
 			return InteractionResult.SUCCESS;
 		}
