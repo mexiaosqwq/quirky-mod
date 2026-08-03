@@ -51,15 +51,26 @@ public final class DurabilityTicker {
 		}
 	}
 
-	/** 在背包中找该物品的第一个可损坏堆叠（实时读取，换装/修复后显示最新状态）。 */
+	/**
+	 * 在背包中找该物品的堆叠用于渲染：优先取耐久损耗最大（最接近损坏）的堆叠——
+	 * 手中损坏的镐比备用满耐镐更值得展示；不可损坏物品（如南瓜头）直接取第一个。
+	 * 实时读取，换装/修复后显示最新状态。
+	 */
 	private static ItemStack findStack(Inventory inventory, Item item) {
+		ItemStack best = null;
+		int bestDamage = -1;
 		for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
 			ItemStack stack = inventory.getItem(slot);
-			if (!stack.isEmpty() && stack.isDamageableItem() && stack.is(item)) {
-				return stack;
+			if (stack.isEmpty() || !stack.is(item)) {
+				continue;
+			}
+			int damage = stack.isDamageableItem() ? stack.getDamageValue() : 0;
+			if (damage > bestDamage) {
+				bestDamage = damage;
+				best = stack;
 			}
 		}
-		return null;
+		return best;
 	}
 
 	private static void drawDurabilityBar(GuiGraphicsExtractor graphics, int x, int y, ItemStack stack) {

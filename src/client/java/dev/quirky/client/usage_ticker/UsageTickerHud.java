@@ -83,6 +83,7 @@ public final class UsageTickerHud {
 			lastPlayer = player;
 			lastSnapshot = null;
 			lastMainHand = Items.AIR;
+			durabilityItems = List.of();
 			itemElement.reset();
 			durabilityElement.reset();
 		}

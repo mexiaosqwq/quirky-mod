@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -34,6 +35,7 @@ class TickerSnapshotTest {
 		TestBootstrap.bindItem(Items.DIAMOND_HELMET);
 		TestBootstrap.bindItem(Items.DIAMOND_CHESTPLATE);
 		TestBootstrap.bindItem(Items.DIAMOND_PICKAXE);
+		TestBootstrap.bindMinimalComponents(Items.CARVED_PUMPKIN);
 	}
 
 	private static Map<Item, Integer> totals(Item item, int count) {
@@ -288,27 +290,55 @@ class TickerSnapshotTest {
 
 	@Test
 	void diffDurability_switchingArmorPiece_showsNewPiece() {
-		// 换装：聚合 count 变化（旧甲出装备区/新甲入）由数量挂件处理，盔甲槽变化显示新装备
-		Map<Item, DurabilityState> before = Map.of(
+		// 换装：新旧甲都在背包（聚合不变），盔甲槽变化 → 显示新装备
+		Map<Item, DurabilityState> durability = Map.of(
 			Items.DIAMOND_HELMET, new DurabilityState(1, 5),
-			Items.DIAMOND_CHESTPLATE, new DurabilityState(0, 0)
-		);
-		Map<Item, DurabilityState> after = Map.of(
-			Items.DIAMOND_HELMET, new DurabilityState(0, 0),
-			Items.DIAMOND_CHESTPLATE, new DurabilityState(1, 5)
+			Items.DIAMOND_CHESTPLATE, new DurabilityState(1, 3)
 		);
 
 		assertEquals(List.of(Items.DIAMOND_CHESTPLATE),
-			TickerSnapshot.diffDurability(before, after, armor(helmet(5)), armor(chestplate(5))));
+			TickerSnapshot.diffDurability(durability, durability, armor(helmet(5)), armor(chestplate(3))));
 	}
 
 	@Test
 	void diffDurability_pickingUpNewTool_noEvent() {
-		// 拾取新工具：数量变化由左侧挂件处理，右侧不重复触发
-		Map<Item, DurabilityState> before = Map.of(Items.DIAMOND_PICKAXE, new DurabilityState(0, 0));
+		// 拾取新工具：数量变化由左侧挂件处理，右侧不重复触发（before 无该物品条目）
+		Map<Item, DurabilityState> before = Map.of();
 		Map<Item, DurabilityState> after = Map.of(Items.DIAMOND_PICKAXE, new DurabilityState(1, 5));
 
 		assertTrue(TickerSnapshot.diffDurability(before, after, noArmor(), noArmor()).isEmpty());
+	}
+
+	@Test
+	void diffDurability_twoToolsDamaged_sameTick_listsBoth() {
+		Map<Item, DurabilityState> before = new LinkedHashMap<>();
+		before.put(Items.DIAMOND_PICKAXE, new DurabilityState(1, 5));
+		before.put(Items.DIAMOND_HELMET, new DurabilityState(1, 3));
+		Map<Item, DurabilityState> after = new LinkedHashMap<>();
+		after.put(Items.DIAMOND_PICKAXE, new DurabilityState(1, 8));
+		after.put(Items.DIAMOND_HELMET, new DurabilityState(1, 6));
+
+		assertEquals(List.of(Items.DIAMOND_PICKAXE, Items.DIAMOND_HELMET),
+			TickerSnapshot.diffDurability(before, after, noArmor(), noArmor()));
+	}
+
+	@Test
+	void diffDurability_pickupAndDamageSameTick_noEvent() {
+		// 同 tick 拾取新镐 + 旧镐损坏：堆叠数变化 → 由左侧处理，右侧不重复（规格：count 不变才算纯耐久事件）
+		Map<Item, DurabilityState> before = Map.of(Items.DIAMOND_PICKAXE, new DurabilityState(1, 5));
+		Map<Item, DurabilityState> after = Map.of(Items.DIAMOND_PICKAXE, new DurabilityState(2, 10));
+
+		assertTrue(TickerSnapshot.diffDurability(before, after, noArmor(), noArmor()).isEmpty());
+	}
+
+	@Test
+	void diffDurability_undamageableWornItem_triggers() {
+		// 南瓜头等不可损坏穿戴物：穿脱走盔甲槽检测（不进入 durability 聚合）
+		Map<Item, DurabilityState> durability = Map.of();
+		ItemStack pumpkin = new ItemStack(Items.CARVED_PUMPKIN);
+
+		assertEquals(List.of(Items.CARVED_PUMPKIN),
+			TickerSnapshot.diffDurability(durability, durability, noArmor(), armor(pumpkin)));
 	}
 
 	@Test

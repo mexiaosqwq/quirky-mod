@@ -52,6 +52,10 @@ public final class TickerSnapshot {
 	private TickerSnapshot() {
 	}
 
+	/** 4 盔甲槽（36..39）在背包槽位中的区间。 */
+	private static final int ARMOR_SLOT_START = 36;
+	private static final int ARMOR_SLOT_END = 39;
+
 	/**
 	 * 一次遍历全背包槽位，产出总量/耐久/盔甲槽快照；空槽跳过，遍历顺序为槽位序（确定性）。
 	 * 注意粒度：按 {@link Item} 分组（不比较数据组件），检测用粗粒度足够；
@@ -65,7 +69,7 @@ public final class TickerSnapshot {
 		for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
 			ItemStack stack = inventory.getItem(slot);
 			if (stack.isEmpty()) {
-				if (slot >= 36 && slot <= 39) {
+				if (slot >= ARMOR_SLOT_START && slot <= ARMOR_SLOT_END) {
 					armor.add(new ArmorSlot(Items.AIR, 0));
 				}
 				continue;
@@ -77,7 +81,7 @@ public final class TickerSnapshot {
 				durability.merge(item, new DurabilityState(count, stack.getDamageValue()),
 					(a, b) -> new DurabilityState(a.count() + b.count(), a.totalDamage() + b.totalDamage()));
 			}
-			if (slot >= 36 && slot <= 39) {
+			if (slot >= ARMOR_SLOT_START && slot <= ARMOR_SLOT_END) {
 				armor.add(new ArmorSlot(item, stack.isDamageableItem() ? stack.getDamageValue() : 0));
 			}
 		}
@@ -138,7 +142,7 @@ public final class TickerSnapshot {
 	/**
 	 * 对比前后两份耐久快照与盔甲槽快照。
 	 *
-	 * @return 需要右侧耐久挂件显示的物品列表（按盔甲槽序在前、聚合遍历序在后，去重）；
+	 * @return 需要右侧耐久挂件显示的物品列表（先聚合耐久变化、后盔甲槽当前穿戴，去重）；
 	 *         无变化返回空列表。规则：
 	 *         <ul>
 	 *           <li>可损坏物品聚合 {@code totalDamage} 变化且堆叠数不变（损坏/修复，工具/副手/护甲通用）→ 显示该物品；</li>
