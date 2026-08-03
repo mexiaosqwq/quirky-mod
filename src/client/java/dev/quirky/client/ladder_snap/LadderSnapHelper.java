@@ -1,8 +1,11 @@
 package dev.quirky.client.ladder_snap;
 
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+
 /**
- * 自动上梯（spec 5.9，基岩版式）垂直速度计算（纯逻辑，可单测）：
- * 爬梯子/藤蔓时未按手动键，抬头自动上升、低头下降、平视悬停。
+ * 自动上梯（spec 5.9，基岩版式）垂直速度计算与覆盖面判定（纯逻辑，可单测）：
+ * 爬梯子/藤蔓时未按手动键，抬头自动上升、低头下降、平视缓慢下滑。
  */
 public final class LadderSnapHelper {
 	/** 自动攀爬：抬头/低头触发阈值（度）——±15° 更跟手，轻仰（看远处）不误触发 */
@@ -20,6 +23,15 @@ public final class LadderSnapHelper {
 	public static final double HOVER_SPEED = 0.05;
 
 	private LadderSnapHelper() {
+	}
+
+	/**
+	 * 自动爬梯排除判定：仅脚手架排除——原版脚手架自带空格升/Shift 降/自由走动，
+	 * 抬头自动爬反而会在脚手架塔里莫名上升；梯子与全部藤蔓走 onClimbable 自动爬（spec §5.9）。
+	 * 块比较（非 tag），单测可验证。
+	 */
+	public static boolean isExcluded(BlockState state) {
+		return state.is(Blocks.SCAFFOLDING);
 	}
 
 	/**

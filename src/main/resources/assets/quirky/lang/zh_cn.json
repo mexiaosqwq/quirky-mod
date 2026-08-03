@@ -76,7 +76,7 @@
   "text.autoconfig.quirky.option.longPick": "远距中键拾取",
   "text.autoconfig.quirky.option.longPick.@Tooltip": "扩展鼠标中键拾取方块的距离。",
   "text.autoconfig.quirky.option.ladderSnap": "自动爬梯",
-  "text.autoconfig.quirky.option.ladderSnap.@Tooltip": "爬梯子/藤蔓时抬头自动上升、低头下降、平视悬停。",
+  "text.autoconfig.quirky.option.ladderSnap.@Tooltip": "爬梯子/藤蔓时抬头自动上升、低头下降、平视缓慢下滑（不自动爬）。",
   "text.autoconfig.quirky.option.offhandSwap": "副手快速装备",
   "text.autoconfig.quirky.option.offhandSwap.@Tooltip": "背包中右键盾牌或火把可直接装备到副手。",
   "text.autoconfig.quirky.option.tickerHoldTicks": "挂件停留时长（刻）",

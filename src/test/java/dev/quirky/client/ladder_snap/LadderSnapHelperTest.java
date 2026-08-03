@@ -1,11 +1,30 @@
 package dev.quirky.client.ladder_snap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import dev.quirky.TestBootstrap;
+import net.minecraft.world.level.block.Blocks;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 class LadderSnapHelperTest {
+
+	@BeforeAll
+	static void bootStrap() {
+		TestBootstrap.boot();
+	}
+
+	@Test
+	void coverageExcludesScaffoldingButNotVinesOrLadders() {
+		// 覆盖面（spec §5.9）：onClimbable() 语义（#minecraft:climbable ∪ 梯上同向开放活板门）
+		// 自动爬，仅脚手架排除。
+		// 块比较（非 tag）单测可验证；tag 分支（onClimbable）单测环境恒 false 不在此测。
+		assertTrue(LadderSnapHelper.isExcluded(Blocks.SCAFFOLDING.defaultBlockState()));
+		assertFalse(LadderSnapHelper.isExcluded(Blocks.LADDER.defaultBlockState()));
+		assertFalse(LadderSnapHelper.isExcluded(Blocks.VINE.defaultBlockState()));
+	}
 
 	@Test
 	void lookUpClimbsUp() {
