@@ -83,8 +83,7 @@ class TickerSnapshotTest {
 	@Test
 	void diffTotals_singleItemTotalDecrease_placementScenario() {
 		Optional<TickerEvent> event = TickerSnapshot.diffTotals(
-			totals(Items.STONE, 64), totals(Items.STONE, 63),
-			Items.STONE, Items.STONE
+			totals(Items.STONE, 64), totals(Items.STONE, 63)
 		);
 
 		assertTrue(event.isPresent());
@@ -96,8 +95,7 @@ class TickerSnapshotTest {
 	@Test
 	void diffTotals_singleItemTotalIncrease() {
 		Optional<TickerEvent> event = TickerSnapshot.diffTotals(
-			totals(Items.COBBLESTONE, 10), totals(Items.COBBLESTONE, 13),
-			Items.IRON_SWORD, Items.IRON_SWORD
+			totals(Items.COBBLESTONE, 10), totals(Items.COBBLESTONE, 13)
 		);
 
 		assertTrue(event.isPresent());
@@ -112,23 +110,23 @@ class TickerSnapshotTest {
 		Map<Item, Integer> before = Map.of(Items.STONE, 67, Items.COBBLESTONE, 3);
 		Map<Item, Integer> after = Map.of(Items.STONE, 67, Items.COBBLESTONE, 3);
 
-		assertTrue(TickerSnapshot.diffTotals(before, after, Items.STONE, Items.STONE).isEmpty());
+		assertTrue(TickerSnapshot.diffTotals(before, after).isEmpty());
 	}
 
 	@Test
 	void diffTotals_noChange_noEvent() {
-		assertTrue(TickerSnapshot.diffTotals(totals(Items.STONE, 4), totals(Items.STONE, 4), Items.STONE, Items.STONE).isEmpty());
+		assertTrue(TickerSnapshot.diffTotals(totals(Items.STONE, 4), totals(Items.STONE, 4)).isEmpty());
 	}
 
 	@Test
 	void diffTotals_nullBaseline_noEvent() {
-		assertTrue(TickerSnapshot.diffTotals(null, totals(Items.STONE, 64), Items.STONE, Items.STONE).isEmpty());
+		assertTrue(TickerSnapshot.diffTotals(null, totals(Items.STONE, 64)).isEmpty());
 	}
 
 	@Test
 	void diffTotals_fromEmptyInventory_fires() {
 		Optional<TickerEvent> event = TickerSnapshot.diffTotals(
-			Map.of(), totals(Items.STONE, 64), Items.STONE, Items.STONE
+			Map.of(), totals(Items.STONE, 64)
 		);
 
 		assertTrue(event.isPresent());
@@ -138,42 +136,30 @@ class TickerSnapshotTest {
 	}
 
 	@Test
-	void diffTotals_mainHandSwitch_firesWithNewHandItem() {
-		// 主手槽与另一槽交换物品：总数不变但主手物品变化 → 触发
+	void diffTotals_mainHandSwitchOnly_noEvent() {
+		// 主手切换但总数无变化：不触发（2026-08-03 用户确认，纯切换无数量变化）
 		Map<Item, Integer> before = Map.of(Items.STONE, 64, Items.COBBLESTONE, 1);
 		Map<Item, Integer> after = Map.of(Items.STONE, 64, Items.COBBLESTONE, 1);
-		Optional<TickerEvent> event = TickerSnapshot.diffTotals(before, after, Items.STONE, Items.COBBLESTONE);
+		assertTrue(TickerSnapshot.diffTotals(before, after).isEmpty());
+	}
+
+	@Test
+	void diffTotals_largestDeltaWins() {
+		Map<Item, Integer> before = Map.of(Items.STONE, 64, Items.COBBLESTONE, 10);
+		Map<Item, Integer> after = Map.of(Items.STONE, 63, Items.COBBLESTONE, 13);
+		Optional<TickerEvent> event = TickerSnapshot.diffTotals(before, after);
 
 		assertTrue(event.isPresent());
 		assertEquals(Items.COBBLESTONE, event.get().item());
-		assertEquals(1, event.get().newCount());
-		assertEquals(0, event.get().delta());
-	}
-
-	@Test
-	void diffTotals_mainHandSwitchToEmpty_noEvent() {
-		assertTrue(TickerSnapshot.diffTotals(
-			totals(Items.STONE, 64), totals(Items.STONE, 64),
-			Items.STONE, Items.AIR
-		).isEmpty());
-	}
-
-	@Test
-	void diffTotals_prefersMainHandItem_whenItChanged() {
-		Map<Item, Integer> before = Map.of(Items.STONE, 64, Items.COBBLESTONE, 10);
-		Map<Item, Integer> after = Map.of(Items.STONE, 63, Items.COBBLESTONE, 13);
-		Optional<TickerEvent> event = TickerSnapshot.diffTotals(before, after, Items.STONE, Items.STONE);
-
-		assertTrue(event.isPresent());
-		assertEquals(Items.STONE, event.get().item());
-		assertEquals(63, event.get().newCount());
+		assertEquals(13, event.get().newCount());
+		assertEquals(3, event.get().delta());
 	}
 
 	@Test
 	void diffTotals_fallsBackToLargestDelta() {
 		Map<Item, Integer> before = Map.of(Items.STONE, 64, Items.COBBLESTONE, 10);
 		Map<Item, Integer> after = Map.of(Items.STONE, 61, Items.COBBLESTONE, 10);
-		Optional<TickerEvent> event = TickerSnapshot.diffTotals(before, after, Items.COBBLESTONE, Items.COBBLESTONE);
+		Optional<TickerEvent> event = TickerSnapshot.diffTotals(before, after);
 
 		assertTrue(event.isPresent());
 		assertEquals(Items.STONE, event.get().item());
@@ -184,8 +170,7 @@ class TickerSnapshotTest {
 	@Test
 	void diffTotals_itemDepleted_reportsZeroNewCount() {
 		Optional<TickerEvent> event = TickerSnapshot.diffTotals(
-			totals(Items.STONE, 1), totals(Items.STONE, 0),
-			Items.STONE, Items.STONE
+			totals(Items.STONE, 1), totals(Items.STONE, 0)
 		);
 
 		assertTrue(event.isPresent());

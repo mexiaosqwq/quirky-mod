@@ -17,7 +17,6 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 
 /**
  * 使用量挂件（对齐 Quark UsageTicker）：
@@ -26,8 +25,9 @@ import net.minecraft.world.item.Items;
  * 对齐 Quark 槽位元素），工具/副手耐久变化显示在护甲位之后的浮动列表。
  *
  * 检测（通用，见 {@link TickerSnapshot}）：每 tick 一次遍历全背包快照并对比——
- * 数量变化（拾取/消耗/放置、主手切换、装备槽摆放）→ 左侧；护甲槽变化（穿脱/换装/耐久升降）→
+ * 数量变化（拾取/消耗/放置）→ 左侧；装备槽摆放变化兑底 → 左侧；护甲槽变化（穿脱/换装/耐久升降）→
  * 对应固定位；工具/副手耐久变化（损坏/修复）→ 浮动列表。同物品槽位重排（整理背包）聚合状态不变，不触发。
+ * 主手切换不触发（2026-08-03 用户确认：纯切换无数量变化）。
  *
  * 渲染时机：MC 26.2 的 HUD 已改为 extract-render 管线（{@link GuiGraphicsExtractor}，
  * 原 Gui.render 与 HudRenderCallback 均不存在），故通过 Fabric API 25.3 的
@@ -55,8 +55,6 @@ public final class UsageTickerHud {
 	private static List<Item> toolItems = List.of();
 	/** null 表示基线未建立（玩家切换后首个 tick），见 {@link TickerSnapshot#diffTotals}。 */
 	private static InventorySnapshot lastSnapshot;
-	/** 主手物品走 26.2 客户端装备槽（equipment MAINHAND），热键切换有 1~2 tick 回显延迟，属正常。 */
-	private static Item lastMainHand = Items.AIR;
 	private static Player lastPlayer;
 
 	private UsageTickerHud() {
@@ -93,7 +91,6 @@ public final class UsageTickerHud {
 		if (player != lastPlayer) {
 			lastPlayer = player;
 			lastSnapshot = null;
-			lastMainHand = Items.AIR;
 			toolItems = List.of();
 			itemElement.reset();
 			for (TickerElement element : armorElements) {
@@ -101,11 +98,9 @@ public final class UsageTickerHud {
 			}
 			toolElement.reset();
 		}
-		Item mainHand = player.getMainHandItem().getItem();
 		InventorySnapshot snapshot = TickerSnapshot.capture(player);
 		Optional<TickerEvent> event = TickerSnapshot.diffTotals(
-			lastSnapshot == null ? null : lastSnapshot.totals(), snapshot.totals(),
-			lastMainHand, mainHand
+			lastSnapshot == null ? null : lastSnapshot.totals(), snapshot.totals()
 		);
 		if (event.isEmpty()) {
 			// 数量/主手无事件时，装备槽（副手/BODY/SADDLE）摆放变化兜底触发
@@ -121,7 +116,6 @@ public final class UsageTickerHud {
 			lastSnapshot == null ? null : lastSnapshot.durability(), snapshot.durability(), snapshot.armor()
 		);
 		lastSnapshot = snapshot;
-		lastMainHand = mainHand;
 		// 数量归零（消耗最后一件）时物品已消失，无从显示，不触发。
 		boolean itemActive = event.isPresent() && event.get().newCount() > 0;
 		if (itemActive) {

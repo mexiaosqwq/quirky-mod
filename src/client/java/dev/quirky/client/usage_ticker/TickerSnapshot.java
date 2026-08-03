@@ -22,13 +22,14 @@ import net.minecraft.world.item.Items;
  * 左右两个挂件——一套检测，对所有使用量变化通用，不为具体场景单独写逻辑：
  *
  * <ul>
- *   <li><b>数量变化</b>（拾取/消耗/放置、主手切换、装备槽摆放）→ 左侧物品挂件（{@link #diffTotals}）</li>
+ *   <li><b>数量变化</b>（拾取/消耗/放置）→ 左侧物品挂件（{@link #diffTotals}）；
+ *       装备槽（副手/BODY/SADDLE）摆放变化在数量无变化时兑底触发左侧（{@link #diffEquipment}）</li>
  *   <li><b>盔甲槽内容变化</b>（穿脱/换装/耐久升降，逐槽）→ 右侧对应固定位（{@link #diffArmorSlots}）</li>
  *   <li><b>工具/副手耐久变化</b>（损坏/修复，降或升）→ 右侧浮动列表（{@link #diffToolDurability}）</li>
  * </ul>
  *
  * 数量与耐久均按物品聚合（不绑定槽位），同物品在槽位间移动（整理/交换）天然免疫；
- * 主手/副手换物品也只影响槽位不影响聚合，仅主手切换单独触发左侧。
+ * 主手切换无数量变化不触发（2026-08-03 用户确认，见 {@link #diffTotals}）。
  */
 public final class TickerSnapshot {
 	/** 单次遍历产出的快照。 */
@@ -97,16 +98,15 @@ public final class TickerSnapshot {
 	}
 
 	/**
-	 * 对比前后两份总量快照，并考虑主手物品切换。
+	 * 对比前后两份总量快照。
 	 *
 	 * @param before 上一 tick 的总量快照；{@code null} 表示基线未建立（玩家切换后首个 tick），返回空
-	 * @return 有变化时返回事件，否则 {@link Optional#empty()}。选择规则：
-	 *         主手物品若在变化集合中优先返回（对齐 Quark 手部元素）；
-	 *         否则取 |delta| 最大者，平局取最先遍历到的物品。
+	 * @return 有变化时返回事件，否则 {@link Optional#empty()}。选择规则：取 |delta| 最大者，
+	 *         平局取最先遍历到的物品。
 	 *         物品总数归零（消耗最后一件）时仍返回事件（newCount == 0），由调用方过滤。
+	 *         2026-08-03：不再跟踪主手切换（纯切换无数量变化，不触发挂件）。
 	 */
-	public static Optional<TickerEvent> diffTotals(Map<Item, Integer> before, Map<Item, Integer> after,
-			Item mainHandBefore, Item mainHandAfter) {
+	public static Optional<TickerEvent> diffTotals(Map<Item, Integer> before, Map<Item, Integer> after) {
 		if (before == null) {
 			return Optional.empty();
 		}
@@ -122,27 +122,18 @@ public final class TickerSnapshot {
 				deltas.put(entry.getKey(), -entry.getValue());
 			}
 		}
-		if (!Objects.equals(mainHandBefore, mainHandAfter) && after.containsKey(mainHandAfter)) {
-			deltas.putIfAbsent(mainHandAfter, 0);
-		}
 		if (deltas.isEmpty()) {
 			return Optional.empty();
 		}
 
-		Item selected;
-		if (deltas.containsKey(mainHandAfter)) {
-			selected = mainHandAfter;
-		} else {
-			Item best = null;
-			int bestAbs = -1;
-			for (Map.Entry<Item, Integer> entry : deltas.entrySet()) {
-				int abs = Math.abs(entry.getValue());
-				if (abs > bestAbs) {
-					bestAbs = abs;
-					best = entry.getKey();
-				}
+		Item selected = null;
+		int bestAbs = -1;
+		for (Map.Entry<Item, Integer> entry : deltas.entrySet()) {
+			int abs = Math.abs(entry.getValue());
+			if (abs > bestAbs) {
+				bestAbs = abs;
+				selected = entry.getKey();
 			}
-			selected = best;
 		}
 		return Optional.of(new TickerEvent(selected, after.getOrDefault(selected, 0), deltas.get(selected)));
 	}
