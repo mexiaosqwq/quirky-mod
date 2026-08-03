@@ -4,8 +4,8 @@
   "version": "${version}",
   "name": "Quirky",
   "description": "A small collection of vanilla-friendly mechanics inspired by Quark.",
-  "authors": ["You"],
-  "license": "MIT",
+  "authors": ["mexiaosqwq"],
+  "license": "CC0-1.0",
   "icon": "assets/quirky/icon.png",
   "environment": "*",
   "entrypoints": {
