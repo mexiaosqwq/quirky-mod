@@ -53,9 +53,7 @@ class QuirkyConfigDefaultsTest {
 		QuirkyConfig c = new QuirkyConfig();
 		assertTrue(c.soulLighting && c.shulkerTooltip
 			&& c.foodTooltip && c.attributeTooltip && c.usageTicker
-			&& c.deathCam && c.longPick && c.ladderSnap && c.offhandSwap);
-		assertEquals(100, c.pickRangeCreative);
-		assertEquals(12, c.pickRangeSurvival);
+			&& c.deathCam && c.ladderSnap && c.offhandSwap);
 		assertEquals(50, c.deathCamDuration);
 	}
 
@@ -64,7 +62,5 @@ class QuirkyConfigDefaultsTest {
 		QuirkyConfig c = new QuirkyConfig();
 		assertTrue(c.tickerHoldTicks >= 20 && c.tickerHoldTicks <= 200);
 		assertTrue(c.deathCamDuration >= 40 && c.deathCamDuration <= 100);
-		assertTrue(c.pickRangeCreative >= 16 && c.pickRangeCreative <= 256);
-		assertTrue(c.pickRangeSurvival >= 4 && c.pickRangeSurvival <= 64);
 	}
 }

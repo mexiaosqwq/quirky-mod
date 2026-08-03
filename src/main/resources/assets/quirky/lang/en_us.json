@@ -84,8 +84,6 @@
   "text.autoconfig.quirky.option.usageTicker.@Tooltip": "Slide out item count on pickup/use and armor durability bars on damage.",
   "text.autoconfig.quirky.option.deathCam": "Death Camera",
   "text.autoconfig.quirky.option.deathCam.@Tooltip": "Play a slow pullback camera from your body before the death screen.",
-  "text.autoconfig.quirky.option.longPick": "Long Pick Block",
-  "text.autoconfig.quirky.option.longPick.@Tooltip": "Extend middle-click pick block range (creative only; 26.2 server distance check blocks survival).",
   "text.autoconfig.quirky.option.ladderSnap": "Auto Ladder Climb",
   "text.autoconfig.quirky.option.ladderSnap.@Tooltip": "Look up to climb ladders and vines automatically (look down to descend, level view slowly slides without climbing).",
   "text.autoconfig.quirky.option.offhandSwap": "Offhand Swap",
@@ -96,8 +94,4 @@
   "text.autoconfig.quirky.option.tickerAnimTicks.@Tooltip": "Slide in/out animation length.",
   "text.autoconfig.quirky.option.deathCamDuration": "Death Camera (ticks)",
   "text.autoconfig.quirky.option.deathCamDuration.@Tooltip": "Duration of the death pullback camera.",
-  "text.autoconfig.quirky.option.pickRangeCreative": "Creative Pick Range",
-  "text.autoconfig.quirky.option.pickRangeCreative.@Tooltip": "Middle-click pick block range in creative.",
-  "text.autoconfig.quirky.option.pickRangeSurvival": "Survival Pick Range",
-  "text.autoconfig.quirky.option.pickRangeSurvival.@Tooltip": "Middle-click pick block range in survival (no effect on 26.2; server distance check)."
 }

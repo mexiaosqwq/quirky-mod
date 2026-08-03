@@ -67,10 +67,6 @@ public class QuirkyConfig implements ConfigData {
 
 	@ConfigEntry.Category("toggles")
 	@ConfigEntry.Gui.Tooltip
-	public boolean longPick = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
 	public boolean ladderSnap = true;
 
 	// ==== 图腾手感参数（服务端）====
@@ -168,14 +164,4 @@ public class QuirkyConfig implements ConfigData {
 	@ConfigEntry.BoundedDiscrete(min = 40, max = 100)
 	@ConfigEntry.Gui.Tooltip
 	public int deathCamDuration = 50;
-
-	@ConfigEntry.Category("client_qol")
-	@ConfigEntry.BoundedDiscrete(min = 16, max = 256)
-	@ConfigEntry.Gui.Tooltip
-	public int pickRangeCreative = 100;
-
-	@ConfigEntry.Category("client_qol")
-	@ConfigEntry.BoundedDiscrete(min = 4, max = 64)
-	@ConfigEntry.Gui.Tooltip
-	public int pickRangeSurvival = 12;
 }

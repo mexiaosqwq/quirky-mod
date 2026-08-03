@@ -8,7 +8,6 @@
     "AttributeTextHideMixin",
     "AbstractContainerScreenAccessor",
     "FlameParticleMixin",
-    "PickBlockMixin",
     "CameraAccessor",
     "CameraSetupMixin",
     "DeathScreenDelayMixin",
