@@ -1,6 +1,8 @@
 package dev.quirky.client.tooltips;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -11,12 +13,14 @@ import dev.quirky.TestBootstrap;
 import dev.quirky.tooltips.ShulkerTooltipComponent;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.world.item.DyeColor;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemContainerContents;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 class ClientShulkerTooltipComponentTest {
 
@@ -29,11 +33,11 @@ class ClientShulkerTooltipComponentTest {
 	@Test
 	void layoutIsNineByThree() {
 		// 与原版潜影盒 UI 一致：9 列 x 3 行（宽 > 高），槽 18px（16 图标 + 2 边距）
-		ShulkerTooltipComponent component = new ShulkerTooltipComponent(ItemContainerContents.EMPTY, null);
+		ShulkerTooltipComponent component = new ShulkerTooltipComponent(ItemContainerContents.EMPTY);
 		ClientShulkerTooltipComponent client = new ClientShulkerTooltipComponent(component);
 		Font font = mock(Font.class);
-		assertEquals(9 * 18 + 8, client.getWidth(font));
-		assertEquals(3 * 18 + 8, client.getHeight(font));
+		assertEquals(9 * 18, client.getWidth(font));
+		assertEquals(3 * 18, client.getHeight(font));
 	}
 
 	@Test
@@ -41,52 +45,43 @@ class ClientShulkerTooltipComponentTest {
 		ItemContainerContents contents = ItemContainerContents.fromItems(java.util.List.of(
 			new ItemStack(Items.STONE, 3)
 		));
-		ShulkerTooltipComponent component = new ShulkerTooltipComponent(contents, DyeColor.RED);
+		ShulkerTooltipComponent component = new ShulkerTooltipComponent(contents);
 		assertEquals(contents, component.contents());
-		assertEquals(DyeColor.RED, component.color());
 	}
 
 	@Test
-	void drawsBackgroundAndSlotBacking() {
-		// 1 次整体背景 fill + 27 格槽 fill + 27*2 条边框线
-		ShulkerTooltipComponent component = new ShulkerTooltipComponent(ItemContainerContents.EMPTY, null);
+	void drawsVanillaSlotSpritesWithoutCustomBackground() {
+		ShulkerTooltipComponent component = new ShulkerTooltipComponent(ItemContainerContents.EMPTY);
+		ClientShulkerTooltipComponent client = new ClientShulkerTooltipComponent(component);
+		Font font = mock(Font.class);
+		GuiGraphicsExtractor graphics = mock(GuiGraphicsExtractor.class);
+		Identifier slotSprite = Identifier.withDefaultNamespace("container/slot");
+
+		client.extractImage(font, 0, 0, client.getWidth(font), client.getHeight(font), graphics);
+
+		verify(graphics, times(27)).blitSprite(
+			eq(RenderPipelines.GUI_TEXTURED), eq(slotSprite), anyInt(), anyInt(), eq(18), eq(18)
+		);
+		verify(graphics, times(0)).fill(anyInt(), anyInt(), anyInt(), anyInt(), anyInt());
+		verify(graphics, times(0)).horizontalLine(anyInt(), anyInt(), anyInt(), anyInt());
+		verify(graphics, times(0)).verticalLine(anyInt(), anyInt(), anyInt(), anyInt());
+	}
+
+	@Test
+	void drawsItemAndCountAtOnePixelInsideSlot() {
+		ItemStack stack = new ItemStack(Items.STONE, 3);
+		ItemContainerContents contents = ItemContainerContents.fromItems(java.util.List.of(stack));
+		ShulkerTooltipComponent component = new ShulkerTooltipComponent(contents);
 		ClientShulkerTooltipComponent client = new ClientShulkerTooltipComponent(component);
 		Font font = mock(Font.class);
 		GuiGraphicsExtractor graphics = mock(GuiGraphicsExtractor.class);
 
 		client.extractImage(font, 0, 0, client.getWidth(font), client.getHeight(font), graphics);
 
-		verify(graphics, times(28)).fill(anyInt(), anyInt(), anyInt(), anyInt(), anyInt());
-		verify(graphics, times(27 * 2)).horizontalLine(anyInt(), anyInt(), anyInt(), anyInt());
-		verify(graphics, times(27 * 2)).verticalLine(anyInt(), anyInt(), anyInt(), anyInt());
-	}
-
-	@Test
-	void plainBoxUsesPurpleBackground() {
-		// 普通盒：紫色调背景（经典潜影盒 UI 风格）
-		ShulkerTooltipComponent component = new ShulkerTooltipComponent(ItemContainerContents.EMPTY, null);
-		ClientShulkerTooltipComponent client = new ClientShulkerTooltipComponent(component);
-		Font font = mock(Font.class);
-		GuiGraphicsExtractor graphics = mock(GuiGraphicsExtractor.class);
-
-		client.extractImage(font, 0, 0, client.getWidth(font), client.getHeight(font), graphics);
-
-		verify(graphics, times(1)).fill(anyInt(), anyInt(), anyInt(), anyInt(), eq(0xE03A2A5E));
-	}
-
-	@Test
-	void coloredBoxUsesBoxColorTones() {
-		// 16 色盒：背景 = 盒色 30% 亮度（alpha 0xE0）；边框 = 盒色 70%（alpha 0x8A）
-		ShulkerTooltipComponent component = new ShulkerTooltipComponent(ItemContainerContents.EMPTY, DyeColor.RED);
-		ClientShulkerTooltipComponent client = new ClientShulkerTooltipComponent(component);
-		Font font = mock(Font.class);
-		GuiGraphicsExtractor graphics = mock(GuiGraphicsExtractor.class);
-
-		client.extractImage(font, 0, 0, client.getWidth(font), client.getHeight(font), graphics);
-
-		int red = DyeColor.RED.getTextureDiffuseColor();
-		int expectedBg = 0xE0000000 | (((red >> 16) & 0xFF) * 30 / 100) << 16
-			| (((red >> 8) & 0xFF) * 30 / 100) << 8 | ((red & 0xFF) * 30 / 100);
-		verify(graphics, times(1)).fill(anyInt(), anyInt(), anyInt(), anyInt(), eq(expectedBg));
+		ArgumentCaptor<ItemStack> renderedStack = ArgumentCaptor.forClass(ItemStack.class);
+		verify(graphics).item(renderedStack.capture(), eq(1), eq(1));
+		assertTrue(renderedStack.getValue().is(Items.STONE));
+		assertEquals(3, renderedStack.getValue().getCount());
+		verify(graphics).itemDecorations(eq(font), any(ItemStack.class), eq(1), eq(1));
 	}
 }
