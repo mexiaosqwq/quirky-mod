@@ -21,6 +21,8 @@ public class ClientShulkerTooltipComponent implements ClientTooltipComponent {
 	private static final Identifier SLOT_SPRITE = Identifier.withDefaultNamespace("container/slot");
 	private static final int SLOT_SIZE = 18;
 	private static final int ICON_OFFSET = 1;
+	/** 槽位与 tooltip 框之间的呼吸空间（原版 tooltip 框本身仅 3px 内边距）。 */
+	private static final int PADDING = 4;
 	private static final int COLS = 9;
 	private static final int ROWS = 3;
 
@@ -33,20 +35,20 @@ public class ClientShulkerTooltipComponent implements ClientTooltipComponent {
 
 	@Override
 	public int getWidth(Font font) {
-		return COLS * SLOT_SIZE;
+		return COLS * SLOT_SIZE + 2 * PADDING;
 	}
 
 	@Override
 	public int getHeight(Font font) {
-		return ROWS * SLOT_SIZE;
+		return ROWS * SLOT_SIZE + 2 * PADDING;
 	}
 
 	@Override
 	public void extractImage(Font font, int x, int y, int w, int h, GuiGraphicsExtractor graphics) {
 		boolean empty = true;
 		for (int slot = 0; slot < items.size(); slot++) {
-			int sx = x + (slot % COLS) * SLOT_SIZE;
-			int sy = y + (slot / COLS) * SLOT_SIZE;
+			int sx = x + PADDING + (slot % COLS) * SLOT_SIZE;
+			int sy = y + PADDING + (slot / COLS) * SLOT_SIZE;
 			graphics.blitSprite(RenderPipelines.GUI_TEXTURED, SLOT_SPRITE, sx, sy, SLOT_SIZE, SLOT_SIZE);
 			ItemStack stack = items.get(slot);
 			if (!stack.isEmpty()) {

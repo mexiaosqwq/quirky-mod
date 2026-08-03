@@ -36,12 +36,13 @@ class ClientShulkerTooltipComponentTest {
 
 	@Test
 	void layoutIsNineByThree() {
-		// 与原版潜影盒 UI 一致：9 列 x 3 行（宽 > 高），槽 18px（16 图标 + 2 边距）
+		// 与原版潜影盒 UI 一致：9 列 x 3 行（宽 > 高），槽 18px（16 图标 + 2 边距），
+		// 四周留 4px 呼吸空间使槽位不贴 tooltip 框边缘
 		ShulkerTooltipComponent component = new ShulkerTooltipComponent(ItemContainerContents.EMPTY);
 		ClientShulkerTooltipComponent client = new ClientShulkerTooltipComponent(component);
 		Font font = mock(Font.class);
-		assertEquals(9 * 18, client.getWidth(font));
-		assertEquals(3 * 18, client.getHeight(font));
+		assertEquals(9 * 18 + 2 * 4, client.getWidth(font));
+		assertEquals(3 * 18 + 2 * 4, client.getHeight(font));
 	}
 
 	@Test
@@ -83,10 +84,10 @@ class ClientShulkerTooltipComponentTest {
 		client.extractImage(font, 0, 0, client.getWidth(font), client.getHeight(font), graphics);
 
 		ArgumentCaptor<ItemStack> renderedStack = ArgumentCaptor.forClass(ItemStack.class);
-		verify(graphics).item(renderedStack.capture(), eq(1), eq(1));
+		verify(graphics).item(renderedStack.capture(), eq(5), eq(5));
 		assertTrue(renderedStack.getValue().is(Items.STONE));
 		assertEquals(3, renderedStack.getValue().getCount());
-		verify(graphics).itemDecorations(eq(font), any(ItemStack.class), eq(1), eq(1));
+		verify(graphics).itemDecorations(eq(font), any(ItemStack.class), eq(5), eq(5));
 	}
 
 	@Test
