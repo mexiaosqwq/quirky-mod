@@ -205,11 +205,10 @@ public class PetWhistleItem extends Item {
 		return level.getSkyDarken() >= 5 || !level.dimensionType().hasSkyLight();
 	}
 
-	/** 山羊角音色：普通召集用随机变体；坐定指挥用更高音高的短促变体。 */
+	/** 长笛音色（吹奏感，接近口哨）：普通召集用 1.0-1.2 随机音高；坐定指挥用更高音短促变体。
+	 * 不用山羊角号角（实测太像劫掠者号角声，听感沉闷）。 */
 	private static void playWhistleSound(ServerLevel level, Player player, boolean sittingCommand) {
-		var variants = SoundEvents.GOAT_HORN_SOUND_VARIANTS;
-		var variant = variants.get(level.getRandom().nextInt(variants.size()));
-		float pitch = sittingCommand ? 1.6F : 1.0F;
-		level.playSound(null, player.getX(), player.getY(), player.getZ(), variant.value(), SoundSource.PLAYERS, 1.0F, pitch);
+		float pitch = sittingCommand ? 1.6F : 1.0F + level.getRandom().nextFloat() * 0.2F;
+		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.NOTE_BLOCK_FLUTE, SoundSource.PLAYERS, 1.0F, pitch);
 	}
 }
