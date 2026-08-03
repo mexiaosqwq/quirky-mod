@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "S": "minecraft:string"
+  },
+  "pattern": ["S", "S", "S"],
+  "result": {
+    "id": "quirky:rope",
+    "count": 3
+  }
+}

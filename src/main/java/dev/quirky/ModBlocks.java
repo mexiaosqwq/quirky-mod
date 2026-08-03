@@ -3,6 +3,8 @@ package dev.quirky;
 import dev.quirky.block.CloudBlock;
 import dev.quirky.block.MetalButtonBlock;
 import dev.quirky.block.ObsidianPressurePlateBlock;
+import dev.quirky.block.RopeBlock;
+import dev.quirky.block.RopeLanternBlock;
 import dev.quirky.block.WoodenHopperBlock;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -21,6 +23,8 @@ public final class ModBlocks {
 	private static final ResourceKey<Block> IRON_BUTTON_ID = ResourceKey.create(Registries.BLOCK, QuirkyMod.id("iron_button"));
 	private static final ResourceKey<Block> OBSIDIAN_PRESSURE_PLATE_ID = ResourceKey.create(Registries.BLOCK, QuirkyMod.id("obsidian_pressure_plate"));
 	private static final ResourceKey<Block> WOODEN_HOPPER_ID = ResourceKey.create(Registries.BLOCK, QuirkyMod.id("wooden_hopper"));
+	private static final ResourceKey<Block> ROPE_ID = ResourceKey.create(Registries.BLOCK, QuirkyMod.id("rope"));
+	private static final ResourceKey<Block> ROPE_LANTERN_ID = ResourceKey.create(Registries.BLOCK, QuirkyMod.id("rope_lantern"));
 
 	public static final CloudBlock CLOUD = new CloudBlock(
 		BlockBehaviour.Properties.of()
@@ -78,6 +82,27 @@ public final class ModBlocks {
 			.noOcclusion()
 	);
 
+	/** 绳段：无碰撞/可含水/光照透明，攀爬与支撑连锁见 {@link RopeBlock}。 */
+	public static final RopeBlock ROPE = new RopeBlock(
+		BlockBehaviour.Properties.of()
+			.setId(ROPE_ID)
+			.noCollision()
+			.noOcclusion()
+			.instabreak()
+			.sound(SoundType.WOOL)
+	);
+
+	/** 挂灯绳段：同绳段 + 亮度 15。 */
+	public static final RopeLanternBlock ROPE_LANTERN = new RopeLanternBlock(
+		BlockBehaviour.Properties.of()
+			.setId(ROPE_LANTERN_ID)
+			.noCollision()
+			.noOcclusion()
+			.instabreak()
+			.sound(SoundType.WOOL)
+			.lightLevel(state -> 15)
+	);
+
 	private ModBlocks() {
 	}
 
@@ -87,5 +112,7 @@ public final class ModBlocks {
 		Registry.register(BuiltInRegistries.BLOCK, IRON_BUTTON_ID, IRON_BUTTON);
 		Registry.register(BuiltInRegistries.BLOCK, OBSIDIAN_PRESSURE_PLATE_ID, OBSIDIAN_PRESSURE_PLATE);
 		Registry.register(BuiltInRegistries.BLOCK, WOODEN_HOPPER_ID, WOODEN_HOPPER);
+		Registry.register(BuiltInRegistries.BLOCK, ROPE_ID, ROPE);
+		Registry.register(BuiltInRegistries.BLOCK, ROPE_LANTERN_ID, ROPE_LANTERN);
 	}
 }

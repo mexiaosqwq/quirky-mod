@@ -1,0 +1,36 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "quirky:block/rope",
+    "rope": "quirky:block/rope",
+    "rope_lantern": "quirky:block/rope_lantern"
+  },
+  "elements": [
+    {
+      "from": [7, 6, 7],
+      "to": [9, 16, 9],
+      "shade": false,
+      "faces": {
+        "down": {"uv": [0, 0, 2, 2], "texture": "#rope"},
+        "up": {"uv": [0, 0, 2, 2], "texture": "#rope"},
+        "north": {"uv": [0, 0, 2, 10], "texture": "#rope"},
+        "south": {"uv": [0, 0, 2, 10], "texture": "#rope"},
+        "west": {"uv": [0, 0, 2, 10], "texture": "#rope"},
+        "east": {"uv": [0, 0, 2, 10], "texture": "#rope"}
+      }
+    },
+    {
+      "from": [4, 0, 4],
+      "to": [12, 7, 12],
+      "shade": false,
+      "faces": {
+        "down": {"uv": [0, 0, 8, 8], "texture": "#rope_lantern"},
+        "up": {"uv": [0, 0, 8, 8], "texture": "#rope_lantern"},
+        "north": {"uv": [0, 0, 8, 7], "texture": "#rope_lantern"},
+        "south": {"uv": [0, 0, 8, 7], "texture": "#rope_lantern"},
+        "west": {"uv": [0, 0, 8, 7], "texture": "#rope_lantern"},
+        "east": {"uv": [0, 0, 8, 7], "texture": "#rope_lantern"}
+      }
+    }
+  ]
+}

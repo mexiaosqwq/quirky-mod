@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "waterlogged=false": {
+      "model": "quirky:block/rope"
+    },
+    "waterlogged=true": {
+      "model": "quirky:block/rope"
+    }
+  }
+}
