@@ -15,8 +15,8 @@
 - 手持播种袋对**耕地（farmland）**右键：以点击的耕地为中心，在 **3×3 范围**内寻找可播种位置。
 - 可播种位置条件：该格是耕地、上方是空气（或可被植物替换的植物/雪等——保守起见只认空气）。
 - 种子来源：遍历玩家背包（含快捷栏，不含盔甲槽），取**第一种**能种在该位置的种子。
-  - 种子判定：`item instanceof ItemNameBlockItem`（原版小麦种子、胡萝卜、马铃薯、甜菜根都是此类），且其目标作物 `canSurvive` 于该耕地上方。
-  - 这保证泛用性：任何模组/数据包注册的同类种子自动兼容。
+  - 种子判定（**26.2 实测：种子不再是 ItemNameBlockItem**，而是作物方块的 BlockItem——如 `WHEAT_SEEDS = BlockItem(Blocks.WHEAT)`，mcsrc `Items.java:1027` 已验证）：`item instanceof BlockItem`，且其方块 `defaultBlockState` 在该耕地上方位置通过 `canSurvive`（`CropBlock.canSurvive` 含光照+基质检查，mcsrc `CropBlock.java:151` 已验证），且目标格可被替换（空气）。
+  - 这保证泛用性：任何模组/数据包注册的同类作物方块自动兼容。
 - 每个成功播种的位置消耗 1 个种子，种下对应作物（`defaultBlockState`）。
 - 创造模式不消耗种子。
 - **混合种植**：3×3 内逐格独立找种子——若背包有多种种子，会按遍历顺序种植，允许一次铺出混合田。
@@ -25,7 +25,7 @@
 
 | 事件 | 反馈 |
 |---|---|
-| 成功播种（整批一次） | 播种音效（优先 `BLOCK_CROP_PLACE`/`BLOCK_ROOTS_PLACE` 等 26.2 现成种植音，计划阶段试听选定，回退 `BLOCK_GRASS_PLACE`），音高随播种数量微调（种得多音高略低，手感"扎实"） |
+| 成功播种（整批一次） | **复用项目现有 `HarvestFx` 的种植音效模式**（`SoundEvents.CROP_PLANTED`，地狱疣换 `NETHER_WART_PLANTED` 分支，项目已验证可用），音高随播种数量微调（种得多音高略低，手感"扎实"） |
 | 每格播种 | `HAPPY_VILLAGER` 绿色粒子 2-3 个 |
 | 无种子/无可种位置 | 不播放声音、不挥臂（原版 use 返回 fail 的手感），避免"点了没反应还挥手"的错觉 |
 | 使用 | 手臂挥动一次 |
@@ -57,7 +57,7 @@
 
 - 纯交互物品，无 mixin：`Item.useOn` 内完成扫描+种植+消耗。
 - 扫描与"选种子"逻辑抽成纯函数（输入：格子状态列表+背包快照；输出：每格种什么+消耗清单），便于单测。
-- 风险点：`ItemNameBlockItem` 的种植需走 `BlockItemUseContext` 或直接 `level.setBlock`——直接 setBlock 更可控，但要确保不触发作物立即破坏（canSurvive 预检即可）。
+- 风险点：直接用 `level.setBlock` 种作物（不走 BlockItem.place，避免上下文构造的客户端副作用），但必须 canSurvive 预检，否则作物会在下一 tick 被原版破坏逻辑打落。
 
 ### 1.8 验证
 
@@ -87,10 +87,10 @@
 
 | 事件 | 反馈 |
 |---|---|
-| 投掷 | `ENTITY_SNOWBALL_THROW` |
-| 水面化开 | 小型水花（`SPLASH` 粒子）+ `ENTITY_GENERIC_SPLASH`（音量 0.4） |
+| 投掷 | `SoundEvents.SNOWBALL_THROW`（已验证） |
+| 水面化开 | 小型水花（`SPLASH` 粒子）+ `SoundEvents.GENERIC_SPLASH`（已验证；音量 0.4） |
 | 区域存在期间 | 水面偶发上浮 `BUBBLE` 气泡粒子（每 tick 低概率 1-2 个，营造"鱼群聚拢"的可视感） |
-| 地面碎裂 | `ENTITY_ITEM_BREAK` + 棕色碎屑粒子 |
+| 地面碎裂 | `SoundEvents.ITEM_BREAK`（已验证）+ 棕色碎屑粒子 |
 
 ### 2.4 物品与配方
 

@@ -27,8 +27,8 @@
 
 | 事件 | 反馈 |
 |---|---|
-| 放置/延伸 | `BLOCK_WOOL_PLACE` 类软质音效（音量 0.6，音高随延伸次数轻微递降，"一段段放绳"的节奏感） |
-| 连锁掉落 | 每段 `BLOCK_WOOL_BREAK`（音量 0.4）+ 少量线状粒子（`ITEM` 粒子用线物品） |
+| 放置/延伸 | `SoundEvents.WOOL_PLACE` 类软质音效（项目 BottledCloudItem 已验证可用；音量 0.6，音高随延伸次数轻微递降，"一段段放绳"的节奏感） |
+| 连锁掉落 | 每段 `SoundEvents.WOOL_BREAK`（音量 0.4）+ 少量线状粒子（`ITEM` 粒子用线物品） |
 | 攀爬 | 原版藤蔓/梯子攀爬音效天然生效（climbable tag 附带），不额外加 |
 | 批量铺绳 | 快速连续的放置音（每段间隔 1 tick 播放，形成"唰——"的下滑声） |
 
@@ -93,12 +93,12 @@
 
 | 事件 | 反馈 |
 |---|---|
-| 投掷 | `ENTITY_ARROW_SHOOT` 变体（音高 0.8，更"呼"的挥出感） |
+| 投掷 | `SoundEvents.ARROW_SHOOT`（已验证）音高 0.8，更"呼"的挥出感 |
 | 飞行中 | 低音量嗡鸣循环？——**不做循环音**（容易吵），只保留投掷/命中/回收三类瞬时音效 |
-| 命中生物 | `ENTITY_PLAYER_ATTACK_WEAK_SWEEP`（音量 0.5）+ 原版伤害粒子 |
-| 撞到方块 | `BLOCK_WOOD_HIT`（音量 0.4） |
-| 吸收物品 | `ENTITY_ITEM_PICKUP`（音量 0.5） |
-| 回收到手 | `ITEM_ARMOR_EQUIP_GENERIC`（音量 0.5） |
+| 命中生物 | `SoundEvents.PLAYER_ATTACK_WEAK_SWEEP`（音量 0.5）+ 原版伤害粒子 |
+| 撞到方块 | 撞击方块自身的 `getSoundType().getHitSound()`（项目 HarvestFx 同款用法，木材撞木声、石头撞石声，更自然） |
+| 吸收物品 | `SoundEvents.ITEM_PICKUP`（已验证；音量 0.5） |
+| 回收到手 | `SoundEvents.ARMOR_EQUIP_GENERIC`（已验证；音量 0.5） |
 
 ### 2.4 配方与贴图/模型
 
@@ -110,7 +110,7 @@
 | 场景 | 行为 |
 |---|---|
 | 飞行中再次右键 | 手中已无回旋镖（投出即离手），无动作 |
-| 回旋镖耐久归零 | 投出落地后不回收，直接损坏消失（`ITEM_BREAK` 音效+粒子） |
+| 回旋镖耐久归零 | 投出落地后不回收，直接损坏消失（`SoundEvents.ITEM_BREAK` 音效+粒子，已验证） |
 | 投掷进虚空/世界外 | 10 秒兜底自毁，不掉落（防虚空物品堆积） |
 | 吸收的物品很多 | 实体 NBT 列表无上限压力（一次飞行路径有限），回收时满包部分掉落 |
 | 命中盔甲架/展示框 | 视为生物路径之外：不伤害（只 LivingEntity），穿过 |

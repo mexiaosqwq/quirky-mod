@@ -28,8 +28,8 @@
 
 | 事件 | 反馈 |
 |---|---|
-| 装入 | `ITEM_ARMOR_EQUIP_LEATHER` + 少量 `CRIT` 风格小粒子（箭支入袋的"簌簌"感） |
-| 取出一组 | `ITEM_ARMOR_EQUIP_LEATHER`（音高略高） |
+| 装入 | `SoundEvents.ARMOR_EQUIP_LEATHER`（已验证）+ 少量 `CRIT` 风格小粒子（箭支入袋的"簌簌"感） |
+| 取出一组 | `SoundEvents.ARMOR_EQUIP_LEATHER`（音高略高） |
 | 装满后再吸 | 只吸能吸的，已满则无动作无声音 |
 
 ### 1.5 配方与贴图
@@ -104,8 +104,11 @@
 
 ### 2.7 实现要点与风险
 
-- 无 mixin：`Item.use` 服务端分支用 `player.openMenu`（26.2 签名计划阶段核对）+ 自定义 `MenuProvider` 包装 `getEnderChestInventory()`。
-- 风险点：`openMenu` 对 MenuProvider 的返回契约、末影库存 Container 与箱子菜单的槽位匹配——实现时用 mcsrc 的末影箱打开逻辑（`EnderChestBlock.use` 路径）作参照。
+- 无 mixin：`Item.use` 服务端分支用已验证的原版末影箱打开模式（mcsrc `EnderChestBlock.java:85-94`）：
+  - `PlayerEnderChestContainer container = player.getEnderChestInventory();`
+  - `player.openMenu(new SimpleMenuProvider((id, inv, p) -> ChestMenu.threeRows(id, inv, container), 标题))`
+  - `ServerPlayer.openMenu(MenuProvider)` 返回 `OptionalInt`（mcsrc `ServerPlayer.java:1318`），客户端收到后自动弹原版箱子界面。
+- 风险点：末影库存是 `PlayerEnderChestContainer`（非普通 Container），`ChestMenu.threeRows` 与其 27 槽匹配，参照原版即可，无自定义槽位逻辑。
 
 ### 2.8 验证
 
@@ -134,9 +137,9 @@
 
 | 事件 | 反馈 |
 |---|---|
-| 吹哨 | 哨音（26.2 若有 `GOAT_HORN` 音色则用其变体，否则选一种木管类原版音效，计划阶段试听选定；音量 1.0、传播远一点，符合"召集"语义） |
+| 吹哨 | 山羊角音色：`SoundEvents.GOAT_HORN_SOUND_VARIANTS`（已验证，8 种变体，每次吹哨随机选一种——有收集感和辨识度；音量 1.0、传播远一点，符合"召集"语义） |
 | 宠物响应 | 每只宠物头顶 3-5 个 `HEART` 粒子 |
-| 远距离传送到达 | `PORTAL` 粒子 + `ENTITY_ENDERMAN_TELEPORT`（音量 0.3） |
+| 远距离传送到达 | `PORTAL` 粒子 + `SoundEvents.ENDERMAN_TELEPORT`（已验证；音量 0.3） |
 | 范围内无宠物 | 哨音照吹，无粒子（玩家自知） |
 
 ### 3.4 配方与贴图
@@ -163,8 +166,7 @@
 ### 3.7 实现要点与风险
 
 - 无 mixin：`Item.use` 服务端 `level.getEntitiesOfClass(TamableAnimal/具体类, AABB, owner 过滤)`。
-- 目标类型：狼 `Wolf`、猫 `Cat`、鹦鹉 `Parrot`——26.2 类路径在 `net/minecraft/world/entity/animal/`（鹦鹉在 `animal/parrot/Parrot`，已核 mcsrc 存在）。
-- 驯服判定统一走 `TamableAnimal.isOwnedBy(player)`；鹦鹉是 TamableAnimal 子类（计划阶段 javap 确认继承链）。
+- 目标类型：狼 `Wolf`、猫 `Cat`、鹦鹉 `Parrot`——已验继承链：`Parrot extends ShoulderRidingEntity`（`animal/parrot/ShoulderRidingEntity.java`）`extends TamableAnimal`，`isOwnedBy(LivingEntity)` 定义在 `TamableAnimal.java:181`，鹦鹉/狼/猫均可直接用。
 
 ### 3.8 验证
 

@@ -25,7 +25,7 @@
 
 | 事件 | 音效 | 音高 | 音量 |
 |---|---|---|---|
-| 普通命中 | `BLOCK_NOTE_BLOCK_PLING`（bell 音色变体） | 1.5 | 配置值（默认 0.6） |
+| 普通命中 | `SoundEvents.NOTE_BLOCK_BELL`（26.2 已验证；bell 音色即经典 pling） | 1.5 | 配置值（默认 0.6） |
 | 暴击命中 | 同上 | 1.8 | 配置值 |
 
 粒子：暴击命中时额外 3-5 个 `CRIT` 粒子（原版暴击已有粒子，此处不重复添加；仅在原版未产生粒子时补足——实现时二选一，不叠加）。
@@ -33,7 +33,7 @@
 ### 1.3 实现要点
 
 - Mixin：`@Inject` TAIL 注入 `AbstractArrow.onHitEntity(EntityHitResult)`，仅当 `hitResult.getEntity() instanceof LivingEntity` 时播放。
-- 不加新声音资源（复用原版音符盒音色，符合"轻量"定调）；若实机试听不满意，计划阶段可换 `BLOCK_AMETHYST_BLOCK_CHIME`。
+- 不加新声音资源（复用原版音符盒音色，符合"轻量"定调）；若实机试听不满意，备选 `SoundEvents.AMETHYST_BLOCK_CHIME`（已验证存在）。
 
 ### 1.4 配置
 
@@ -60,7 +60,7 @@
 
 | 事件 | 反馈 |
 |---|---|
-| 染色成功 | `BLOCK_FIRE_EXTINGUISH`（音量 0.3，"丢进火里嘶一声"的手感）+ 一股对应颜色的烟雾粒子爆发 |
+| 染色成功 | `SoundEvents.FIRE_EXTINGUISH`（已验证；音量 0.3，"丢进火里嘶一声"的手感）+ 一股对应颜色的烟雾粒子爆发 |
 | 持续冒烟 | 原版烟粒子替换为染色版本（颜色 = 染料 RGB，透明度与原版烟一致） |
 
 ### 2.3 实现要点
@@ -69,7 +69,7 @@
 - **粒子替换**：`CampfireBlock.animateTick` 中生成烟粒子的位置注入（mcsrc `CampfireBlock.java:235-237` 附近），有颜色时改用自定义粒子 `quirky:dyed_campfire_smoke`。
 - **自定义粒子**：复制原版 `CampfireSmokeParticle` 行为并支持颜色参数（若原版类 final 或构造器不兼容，则独立实现一份，约 60 行；粒子行为=缓慢上升+轻微漂移，与原版一致）。
 - **熄灭清色**：mixin `CampfireBlock` 的熄灭路径（`douse` 等）重置 `smokeColor`。
-- 染料 → RGB 用 `DyeColor.getTextureDiffuseColor()`（或 26.2 对应 API，计划阶段确认）。
+- 染料 → RGB 用 `DyeColor.getTextureDiffuseColor()`（已验 mcsrc `DyeColor.java:90`）。
 
 ### 2.4 配置
 
@@ -94,9 +94,9 @@
 
 | 事件 | 反馈 |
 |---|---|
-| 投掷 | `ENTITY_EGG_THROW` |
-| 落地（无论成败） | 碎壳粒子（原版 `ITEM_SLIME`/蛋壳同款粒子）+ `ENTITY_ITEM_BREAK` 轻量变体 |
-| 孵化成功 | 幼年鹦鹉生成 + `ENTITY_PARROT_AMBIENT`（啾啾叫）+ 少量爱心粒子 |
+| 投掷 | `SoundEvents.EGG_THROW`（已验证） |
+| 落地（无论成败） | 碎壳粒子（原版蛋壳同款粒子）+ `SoundEvents.ITEM_BREAK`（已验证）轻量变体 |
+| 孵化成功 | 幼年鹦鹉生成 + `SoundEvents.PARROT_AMBIENT`（已验证，啾啾叫）+ 少量爱心粒子 |
 
 ### 3.3 获取途径
 
@@ -133,11 +133,11 @@
 
 | 事件 | 反馈 |
 |---|---|
-| 保护生效 | 原版缓降药水粒子（浅灰飘羽）自然呈现；加一声轻柔的 `BLOCK_NOTE_BLOCK_CHIME`（音高 1.2，音量 0.3） |
+| 保护生效 | 原版缓降药水粒子（浅灰飘羽）自然呈现；加一声轻柔的 `SoundEvents.NOTE_BLOCK_CHIME`（音高 1.2，音量 0.3） |
 
 ### 4.3 实现要点
 
-- Mixin `Player.wakeUp`（或 26.2 实际起床方法，计划阶段确认签名）TAIL，仅服务端侧执行。
+- Mixin `Player.stopSleepInBed(boolean forcefulWakeUp, boolean updateLevelList)`（已验 mcsrc `Player.java:1321`）TAIL，客户端/服务端都会调用，需 `!level.isClientSide` 守卫只在服务端加效果。
 - 效果时长/等级走配置；效果应用用原版 `addEffect(new MobEffectInstance(...))`，env 来源标为普通。
 
 ### 4.4 配置
