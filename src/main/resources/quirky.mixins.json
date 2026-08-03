@@ -11,6 +11,7 @@
     "MelonSeedMixin",
     "ServerPlayerMixin",
     "TooltipDetailsMixin",
+    "WakeUpMixin",
     "DeathCamServerMixin"
   ],
   "client": [],
