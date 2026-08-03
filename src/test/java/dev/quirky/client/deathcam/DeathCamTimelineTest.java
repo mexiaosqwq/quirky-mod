@@ -64,14 +64,24 @@ class DeathCamTimelineTest {
 
 	@Test
 	void cameraStaysBehindPlayer() {
-		// 相机始终位于玩家正后方（朝向的反方向），拉出过程中方向恒定
-		DeathCamTimeline timeline = new DeathCamTimeline(50, 0.0F);
+		// 相机始终位于玩家正后方（朝向的反方向），拉出过程中方向恒定。
+		// 用 yaw=90（玩家朝西 -X）验证镜像符号：MC 朝向向量 = (-sin, cos)，
+		// 位置在后方 = (-sin(yaw+180), cos(yaw+180)) = (+X, 0)（东）。
+		DeathCamTimeline timeline = new DeathCamTimeline(50, 90.0F);
 		for (int i = 0; i <= 20; i++) {
 			float t = i / 20.0F;
 			Vec3 offset = timeline.position(t);
-			// 朝向 yaw=0（+Z），相机应在 -Z 方向（offset.z < 0）
-			assertTrue(offset.z < -0.5, "相机应在玩家正后方 at t=" + t);
-			assertEquals(0.0, offset.x, EPS);
+			assertTrue(offset.x > 0.5, "相机应在玩家身后（+X 东侧） at t=" + t + " offset=" + offset);
+			assertEquals(0.0, offset.z, EPS);
 		}
+	}
+
+	@Test
+	void cameraRisesVisibly() {
+		// 高度应从眼睛高度明显升高（拉出展示位），2.5s 内 +1.4 格肉眼可辨
+		DeathCamTimeline timeline = new DeathCamTimeline(50);
+		double startY = timeline.position(0.0F).y;
+		double endY = timeline.position(1.0F).y;
+		assertTrue(endY - startY >= 1.2, "结束高度应明显高于起始: " + (endY - startY));
 	}
 }

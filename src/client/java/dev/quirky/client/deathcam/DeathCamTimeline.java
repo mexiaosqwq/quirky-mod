@@ -22,7 +22,8 @@ public final class DeathCamTimeline {
 	public static final float END_RADIUS = 6.0F;
 	/** 起始高度：玩家眼睛高度，避免从第一人称瞬间跳到脚下 */
 	public static final float START_HEIGHT = 1.6F;
-	public static final float END_HEIGHT = 2.0F;
+	/** 结束高度：明显高于玩家（+1.4 格），拉出展示位肉眼可辨的升高 */
+	public static final float END_HEIGHT = 3.0F;
 	/** 起始俯视角：水平，逐渐加深俯视尸体 */
 	public static final float START_PITCH = 0.0F;
 	public static final float END_PITCH = 25.0F;
@@ -48,12 +49,14 @@ public final class DeathCamTimeline {
 
 	/**
 	 * 相机位置相对死亡锚点的偏移：恒定位于玩家正后方（朝向角 + 180°），
-	 * 水平半径按"先快后慢"分段插值，高度 1.6→2.0 线性上升。
+	 * 水平半径按"先快后慢"分段插值，高度 1.6→3.0 线性上升。
+	 * 注意 MC 朝向向量 = (-sin(yaw), cos(yaw))（Entity.getLookAngle 带负号），
+	 * x 分量必须取负，否则 yaw≠0 时镜像到玩家前方（"运镜往前去"）。
 	 */
 	public Vec3 position(float t) {
 		double rad = Math.toRadians(yawDegrees(t) + 180.0F);
 		float radius = radiusAt(t);
-		return new Vec3(Math.sin(rad) * radius, Mth.lerp(t, START_HEIGHT, END_HEIGHT), Math.cos(rad) * radius);
+		return new Vec3(-Math.sin(rad) * radius, Mth.lerp(t, START_HEIGHT, END_HEIGHT), Math.cos(rad) * radius);
 	}
 
 	/** 相机朝向（yaw）：保持起始朝向不变（不环绕，基岩版式拉出展示）。 */
