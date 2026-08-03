@@ -1,6 +1,6 @@
 package dev.quirky.client.usage_ticker;
 
-import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import dev.quirky.QuirkyMod;
@@ -14,12 +14,17 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 /**
  * 使用量挂件（对齐 Quark UsageTicker）：
  * 快捷栏左侧显示最近数量变化的物品（图标 + 背包总数），保持后滑回；
  * 快捷栏右侧显示 4 件护甲的耐久条，耐久连续不变约 3 秒后滑回。
+ *
+ * 检测：每 tick 按物品累加 41 槽总数并对比相邻 tick（拾取/消耗事件），
+ * 主手物品切换也触发；整理背包（同物品槽位重排）总数不变不触发。
  *
  * 渲染时机：MC 26.2 的 HUD 已改为 extract-render 管线（{@link GuiGraphicsExtractor}，
  * 原 Gui.render 与 HudRenderCallback 均不存在），故通过 Fabric API 25.3 的
@@ -40,7 +45,10 @@ public final class UsageTickerHud {
 	private static TickerElement itemElement;
 	private static TickerElement armorElement;
 	private static TickerEvent currentEvent;
-	private static List<TickerSnapshot.SlotSnapshot> lastSnapshot = List.of();
+	/** null 表示基线未建立（玩家切换后首个 tick），见 {@link TickerSnapshot#diff}。 */
+	private static Map<Item, Integer> lastTotals;
+	/** 主手物品走 26.2 客户端装备槽（equipment MAINHAND），热键切换有 1~2 tick 回显延迟，属正常。 */
+	private static Item lastMainHand = Items.AIR;
 	private static Player lastPlayer;
 
 	private UsageTickerHud() {
@@ -70,12 +78,17 @@ public final class UsageTickerHud {
 		}
 		if (player != lastPlayer) {
 			lastPlayer = player;
-			lastSnapshot = List.of();
+			lastTotals = null;
+			lastMainHand = Items.AIR;
+			itemElement.reset();
+			armorElement.reset();
 			ArmorTicker.reset();
 		}
-		List<TickerSnapshot.SlotSnapshot> snapshot = TickerSnapshot.capture(player);
-		Optional<TickerEvent> event = TickerSnapshot.diff(lastSnapshot, snapshot);
-		lastSnapshot = snapshot;
+		Item mainHand = player.getMainHandItem().getItem();
+		Map<Item, Integer> totals = TickerSnapshot.captureTotals(player);
+		Optional<TickerEvent> event = TickerSnapshot.diff(lastTotals, totals, lastMainHand, mainHand);
+		lastTotals = totals;
+		lastMainHand = mainHand;
 		// 数量归零（消耗最后一件）时物品已消失，无从显示，不触发。
 		boolean active = event.isPresent() && event.get().newCount() > 0;
 		if (active) {
@@ -93,22 +106,23 @@ public final class UsageTickerHud {
 		if (minecraft.player == null) {
 			return;
 		}
+		float partialTick = deltaTracker.getGameTimeDeltaPartialTick(false);
 		int center = graphics.guiWidth() / 2;
 		int hotbarY = graphics.guiHeight() - HOTBAR_HEIGHT;
 		if (itemElement.isVisible() && currentEvent != null) {
-			renderItemTicker(graphics, minecraft, center - HOTBAR_HALF_WIDTH, hotbarY);
+			renderItemTicker(graphics, minecraft, center - HOTBAR_HALF_WIDTH, hotbarY, partialTick);
 		}
 		if (armorElement.isVisible()) {
 			ArmorTicker.render(
 				graphics, minecraft,
 				center + HOTBAR_HALF_WIDTH + HOTBAR_GAP,
-				animatedY(hotbarY + ICON_Y_INSET, armorElement)
+				animatedY(hotbarY + ICON_Y_INSET, armorElement, partialTick)
 			);
 		}
 	}
 
-	private static void renderItemTicker(GuiGraphicsExtractor graphics, Minecraft minecraft, int hotbarLeft, int hotbarY) {
-		int y = animatedY(hotbarY + ICON_Y_INSET, itemElement);
+	private static void renderItemTicker(GuiGraphicsExtractor graphics, Minecraft minecraft, int hotbarLeft, int hotbarY, float partialTick) {
+		int y = animatedY(hotbarY + ICON_Y_INSET, itemElement, partialTick);
 		int x = hotbarLeft - SLOT_SIZE - HOTBAR_GAP;
 		graphics.fill(x - 1, y - 1, x + 17, y + 17, 0x40000000);
 		TickerEvent event = currentEvent;
@@ -118,8 +132,8 @@ public final class UsageTickerHud {
 	}
 
 	/**
-	 * 背包内该物品的总数：遍历背包按 isSameItemSameComponents 求和，再与变化槽数量取较大值
-	 * （带自定义组件的堆叠可能比对不上，兜底显示当前槽数量）。
+	 * 背包内该物品的总数：遍历背包按 isSameItemSameComponents 求和，再与事件时刻总数取较大值
+	 * （带自定义组件的堆叠可能比对不上，兜底显示事件时刻的总数）。
 	 */
 	private static int totalCount(Player player, TickerEvent event) {
 		ItemStack reference = new ItemStack(event.item());
@@ -136,10 +150,10 @@ public final class UsageTickerHud {
 
 	/**
 	 * 按动画状态计算纵向位移：从下方滑入 20px，ease-out 曲线 offset = -p*(p-2)*20；
-	 * 滑出为反向动画（下移 20px 后消失）。
+	 * 滑出为反向动画（下移 20px 后消失）。partialTick 用于帧间插值，平滑 tick 步进。
 	 */
-	private static int animatedY(int baseY, TickerElement element) {
-		float p = element.progress();
+	private static int animatedY(int baseY, TickerElement element, float partialTick) {
+		float p = element.progress(partialTick);
 		int offset = Math.round(-p * (p - 2) * TickerElement.SLIDE_DISTANCE);
 		return switch (element.state()) {
 			case SLIDE_IN -> baseY + TickerElement.SLIDE_DISTANCE - offset;
