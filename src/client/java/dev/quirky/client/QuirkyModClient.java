@@ -1,8 +1,10 @@
 package dev.quirky.client;
 
 import dev.quirky.ModEntities;
+import dev.quirky.ModParticles;
 import dev.quirky.client.deathcam.DeathCamClient;
 import dev.quirky.client.equip_swap.EquipSwapClient;
+import dev.quirky.client.particle.DyedCampfireSmokeProvider;
 import dev.quirky.client.tooltips.ClientAttributeTooltipComponent;
 import dev.quirky.client.tooltips.ClientFoodTooltipComponent;
 import dev.quirky.client.tooltips.ClientMapTooltipComponent;
@@ -15,6 +17,7 @@ import dev.quirky.tooltips.FoodTooltipComponent;
 import dev.quirky.tooltips.MapTooltipComponent;
 import dev.quirky.tooltips.ShulkerTooltipComponent;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.particle.v1.ParticleProviderRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.ClientTooltipComponentCallback;
 import net.minecraft.client.renderer.entity.EntityRenderers;
 
@@ -41,5 +44,7 @@ public class QuirkyModClient implements ClientModInitializer {
 		});
 		EntityRenderers.register(ModEntities.TOTEM, TotemEntityRenderer::new);
 		EntityRenderers.register(ModEntities.TORCH_ARROW, TorchArrowRenderer::new);
+		// 染色营火烟粒子工厂：fabric-particles-v1 的 PendingParticleProvider 提供 SpriteSet
+		ParticleProviderRegistry.getInstance().register(ModParticles.DYED_CAMPFIRE_SMOKE, DyedCampfireSmokeProvider::new);
 	}
 }

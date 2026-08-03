@@ -9,6 +9,7 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.ARGB;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntityTypes;
@@ -89,9 +90,8 @@ public class ParrotEggEntity extends ThrowableItemProjectile {
 			hatchChance = QuirkyConfigHolder.get().parrotEggHatchChance;
 		}
 		int count = ParrotEggHatchLogic.hatchCount(this.random, hatchChance, QuirkyConfigHolder.get().parrotEggTwinChance);
-		int shellColor;
+		int shellColor = ParrotEggHatchLogic.randomShellColor(this.random);
 		if (count > 0) {
-			shellColor = 0;
 			for (int i = 0; i < count; i++) {
 				Parrot parrot = EntityTypes.PARROT.create(serverLevel, EntitySpawnReason.TRIGGERED);
 				if (parrot != null) {
@@ -109,7 +109,7 @@ public class ParrotEggEntity extends ThrowableItemProjectile {
 		}
 		// 碎壳色粒子（先看到壳色，再看到鹦鹉）
 		serverLevel.sendParticles(
-			ColorParticleOption.create(ParticleTypes.ENTITY_EFFECT, shellColor),
+			ColorParticleOption.create(ParticleTypes.ENTITY_EFFECT, ARGB.color(255, shellColor)),
 			this.getX(), this.getY(), this.getZ(), 8, 0.2, 0.2, 0.2, 0.0
 		);
 		this.level().broadcastEntityEvent(this, (byte) 3);

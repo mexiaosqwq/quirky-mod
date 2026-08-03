@@ -24,6 +24,7 @@ public class QuirkyMod implements ModInitializer {
 		QuirkyConfigHolder.set(AutoConfig.getConfigHolder(QuirkyConfig.class).getConfig());
 		ModBlocks.register();
 		ModBlockEntityTypes.register();
+		ModParticles.register();
 		ModItems.register();
 		ModEntities.register();
 		HarvestHandler.init();
