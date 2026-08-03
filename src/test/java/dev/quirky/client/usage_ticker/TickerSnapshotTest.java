@@ -262,6 +262,19 @@ class TickerSnapshotTest {
 	}
 
 	@Test
+	void diffArmorSlots_malformedSize_noChange() {
+		// 兜底：快照长度异常（不应发生）→ 全 false
+		assertArrayEquals(new boolean[4], TickerSnapshot.diffArmorSlots(List.of(), noArmor()));
+	}
+
+	@Test
+	void diffArmorSlots_durabilityIncrease_repair_flagsThatSlot() {
+		boolean[] changed = TickerSnapshot.diffArmorSlots(armor(helmet(8)), armor(helmet(3)));
+
+		assertArrayEquals(new boolean[] {true, false, false, false}, changed);
+	}
+
+	@Test
 	void diffArmorSlots_noChange_noChange() {
 		assertArrayEquals(new boolean[4], TickerSnapshot.diffArmorSlots(noArmor(), noArmor()));
 	}
@@ -351,6 +364,45 @@ class TickerSnapshotTest {
 
 		assertEquals(List.of(Items.DIAMOND_HELMET),
 			TickerSnapshot.diffToolDurability(before, after, noArmor()));
+	}
+
+	@Test
+	void diffToolDurability_wornAndSpareSameItem_spareRepair_notExcluded() {
+		// 穿 1 + 备 1 同种甲：仅当全部堆叠都在盔甲槽才排除——背包件修复仍走浮动列表
+		Map<Item, DurabilityState> before = Map.of(Items.DIAMOND_HELMET, new DurabilityState(2, 10));
+		Map<Item, DurabilityState> after = Map.of(Items.DIAMOND_HELMET, new DurabilityState(2, 7));
+		List<ArmorSlot> afterArmor = armor(helmet(5)); // 1 件穿着
+
+		assertEquals(List.of(Items.DIAMOND_HELMET),
+			TickerSnapshot.diffToolDurability(before, after, afterArmor));
+	}
+
+	@Test
+	void diffToolDurability_wornAndSpareSameItem_wornDamaged_alsoFires() {
+		// 穿 1 + 备 1：穿着件损坏（聚合变化）→ 浮动列表兜底 + 固定位（组合双提示，接受）
+		Map<Item, DurabilityState> before = Map.of(Items.DIAMOND_HELMET, new DurabilityState(2, 10));
+		Map<Item, DurabilityState> after = Map.of(Items.DIAMOND_HELMET, new DurabilityState(2, 13));
+		List<ArmorSlot> afterArmor = armor(helmet(8));
+
+		assertEquals(List.of(Items.DIAMOND_HELMET),
+			TickerSnapshot.diffToolDurability(before, after, afterArmor));
+	}
+
+	@Test
+	void diffToolDurability_armorAndToolDamaged_sameTick_both() {
+		// 同 tick：穿戴甲受损（固定位）+ 工具受损（浮动列表）→ 互不干扰
+		Map<Item, DurabilityState> before = new LinkedHashMap<>();
+		before.put(Items.DIAMOND_HELMET, new DurabilityState(1, 5));
+		before.put(Items.DIAMOND_PICKAXE, new DurabilityState(1, 5));
+		Map<Item, DurabilityState> after = new LinkedHashMap<>();
+		after.put(Items.DIAMOND_HELMET, new DurabilityState(1, 8));
+		after.put(Items.DIAMOND_PICKAXE, new DurabilityState(1, 9));
+		List<ArmorSlot> afterArmor = armor(helmet(8));
+
+		boolean[] armorChanged = TickerSnapshot.diffArmorSlots(armor(helmet(5)), afterArmor);
+		assertArrayEquals(new boolean[] {true, false, false, false}, armorChanged);
+		assertEquals(List.of(Items.DIAMOND_PICKAXE),
+			TickerSnapshot.diffToolDurability(before, after, afterArmor));
 	}
 
 	@Test

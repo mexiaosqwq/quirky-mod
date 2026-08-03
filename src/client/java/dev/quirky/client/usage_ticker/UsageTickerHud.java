@@ -162,12 +162,14 @@ public final class UsageTickerHud {
 					ARMOR_SLOT_START + i);
 			}
 		}
-		// 工具/副手耐久浮动列表（护甲位之后）
+		// 工具/副手耐久浮动列表（护甲位之后；窄屏时左移钳制，避免超出屏幕右缘）
 		if (toolElement.isVisible() && !toolItems.isEmpty()) {
-			DurabilityTicker.renderToolList(graphics, minecraft,
-				rightX + ARMOR_SLOT_COUNT * (DurabilityTicker.SLOT_SIZE + DurabilityTicker.SLOT_GAP),
-				animatedY(baseY, toolElement, partialTick),
-				toolItems);
+			int toolX = rightX + ARMOR_SLOT_COUNT * (DurabilityTicker.SLOT_SIZE + DurabilityTicker.SLOT_GAP);
+			int listWidth = toolItems.size() * (DurabilityTicker.SLOT_SIZE + DurabilityTicker.SLOT_GAP)
+				- DurabilityTicker.SLOT_GAP;
+			toolX = Math.min(toolX, graphics.guiWidth() - listWidth - HOTBAR_GAP);
+			DurabilityTicker.renderToolList(graphics, minecraft, toolX,
+				animatedY(baseY, toolElement, partialTick), toolItems);
 		}
 	}
 

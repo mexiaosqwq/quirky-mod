@@ -1,6 +1,7 @@
 package dev.quirky.client.usage_ticker;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,9 +22,9 @@ import net.minecraft.world.item.Items;
  * 左右两个挂件——一套检测，对所有使用量变化通用，不为具体场景单独写逻辑：
  *
  * <ul>
- *   <li><b>数量变化</b>（拾取/消耗/放置、主手切换）→ 左侧物品挂件（{@link #diffTotals}）</li>
- *   <li><b>耐久变化</b>（任何可损坏物品，含工具/副手/护甲，降或升）→ 右侧耐久挂件（{@link #diffDurability}）</li>
- *   <li><b>盔甲槽内容变化</b>（穿脱/换装）→ 右侧显示当前穿戴（{@link #diffDurability}）</li>
+ *   <li><b>数量变化</b>（拾取/消耗/放置、主手切换、装备槽摆放）→ 左侧物品挂件（{@link #diffTotals}）</li>
+ *   <li><b>盔甲槽内容变化</b>（穿脱/换装/耐久升降，逐槽）→ 右侧对应固定位（{@link #diffArmorSlots}）</li>
+ *   <li><b>工具/副手耐久变化</b>（损坏/修复，降或升）→ 右侧浮动列表（{@link #diffToolDurability}）</li>
  * </ul>
  *
  * 数量与耐久均按物品聚合（不绑定槽位），同物品在槽位间移动（整理/交换）天然免疫；
@@ -197,7 +198,8 @@ public final class TickerSnapshot {
 	 * @return 需要右侧浮动位显示的物品列表（聚合遍历序，去重）；无变化返回空列表。规则：
 	 *         <ul>
 	 *           <li>可损坏物品聚合 {@code totalDamage} 变化且堆叠数不变（损坏/修复）→ 收集；</li>
-	 *           <li>当前盔甲槽中的物品排除（护甲走 {@link #diffArmorSlots} 固定位，不重复显示）。</li>
+	 *           <li>**仅当该物品的全部堆叠都在盔甲槽（全部穿戴中）**才排除（护甲走 {@link #diffArmorSlots}
+	 *               固定位，不重复显示）；穿 + 备同物品时背包件修复/损坏仍走浮动列表。</li>
 	 *         </ul>
 	 *         数量变化（拾取/消耗新工具等）由 {@link #diffTotals} 负责，这里不重复触发；
 	 *         before 为 {@code null}（基线未建立）返回空列表。
@@ -207,10 +209,10 @@ public final class TickerSnapshot {
 		if (before == null || after == null || afterArmor == null) {
 			return List.of();
 		}
-		List<Item> wornArmor = new ArrayList<>(4);
+		Map<Item, Integer> wornCounts = new HashMap<>();
 		for (ArmorSlot slot : afterArmor) {
 			if (slot.item() != Items.AIR) {
-				wornArmor.add(slot.item());
+				wornCounts.merge(slot.item(), 1, Integer::sum);
 			}
 		}
 		List<Item> changed = new ArrayList<>();
@@ -218,7 +220,7 @@ public final class TickerSnapshot {
 			DurabilityState prev = before.get(entry.getKey());
 			DurabilityState curr = entry.getValue();
 			if (prev != null && prev.count() == curr.count() && prev.totalDamage() != curr.totalDamage()
-					&& !wornArmor.contains(entry.getKey())) {
+					&& wornCounts.getOrDefault(entry.getKey(), 0) < curr.count()) {
 				changed.add(entry.getKey());
 			}
 		}
