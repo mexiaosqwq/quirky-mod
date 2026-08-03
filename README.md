@@ -53,7 +53,7 @@
    - [Fabric API](https://modrinth.com/mod/fabric-api)（必需）
    - [Cloth Config API](https://modrinth.com/mod/cloth-config)（必需）
    - [ModMenu](https://modrinth.com/mod/modmenu)（可选，推荐，用于游戏内配置界面）
-3. 下载或自行构建 `quirky-0.1.0.jar`，一并放入 `.minecraft/mods/`。
+3. 下载或自行构建 `quirky-1.0.0.jar`，一并放入 `.minecraft/mods/`。
 4. 使用 Fabric 配置启动游戏。
 
 > 缺少必需前置时游戏会拒绝加载本模组并提示缺失依赖；ModMenu 仅影响能否在游戏内打开配置界面，配置文件仍可直接编辑 `config/quirky.json5`。
@@ -66,7 +66,7 @@
 ./gradlew build --no-daemon --console=plain
 ```
 
-单元测试使用 `./gradlew test`；客户端视觉效果仍需要在桌面客户端手动验证。构建产物位于 `build/libs/quirky-0.1.0.jar`。
+单元测试使用 `./gradlew test`；客户端视觉效果仍需要在桌面客户端手动验证。构建产物位于 `build/libs/quirky-1.0.0.jar`。
 
 ## 范围
 
