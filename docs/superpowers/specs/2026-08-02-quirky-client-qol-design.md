@@ -165,10 +165,10 @@
 - 按 W/S/空格/Shift 时手动优先，不干预；**仅排除脚手架**——原版脚手架自带空格升/Shift 降/自由走动，抬头自动爬反而会在脚手架塔里莫名上升；藤蔓无原生快爬，自动爬收益最大（用户复核：藤蔓必须覆盖，覆盖判定 `LadderSnapHelper.isExcluded` 单测锁定）。
 
 实现：
-- mixin `Player.travel` HEAD（目标类 Player——LocalPlayer 未覆写 travel，26.2 mixin 的 method 选择器只匹配本类方法）：`LadderSnapHelper.climbVelocity(pitch, manual)`（抬头 0.2（净 ≈0.116 b/t）/平视 0.05（缓慢下滑不爬）/低头 −0.15，经重力与竖直摩擦后净上升 ≈0.116 b/t 对齐原版 W 爬梯；travel 内 `handleOnClimbable` 保留 delta.y）。
+- mixin `Player.travel` HEAD（目标类 Player——LocalPlayer 未覆写 travel，26.2 mixin 的 method 选择器只匹配本类方法）：`LadderSnapHelper.climbVelocity(pitch, manual)`（抬头 0.2（净 ≈0.116 b/t）/平视 0.05（缓慢下滑不爬）/低头 −0.15，经重力与竖直摩擦后净上升 ≈0.116 b/t 对齐原版 W 爬梯；travel 内 `handleOnClimbable` 保留 delta.y）。站非整高方块（土径/耕地/半砖）时 blockPosition 低一格、onClimbable false → 补检 feet.above() 是否 #climbable（土径上藤蔓第一格直接爬，无需跳一下）。
 - config：`ladderSnap` 开关（语义 = 自动爬梯）。
 
-验收：梯子/藤蔓上抬头自动上升、低头下降、平视缓慢下滑不爬；按 W/S 仍可手动爬；脚手架上不自动爬（自由走动/空格升/Shift 降不受干预）。
+验收：梯子/藤蔓上抬头自动上升、低头下降、平视缓慢下滑不爬；按 W/S 仍可手动爬；脚手架上不自动爬（自由走动/空格升/Shift 降不受干预）；土径/耕地/半砖上藤蔓第一格抬头直接爬（无需跳一下）。
 
 ### 5.10 装备替换·副手扩展（客户端 + 服务端）
 

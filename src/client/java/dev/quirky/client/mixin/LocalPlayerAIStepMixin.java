@@ -3,7 +3,9 @@ package dev.quirky.client.mixin;
 import dev.quirky.client.ladder_snap.LadderSnapHelper;
 import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -27,13 +29,22 @@ public abstract class LocalPlayerAIStepMixin {
 		if (!((Object) this instanceof LocalPlayer player)) {
 			return;
 		}
-		if (!QuirkyConfigHolder.get().ladderSnap || !player.onClimbable()) {
+		if (!QuirkyConfigHolder.get().ladderSnap) {
 			return;
 		}
 		// 覆盖面 = onClimbable() 语义（#minecraft:climbable ∪ 梯上同向开放活板门，mcsrc LivingEntity.onClimbable）
 		// 即梯子 + 全部藤蔓 + 梯上活板门，仅排除脚手架
 		// （原版自带空格升/Shift 降，抬头自动爬会在脚手架塔里莫名上升；见 LadderSnapHelper.isExcluded）
-		if (LadderSnapHelper.isExcluded(player.getInBlockState())) {
+		BlockState climbState = player.getInBlockState();
+		if (!player.onClimbable()) {
+			// 站非整高方块（土径/耕地/半砖，脚底带小数）：blockPosition 低一格、onClimbable false，
+			// 但身体已在上方可爬方块内 → 补检 feet.above()（土径上藤蔓第一格无需跳一下）
+			climbState = player.level().getBlockState(player.blockPosition().above());
+			if (!climbState.is(BlockTags.CLIMBABLE)) {
+				return;
+			}
+		}
+		if (LadderSnapHelper.isExcluded(climbState)) {
 			return;
 		}
 		boolean manual = player.input.keyPresses.forward()
