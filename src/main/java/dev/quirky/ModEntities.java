@@ -35,12 +35,17 @@ public final class ModEntities {
 		.build(TORCH_ARROW_ID);
 
 	public static final EntityType<ParrotEggEntity> PARROT_EGG = EntityType.Builder.<ParrotEggEntity>of(ParrotEggEntity::new, MobCategory.MISC)
-	public static final EntityType<FishBaitEntity> FISH_BAIT = EntityType.Builder.<FishBaitEntity>of(FishBaitEntity::new, MobCategory.MISC)
 		.noLootTable()
 		.sized(0.25F, 0.25F)
 		.clientTrackingRange(4)
 		.updateInterval(10)
 		.build(PARROT_EGG_ID);
+
+	public static final EntityType<FishBaitEntity> FISH_BAIT = EntityType.Builder.<FishBaitEntity>of(FishBaitEntity::new, MobCategory.MISC)
+		.noLootTable()
+		.sized(0.25F, 0.25F)
+		.clientTrackingRange(4)
+		.updateInterval(10)
 		.build(FISH_BAIT_ID);
 
 	public static final EntityType<BaitZoneEntity> BAIT_ZONE = EntityType.Builder.<BaitZoneEntity>of(BaitZoneEntity::new, MobCategory.MISC)
