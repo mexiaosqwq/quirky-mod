@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "assetId": "quirky:item/rope_lantern",
+  "assetClass": "item_texture",
+  "output": {
+    "path": "src/main/resources/assets/quirky/textures/item/rope_lantern.png",
+    "width": 16,
+    "height": 16,
+    "colorMode": "rgba"
+  },
+  "styleProfile": "quirky_vanilla_item",
+  "brief": {
+    "subject": "A coil of rope with a small lit lantern hanging from it — the item icon for the Rope Lantern item",
+    "gameplayMeaning": "Inventory icon identifying the rope lantern item; must read as the rope coil plus a tiny hanging lantern, distinct from the plain rope icon",
+    "visualPriority": [
+      "first read as rope coil with a hanging lantern",
+      "then show the warm lantern glow against the brown coil",
+      "share the rope and lantern palettes of the block textures"
+    ]
+  },
+  "mustHave": [
+    "coil rings in the upper two-thirds",
+    "lantern with dark caps, orange glass and bright glow hanging at the bottom center",
+    "a small hanger link between coil and lantern"
+  ],
+  "mustNotHave": [
+    "smooth antialiasing",
+    "partial alpha pixels",
+    "lantern large enough to dominate the icon"
+  ],
+  "qualityGates": {
+    "maximumPaletteSize": 8,
+    "allowPartialAlpha": false,
+    "requireVisualAudit": true,
+    "requireHumanApproval": true
+  }
+}

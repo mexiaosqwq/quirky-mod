@@ -89,7 +89,9 @@ def validate_candidate(spec: AssetSpec, facts: Mapping[str, Any]) -> dict[str, A
         if isinstance(margins, Mapping):
             if any(value == 0 for value in margins.values()):
                 warnings.append("visible content touches at least one canvas edge")
-            if all(value == 0 for value in margins.values()):
+            # block_texture assets tile in the world: edge-to-edge coverage is normal,
+            # the margin rule is an icon/gui gate and does not apply to them.
+            if all(value == 0 for value in margins.values()) and spec.asset_class != "block_texture":
                 failures.append("visible content touches every edge with no margin")
     return {
         "status": "fail" if failures else "pass",

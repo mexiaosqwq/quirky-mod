@@ -1,0 +1,141 @@
+{
+  "canvas": {
+    "width": 16,
+    "height": 16,
+    "background": "transparent"
+  },
+  "palette": {
+    "base": "#6B5135FF",
+    "light": "#8A6B45FF",
+    "dark": "#4A3A24FF",
+    "deep": "#33291AFF"
+  },
+  "layers": [
+    {
+      "id": "coil_outer",
+      "operation": "ellipse",
+      "color": "dark",
+      "cx": 8,
+      "cy": 8,
+      "rx": 6,
+      "ry": 5
+    },
+    {
+      "id": "coil_ring2",
+      "operation": "ellipse",
+      "color": "base",
+      "cx": 8,
+      "cy": 8,
+      "rx": 5,
+      "ry": 4
+    },
+    {
+      "id": "coil_ring3",
+      "operation": "ellipse",
+      "color": "light",
+      "cx": 8,
+      "cy": 8,
+      "rx": 4,
+      "ry": 3
+    },
+    {
+      "id": "coil_ring4",
+      "operation": "ellipse",
+      "color": "base",
+      "cx": 8,
+      "cy": 8,
+      "rx": 3,
+      "ry": 2
+    },
+    {
+      "id": "coil_highlight",
+      "operation": "line",
+      "color": "light",
+      "x1": 4,
+      "y1": 4,
+      "x2": 11,
+      "y2": 4
+    },
+    {
+      "id": "coil_shadow",
+      "operation": "line",
+      "color": "deep",
+      "x1": 5,
+      "y1": 13,
+      "x2": 10,
+      "y2": 13
+    },
+    {
+      "id": "loop_outer",
+      "operation": "ellipse",
+      "color": "dark",
+      "cx": 8,
+      "cy": 2,
+      "rx": 2,
+      "ry": 1
+    },
+    {
+      "id": "loop_inner",
+      "operation": "ellipse",
+      "color": "base",
+      "cx": 8,
+      "cy": 2,
+      "rx": 1,
+      "ry": 1
+    },
+    {
+      "id": "loop_highlight",
+      "operation": "line",
+      "color": "light",
+      "x1": 6,
+      "y1": 1,
+      "x2": 10,
+      "y2": 1
+    },
+    {
+      "id": "seam_low",
+      "operation": "line",
+      "color": "deep",
+      "x1": 4,
+      "y1": 10,
+      "x2": 6,
+      "y2": 8
+    },
+    {
+      "id": "seam_mid",
+      "operation": "line",
+      "color": "deep",
+      "x1": 7,
+      "y1": 7,
+      "x2": 8,
+      "y2": 6
+    },
+    {
+      "id": "seam_high",
+      "operation": "line",
+      "color": "deep",
+      "x1": 9,
+      "y1": 5,
+      "x2": 11,
+      "y2": 3
+    },
+    {
+      "id": "tail_upper",
+      "operation": "line",
+      "color": "base",
+      "x1": 12,
+      "y1": 11,
+      "x2": 13,
+      "y2": 12
+    },
+    {
+      "id": "tail_lower",
+      "operation": "line",
+      "color": "dark",
+      "x1": 13,
+      "y1": 13,
+      "x2": 13,
+      "y2": 14
+    }
+  ]
+}

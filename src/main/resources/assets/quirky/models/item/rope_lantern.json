@@ -1,3 +1,6 @@
 {
-  "parent": "quirky:block/rope_lantern"
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "quirky:item/rope_lantern"
+  }
 }
