@@ -132,8 +132,10 @@ function buildAnimation(anim) {
 		const byChannel = {};
 		for (const kf of an.keyframes || []) (byChannel[kf.channel] ||= []).push(kf);
 		for (const [channel, kfs] of Object.entries(byChannel)) {
+			// KeyframeAnimation.Entry.apply 用 Mth.binarySearch 定位关键帧，要求按时间升序（mcsrc KeyframeAnimation.java:82）
+			const sorted = [...kfs].sort((a, b) => a.time - b.time);
 			const target = channel === "position" ? "AnimationChannel.Targets.POSITION" : channel === "scale" ? "AnimationChannel.Targets.SCALE" : "AnimationChannel.Targets.ROTATION";
-			const kfLines = kfs.map((kf) => {
+			const kfLines = sorted.map((kf) => {
 				const dp = kf.data_points || [];
 				const x = Number(dp[0]?.x ?? 0), y = Number(dp[0]?.y ?? 0), z = Number(dp[0]?.z ?? 0);
 				const vec = channel === "position" ? `KeyframeAnimations.posVec(${f2(x)}, ${f2(y)}, ${f2(z)})`
