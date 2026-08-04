@@ -61,7 +61,7 @@ python -m tools.texture_pipeline apply <asset-package> --plan <report.json> --ca
 
 5. Distinguish failures: `validate`/`render`/`apply` failures mean the orchestrator fixes `asset.json`, `source.json`, or the edit plan and reruns the machine command; do not send them to a visual role. A `check-report` failure means send only report-validator errors to the same visual role and retry it once. A second invalid report stops for human review.
 
-5b. Convergence: the auditor's single call is final. If `status` is `pass_visual` or all `blocking` findings have fixes in its `editPlan`, apply and stop. `major`/`minor` findings without `blocking` go to the human as optional notes. If unresolved `blocking` items remain after one apply, stop and present evidence — do not loop visual calls.
+5b. Convergence: the auditor's single call is final. If `status` is `pass_visual` or all `blocking` findings have fixes in its `editPlan`, apply and stop (skip `apply` when `operations` is empty). `major`/`minor` findings without `blocking` go to the human as optional notes. If unresolved `blocking` items remain after one apply, stop and present evidence — do not loop visual calls.
 6. Present candidate comparisons and reports only after auditor status `pass_visual` or the convergence stop above. The user is the only final approver; `pass_visual` is not publication permission.
 7. Only after explicit approval may a later task copy the selected candidate PNG from `build/` to the exact `.png` path declared by `asset.json`. Visual agents never edit source or copy files. For a new item, also use `quirky-new-item-checklist`.
 
@@ -82,13 +82,13 @@ When visual and machine reports conflict, preserve both, use machine data for pi
 - Invalid visual JSON twice: stop for human review.
 - No explicit user approval: do not publish.
 
-Do not run Gradle for skill, agent, documentation, or standalone tooling changes; run `gradle build` only when changing formal resources or mod code.
+Do not run Gradle for skill/agent/doc/tooling changes; run `gradle build` only when changing formal resources or mod code.
 
 ## Common Mistakes
 
 - Storing editable source under `build/`, or storing candidate PNGs under persistent source.
 - Letting a read-only visual agent edit `source.json` or publish files.
-- Treating `check-report` as an agent invocation rather than a validator.
+- Treating `check-report` as an agent invocation, not a validator.
 - Letting an image-capable main model approve its own candidate.
 - Treating visual prose as exact pixel evidence.
 - Reusing one conversation for design and audit.
