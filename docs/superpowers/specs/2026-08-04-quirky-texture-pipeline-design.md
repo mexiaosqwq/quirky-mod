@@ -210,7 +210,7 @@ python -m tools.texture_pipeline validate <asset-package-dir>
 python -m tools.texture_pipeline render <asset-package-dir> --candidate <candidate-id>
 python -m tools.texture_pipeline analyze <png-path> --output <report.json>
 python -m tools.texture_pipeline preview <asset-package-dir> --candidate <candidate-id>
-python -m tools.texture_pipeline check-report <visual-report.json> --role auditor
+python -m tools.texture_pipeline check-report <visual-report.json> --role auditor --width 16 --height 16
 ```
 
 `render` writes only under `build/texture-pipeline/`; it never writes to the formal output path declared in `asset.json`.

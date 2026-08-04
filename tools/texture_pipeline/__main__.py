@@ -14,6 +14,7 @@ from .asset import AssetError, asset_build_dir, load_asset_package
 from .png_io import PngError, read_rgba_png, write_rgba_png
 from .preview import generate_preview_set
 from .renderer import RenderError, render_source
+from .reports import ReportError, validate_visual_report
 
 
 _CANDIDATE_ID = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
@@ -79,6 +80,16 @@ def _preview_command(arguments: argparse.Namespace) -> None:
     _print_json({"previews": {name: str(path) for name, path in previews.items()}, "status": "pass"})
 
 
+def _check_report_command(arguments: argparse.Namespace) -> None:
+    report = validate_visual_report(
+        arguments.report.read_text(encoding="utf-8"),
+        arguments.role,
+        arguments.width,
+        arguments.height,
+    )
+    _print_json(report)
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m tools.texture_pipeline", description="Quirky deterministic PNG asset pipeline")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -103,6 +114,13 @@ def _parser() -> argparse.ArgumentParser:
     preview.add_argument("--candidate", required=True)
     preview.add_argument("--build-root", type=Path, default=Path("build/texture-pipeline"))
     preview.set_defaults(handler=_preview_command)
+
+    check_report = subparsers.add_parser("check-report", help="validate a strict visual-agent JSON report")
+    check_report.add_argument("report", type=Path)
+    check_report.add_argument("--role", choices=("designer", "auditor"), required=True)
+    check_report.add_argument("--width", type=int, required=True)
+    check_report.add_argument("--height", type=int, required=True)
+    check_report.set_defaults(handler=_check_report_command)
     return parser
 
 
@@ -111,7 +129,7 @@ def main(argv: list[str] | None = None) -> int:
         arguments = _parser().parse_args(argv)
         arguments.handler(arguments)
         return 0
-    except (AssetError, PngError, RenderError, OSError, ValueError) as exc:
+    except (AssetError, PngError, RenderError, ReportError, OSError, ValueError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
 
