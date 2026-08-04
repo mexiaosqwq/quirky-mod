@@ -170,6 +170,10 @@ public final class ModItems {
 				output.accept(TORCH_ARROW);
 				output.accept(FISH_BAIT);
 			});
+		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.INGREDIENTS)
+			.register(output -> {
+				output.accept(DEMO_BEAST_SPAWN_EGG);
+			});
 		// TOTEM_OF_HOLDING 不进创造页签：纯内部渲染素材（死亡点图腾实体显示用），玩家不应拿到
 		// 木漏斗可作熔炉燃料（300 tick = 15 秒）：26.2 没有 DataComponents.FUEL，燃料改由服务端
 		// FuelValues 数据驱动，Fabric 通过 FuelValueEvents.BUILD 事件向 Builder 追加条目。
