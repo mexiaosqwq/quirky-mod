@@ -3,7 +3,6 @@ package dev.quirky.harvest;
 import java.util.Iterator;
 import java.util.List;
 
-import dev.quirky.config.QuirkyConfigHolder;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;

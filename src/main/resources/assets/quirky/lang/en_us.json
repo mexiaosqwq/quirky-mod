@@ -74,7 +74,7 @@
   "text.autoconfig.quirky.option.seedPouchRadius": "Seed Pouch Radius",
   "text.autoconfig.quirky.option.seedPouchRadius.@Tooltip": "Pouch planting area: 0 plants only the clicked block, 1 plants a 3×3 area, 2 plants a 5×5 area.",
   "text.autoconfig.quirky.option.fishBaitDurationSeconds": "Fish Bait Duration (seconds)",
-  "text.autoconfig.quirky.option.fishBaitDurationSeconds.@Tooltip": "How long a bait zone lasts in seconds; rain-boosted zones last 5/3× as long when the rain bonus is enabled.",
+  "text.autoconfig.quirky.option.fishBaitDurationSeconds.@Tooltip": "How long a bait zone lasts in seconds; rain-boosted zones last 5/3× as long.",
   "text.autoconfig.quirky.option.fishBaitRadius": "Fish Bait Radius",
   "text.autoconfig.quirky.option.fishBaitRadius.@Tooltip": "Radius (blocks) of the bait zone; bobbers inside it lure fish faster.",
   "text.autoconfig.quirky.option.tickerHoldTicks": "Ticker Hold (ticks)",

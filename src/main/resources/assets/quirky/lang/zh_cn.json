@@ -74,7 +74,7 @@
   "text.autoconfig.quirky.option.seedPouchRadius": "播种袋范围",
   "text.autoconfig.quirky.option.seedPouchRadius.@Tooltip": "播种范围：0 只种点击的那一格，1 种 3×3 区域，2 种 5×5 区域。",
   "text.autoconfig.quirky.option.fishBaitDurationSeconds": "鱼饵球持续时间（秒）",
-  "text.autoconfig.quirky.option.fishBaitDurationSeconds.@Tooltip": "诱鱼区持续时长（秒）；开启雨天加成后，雨天生成的诱鱼区持续 5/3 倍时长。",
+  "text.autoconfig.quirky.option.fishBaitDurationSeconds.@Tooltip": "诱鱼区持续时长（秒）；雨天生成的诱鱼区持续 5/3 倍时长。",
   "text.autoconfig.quirky.option.fishBaitRadius": "鱼饵球范围",
   "text.autoconfig.quirky.option.fishBaitRadius.@Tooltip": "诱鱼区半径（格），区内浮漂咬钩更快。",
   "text.autoconfig.quirky.option.ropeMaxExtendPerUse": "单次最大延伸段数",
