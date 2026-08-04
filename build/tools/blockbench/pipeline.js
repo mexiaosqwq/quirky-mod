@@ -1,8 +1,9 @@
-// pipeline.js — 一键重放：单会话内完成 建项目/骨骼/cube → 动画 → 多时间点截图 → 导出 .bbmodel
+// pipeline.js — 一键重放：单会话内完成 建项目/骨骼/cube → 动画 → 多视角/多时间点截图 → 导出 .bbmodel
 // 用法:
 //   node pipeline.js --spec specs/demo_beast.json --anims specs/demo_beast_anims.json \
 //     --shots "0.0:walk,0.5:walk,1.0:walk" --shot-dir ../../previews/ --export ../../models/demo_beast.bbmodel
 //   --shots "t1:anim,t2:anim,...": 截图时间点与要播放的动画名（用 _ 表示无）
+//   --views "perspective,south,west,top": 静态多视角截图（视角 id 见 DefaultCameraPresets，默认 perspective）
 const { chromium } = require("./pw");
 
 const CHROME = "/data/data/com.termux/files/usr/bin/chromium-browser";
@@ -24,6 +25,8 @@ const fs = require("fs");
 	});
 	const texPath = get("--tex");
 	const texDataUrl = texPath ? "data:image/png;base64," + fs.readFileSync(texPath).toString("base64") : null;
+	const views = (get("--views") || "perspective").split(",").filter(Boolean);
+	const shotName = get("--name") || (spec.name || "model");
 
 	const browser = await chromium.launch({ executablePath: CHROME, headless: true, args });
 	const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
@@ -106,12 +109,26 @@ const fs = require("fs");
 		return { created, total: Animation.all.length };
 	}, { anims });
 
-	// 截图（多时间点，切到动画模式并定位时间）
+	// 截图（多视角静态 + 多时间点动画）
 	await page.evaluate(() => {
 		if (Modes.selected && Modes.selected.id !== "animate" && Modes.options.animate) {
 			Modes.options.animate.select();
 		}
 	});
+
+	// 多视角静态截图（模型姿态，无动画）
+	for (const view of views) {
+		await page.evaluate((viewId) => {
+			const p = Preview.selected;
+			const preset = DefaultCameraPresets.find((x) => x.id === viewId) || DefaultCameraPresets.find((x) => x.id === "initial");
+			if (preset) p.loadAnglePreset(preset);
+		}, view);
+		await page.waitForTimeout(2500);
+		const out = `${shotDir}${shotName}_${view}.png`;
+		await page.screenshot({ path: out });
+		console.log(`shot ${out}`);
+	}
+
 	for (const shot of shots) {
 		await page.evaluate(({ time, anim }) => {
 			if (anim) {
@@ -124,7 +141,7 @@ const fs = require("fs");
 			}
 		}, shot);
 		await page.waitForTimeout(3500);
-		const out = `${shotDir}${spec.name || "model"}_${String(shot.time).replace(".", "_")}${shot.anim ? "_" + shot.anim : ""}.png`;
+		const out = `${shotDir}${shotName}_${String(shot.time).replace(".", "_")}${shot.anim ? "_" + shot.anim : ""}.png`;
 		await page.screenshot({ path: out });
 		console.log(`shot ${out}`);
 	}

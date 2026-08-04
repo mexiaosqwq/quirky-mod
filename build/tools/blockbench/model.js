@@ -60,16 +60,21 @@ const args = ["--no-sandbox", "--enable-unsafe-swiftshader", "--disable-dev-shm-
 			const added = [];
 			for (const c of s.cubes || []) {
 				const cube = new Cube({
-					autouv: c.uv ? 0 : 1,
+					autouv: c.uvmap || c.uv ? 0 : 1,
 					name: c.name,
 					from: c.from,
 					to: c.to,
 					origin: c.origin || c.from,
 				}).init();
 				cube.addTo((c.bone && boneMap[c.bone]) || "root");
-				if (c.uv) cube.extend({ uv_offset: c.uv });
+				if (c.uvmap) {
+					// 手动 UV（与 uvlayout.js/texgen 共用，保证 Blockbench 视口 = 游戏 = 纹理一致）
+					for (const [dir, uv] of Object.entries(c.uvmap)) {
+						if (cube.faces[dir]) cube.faces[dir].uv = [...uv];
+					}
+				} else if (c.uv) cube.extend({ uv_offset: c.uv });
 				cube.applyTexture(tex, true);
-				cube.mapAutoUV();
+				if (!c.uvmap) cube.mapAutoUV();
 				added.push(cube.name);
 			}
 			Canvas.updateAll();

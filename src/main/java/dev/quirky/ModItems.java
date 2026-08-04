@@ -41,7 +41,6 @@ public final class ModItems {
 	private static final ResourceKey<Item> ROPE_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("rope"));
 	private static final ResourceKey<Item> ROPE_LANTERN_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("rope_lantern"));
 	private static final ResourceKey<Item> BOOMERANG_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("boomerang"));
-	private static final ResourceKey<Item> DEMO_BEAST_SPAWN_EGG_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("demo_beast_spawn_egg"));
 
 	public static final Item BOTTLED_CLOUD = new BottledCloudItem(
 		new Item.Properties().stacksTo(1).craftRemainder(Items.GLASS_BOTTLE).usingConvertsTo(Items.GLASS_BOTTLE).setId(BOTTLED_CLOUD_ID)
@@ -120,10 +119,6 @@ public final class ModItems {
 		new Item.Properties().setId(BOOMERANG_ID).durability(250)
 	);
 
-	public static final Item DEMO_BEAST_SPAWN_EGG = new SpawnEggItem(
-		new Item.Properties().spawnEgg(ModEntities.DEMO_BEAST).setId(DEMO_BEAST_SPAWN_EGG_ID)
-	);
-
 	private ModItems() {
 	}
 
@@ -144,7 +139,6 @@ public final class ModItems {
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("rope"), ROPE);
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("rope_lantern"), ROPE_LANTERN);
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("boomerang"), BOOMERANG);
-		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("demo_beast_spawn_egg"), DEMO_BEAST_SPAWN_EGG);
 
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES)
 			.register(output -> {
@@ -169,10 +163,6 @@ public final class ModItems {
 			.register(output -> {
 				output.accept(TORCH_ARROW);
 				output.accept(FISH_BAIT);
-			});
-		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.INGREDIENTS)
-			.register(output -> {
-				output.accept(DEMO_BEAST_SPAWN_EGG);
 			});
 		// TOTEM_OF_HOLDING 不进创造页签：纯内部渲染素材（死亡点图腾实体显示用），玩家不应拿到
 		// 木漏斗可作熔炉燃料（300 tick = 15 秒）：26.2 没有 DataComponents.FUEL，燃料改由服务端

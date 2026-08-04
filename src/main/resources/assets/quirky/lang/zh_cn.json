@@ -172,6 +172,4 @@
   "text.autoconfig.quirky.category.pet_whistle": "宠物口哨",
   "text.autoconfig.quirky.option.petWhistlePhantomMax": "幻翼嘲讽上限",
   "text.autoconfig.quirky.option.petWhistlePhantomMax.@Tooltip": "单次吹哨最多嘲讽的幻翼数量（1-5，默认 3）。",
-  "item.quirky.demo_beast_spawn_egg": "Demo Beast 生成蛋",
-  "entity.quirky.demo_beast": "小兽"
 }

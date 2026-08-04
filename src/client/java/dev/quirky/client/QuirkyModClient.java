@@ -3,8 +3,6 @@ package dev.quirky.client;
 import dev.quirky.ModEntities;
 import dev.quirky.ModParticles;
 import dev.quirky.client.deathcam.DeathCamClient;
-import dev.quirky.client.demobeast.DemoBeastModel;
-import dev.quirky.client.demobeast.DemoBeastRenderer;
 import dev.quirky.client.equip_swap.EquipSwapClient;
 import dev.quirky.client.particle.DyedCampfireSmokeProvider;
 import dev.quirky.client.render.BoomerangRenderer;
@@ -63,8 +61,5 @@ public class QuirkyModClient implements ClientModInitializer {
 		EntityRenderers.register(ModEntities.FISH_BAIT, ThrownItemRenderer::new);
 		EntityRenderers.register(ModEntities.BAIT_ZONE, NoopRenderer::new);
 		EntityRenderers.register(ModEntities.BOOMERANG, BoomerangRenderer::new);
-		// demo_beast：流水线演示实体（模型/动画/渲染器）
-		EntityRenderers.register(ModEntities.DEMO_BEAST, DemoBeastRenderer::new);
-		ModelLayerRegistry.registerModelLayer(DemoBeastModel.LAYER_LOCATION, DemoBeastModel::createBodyLayer);
 	}
 }

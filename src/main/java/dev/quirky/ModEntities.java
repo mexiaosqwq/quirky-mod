@@ -1,6 +1,5 @@
 package dev.quirky;
 
-import dev.quirky.demobeast.DemoBeastEntity;
 import dev.quirky.parrotegg.ParrotEggEntity;
 import dev.quirky.fishbait.BaitZoneEntity;
 import dev.quirky.fishbait.FishBaitEntity;
@@ -62,13 +61,6 @@ public final class ModEntities {
 		.updateInterval(20)
 		.build(BOOMERANG_ID);
 
-	private static final ResourceKey<EntityType<?>> DEMO_BEAST_ID = ResourceKey.create(Registries.ENTITY_TYPE, QuirkyMod.id("demo_beast"));
-
-	public static final EntityType<DemoBeastEntity> DEMO_BEAST = EntityType.Builder.of(DemoBeastEntity::new, MobCategory.CREATURE)
-		.sized(0.8F, 0.8F)
-		.clientTrackingRange(8)
-		.build(DEMO_BEAST_ID);
-
 	private ModEntities() {
 	}
 
@@ -79,6 +71,5 @@ public final class ModEntities {
 		Registry.register(BuiltInRegistries.ENTITY_TYPE, FISH_BAIT_ID, FISH_BAIT);
 		Registry.register(BuiltInRegistries.ENTITY_TYPE, BAIT_ZONE_ID, BAIT_ZONE);
 		Registry.register(BuiltInRegistries.ENTITY_TYPE, BOOMERANG_ID, BOOMERANG);
-		Registry.register(BuiltInRegistries.ENTITY_TYPE, DEMO_BEAST_ID, DEMO_BEAST);
 	}
 }
