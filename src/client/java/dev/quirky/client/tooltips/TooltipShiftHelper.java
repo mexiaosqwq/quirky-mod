@@ -1,8 +1,6 @@
 package dev.quirky.client.tooltips;
 
 import dev.quirky.ModItems;
-import dev.quirky.config.QuirkyConfig;
-import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.tags.ItemTags;
@@ -34,32 +32,31 @@ public final class TooltipShiftHelper {
 	}
 
 	/**
-	 * 物品是否有受 Shift 控制的 mod tooltip 内容（高级模式恒开，无配置开关）。
-	 * 与各 tooltip 来源的显示条件对齐（时钟/地图预览/箭袋/潜影盒/播种袋/鱼饵球/绳）。
+	 * 物品是否有受 Shift 控制的 mod tooltip 内容（高级模式恒开，无配置开关；
+	 * 与各 tooltip 来源的显示条件对齐：时钟/地图预览/箭袋/潜影盒/播种袋/鱼饵球/绳）。
 	 */
 	public static boolean hasGatedContent(ItemStack stack) {
-		QuirkyConfig config = QuirkyConfigHolder.get();
-		if (config.clockTooltip && stack.is(Items.CLOCK)) {
+		if (stack.is(Items.CLOCK)) {
 			return true;
 		}
-		if (config.mapPreview && stack.has(DataComponents.MAP_ID)) {
+		if (stack.has(DataComponents.MAP_ID)) {
 			return true;
 		}
-		if (config.quiverEnabled && stack.is(ModItems.QUIVER)) {
+		if (stack.is(ModItems.QUIVER)) {
 			return true;
 		}
-		if (config.shulkerTooltip && stack.is(ItemTags.SHULKER_BOXES)) {
+		if (stack.is(ItemTags.SHULKER_BOXES)) {
 			// 与 TooltipDetailsMixin 对齐：空盒无内容预览，也不提示
 			ItemContainerContents contents = stack.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
 			return contents.nonEmptyItems().iterator().hasNext();
 		}
-		if (config.seedPouchEnabled && stack.is(ModItems.SEED_POUCH)) {
+		if (stack.is(ModItems.SEED_POUCH)) {
 			return true;
 		}
-		if (config.fishBaitEnabled && stack.is(ModItems.FISH_BAIT)) {
+		if (stack.is(ModItems.FISH_BAIT)) {
 			return true;
 		}
-		if (config.ropeEnabled && (stack.is(ModItems.ROPE) || stack.is(ModItems.ROPE_LANTERN))) {
+		if (stack.is(ModItems.ROPE) || stack.is(ModItems.ROPE_LANTERN)) {
 			return true;
 		}
 		return false;
