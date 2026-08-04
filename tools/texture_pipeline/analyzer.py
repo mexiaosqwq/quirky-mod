@@ -50,6 +50,7 @@ def analyze_pixels(pixels: Pixels, path: Path | None = None) -> dict[str, Any]:
         margins = None
     digest = hashlib.sha256(Path(path).read_bytes()).hexdigest() if path is not None else None
     return {
+        "path": str(path) if path is not None else None,
         "sha256": digest,
         "width": width,
         "height": height,
@@ -85,8 +86,11 @@ def validate_candidate(spec: AssetSpec, facts: Mapping[str, Any]) -> dict[str, A
         failures.append("image is empty")
     else:
         margins = facts.get("blankMargins")
-        if isinstance(margins, Mapping) and any(value == 0 for value in margins.values()):
-            warnings.append("visible content touches at least one canvas edge")
+        if isinstance(margins, Mapping):
+            if any(value == 0 for value in margins.values()):
+                warnings.append("visible content touches at least one canvas edge")
+            if all(value == 0 for value in margins.values()):
+                failures.append("visible content touches every edge with no margin")
     return {
         "status": "fail" if failures else "pass",
         "failures": failures,

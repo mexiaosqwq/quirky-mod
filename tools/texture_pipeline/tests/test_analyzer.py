@@ -54,6 +54,7 @@ class AnalyzerTest(unittest.TestCase):
             facts = analyze_pixels(self.pixels, path)
 
             self.assertEqual(facts["sha256"], hashlib.sha256(path.read_bytes()).hexdigest())
+            self.assertEqual(facts["path"], str(path))
             self.assertEqual(facts["width"], 4)
             self.assertEqual(facts["height"], 4)
             self.assertEqual(facts["colorMode"], "RGBA")
@@ -94,7 +95,7 @@ class AnalyzerTest(unittest.TestCase):
         self.assertEqual(result["status"], "fail")
         self.assertTrue(any("empty" in failure for failure in result["failures"]))
 
-    def test_gate_warns_when_visible_content_touches_edge(self):
+    def test_gate_warns_when_visible_content_touches_single_edge(self):
         pixels = [[T] * 4 for _ in range(4)]
         pixels[1][0] = R
 
@@ -103,6 +104,14 @@ class AnalyzerTest(unittest.TestCase):
         self.assertEqual(result["status"], "pass")
         self.assertEqual(result["failures"], [])
         self.assertTrue(any("edge" in warning for warning in result["warnings"]))
+
+    def test_gate_fails_full_bleed_content_touching_every_edge(self):
+        pixels = [[R] * 4 for _ in range(4)]
+
+        result = validate_candidate(spec(), analyze_pixels(pixels))
+
+        self.assertEqual(result["status"], "fail")
+        self.assertTrue(any("every edge" in failure for failure in result["failures"]))
 
 
 if __name__ == "__main__":

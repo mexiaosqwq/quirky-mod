@@ -26,7 +26,7 @@ Never send the designer transcript or self-evaluation to the auditor.
 | Candidate, previews, reports | `build/texture-pipeline/<namespace>/<path>/` |
 | Formal Minecraft PNG | `src/main/resources/assets/quirky/textures/...` |
 
-`build/` is disposable output, never persistent source. Do not invent round directories. The fixed asset build layout is:
+`build/` is disposable output, never persistent source. Do not invent round-N directories or Markdown report names. The fixed asset build layout is:
 
 ```text
 candidates/<candidate-id>.png

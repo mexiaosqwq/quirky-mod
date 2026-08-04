@@ -59,7 +59,7 @@ def write_rgba_png(path: Path, pixels: Pixels) -> None:
 
 def read_rgba_png(path: Path) -> Pixels:
     """Decode any ImageMagick-supported PNG into exact 8-bit straight RGBA pixels."""
-    path = Path(path)
+    path = Path(path).resolve()
     try:
         dimensions = subprocess.run(
             ["magick", "identify", "-format", "%w %h", str(path)],

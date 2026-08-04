@@ -51,7 +51,9 @@ def _validate_identity(report: Mapping[str, Any], role: str) -> None:
         raise ReportError("imageLoaded must be true")
     if _required(report, "humanReviewRequired", bool) is not True:
         raise ReportError("humanReviewRequired must be true")
-    _required(report, "unknowns", list)
+    unknowns = _required(report, "unknowns", list)
+    if any(not isinstance(item, str) or not item.strip() for item in unknowns):
+        raise ReportError("unknowns must contain non-empty strings")
 
 
 def _validate_region(region: Any, width: int, height: int, label: str) -> None:

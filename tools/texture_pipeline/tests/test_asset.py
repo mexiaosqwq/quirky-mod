@@ -168,6 +168,18 @@ class AssetPackageTest(unittest.TestCase):
         mirror = {"id": "body", "operation": "mirror", "axis": "diagonal"}
         self.assert_invalid(source_changes={"layers.0": mirror}, message="mirror.axis")
 
+    def test_rejects_path_traversal_asset_id(self):
+        self.assert_invalid(asset_changes={"assetId": "quirky:item/../../escaped"}, message="assetId")
+        self.assert_invalid(asset_changes={"assetId": "quirky:item/.."}, message="assetId")
+
+    def test_asset_build_dir_rejects_traversal_and_stays_inside_build_root(self):
+        with self.assertRaisesRegex(AssetError, "assetId"):
+            asset_build_dir(Path("build"), "quirky:item/../../escaped")
+        build_root = Path(tempfile.mkdtemp())
+        result = asset_build_dir(build_root, "quirky:item/example")
+        self.assertTrue(result.resolve().is_relative_to(build_root.resolve()))
+        self.assertEqual(result, build_root / "quirky/item/example")
+
 
 _DELETE = object()
 

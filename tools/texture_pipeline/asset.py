@@ -18,6 +18,14 @@ _OPERATIONS = _DRAW_OPERATIONS | {"copy", "mirror"}
 _OUTPUT_PREFIX = PurePosixPath("src/main/resources/assets/quirky/textures")
 
 
+def _valid_asset_id(asset_id: str) -> bool:
+    """Return whether an asset id is a valid quirky resource id with safe path segments."""
+    if not _ASSET_ID.fullmatch(asset_id):
+        return False
+    _, path = asset_id.split(":", 1)
+    return all(segment not in {"", ".", ".."} and ".." not in segment for segment in path.split("/"))
+
+
 class AssetError(ValueError):
     """Raised when an asset package violates the project contract."""
 
@@ -230,7 +238,7 @@ def load_asset_package(package_dir: Path) -> AssetPackage:
         raise AssetError("asset.schemaVersion must equal 1")
 
     asset_id = _nonempty_string(asset, "assetId", "asset")
-    if not _ASSET_ID.fullmatch(asset_id):
+    if not _valid_asset_id(asset_id):
         raise AssetError("asset.assetId must be a lowercase quirky resource identifier")
 
     asset_class = _nonempty_string(asset, "assetClass", "asset")
@@ -286,8 +294,12 @@ def load_asset_package(package_dir: Path) -> AssetPackage:
 
 
 def asset_build_dir(build_root: Path, asset_id: str) -> Path:
-    """Map a validated resource identifier to its deterministic build directory."""
-    if not _ASSET_ID.fullmatch(asset_id):
+    """Map a validated resource identifier to a path that stays inside the build root."""
+    if not _valid_asset_id(asset_id):
         raise AssetError("assetId must be a lowercase quirky resource identifier")
     namespace, path = asset_id.split(":", 1)
+    base = Path(build_root).resolve()
+    result = (base / namespace / Path(path)).resolve()
+    if not result.is_relative_to(base):
+        raise AssetError("asset build path escapes the build root")
     return Path(build_root) / namespace / Path(path)

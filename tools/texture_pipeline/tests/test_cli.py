@@ -52,7 +52,7 @@ class CliIntegrationTest(unittest.TestCase):
             "canvas": {"width": 4, "height": 4, "background": "transparent"},
             "palette": {"mark": "#FF0000FF"},
             "layers": [
-                {"id": "mark", "operation": "line", "color": "mark", "x1": 0, "y1": 0, "x2": 3, "y2": 3}
+                {"id": "mark", "operation": "rect", "color": "mark", "x": 1, "y": 1, "width": 2, "height": 2}
             ],
         }
         (self.package / "asset.json").write_text(json.dumps(asset), encoding="utf-8")

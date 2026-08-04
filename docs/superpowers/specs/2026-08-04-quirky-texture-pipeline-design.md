@@ -248,11 +248,15 @@ Quality gates fail when:
 - partial alpha exists while disallowed;
 - palette size exceeds the limit;
 - no occupied pixel exists;
-- content touches every edge, leaving no margin, unless the asset class/profile explicitly permits it.
+- visible content touches every edge, leaving no margin (full-bleed);
+
+A candidate whose content touches any single edge receives a warning, not a failure, unless the asset class/profile explicitly permits it.
 
 ## 11. Visual Agent Contracts
 
 Both agents are project-local, pinned to `gorouter/claude-opus-5-thinking`, use `thinking: high`, receive only the `read` built-in tool, do not inherit parent context, and cannot edit files.
+
+The visual prompt names every preview file (`native.png`, `nearest-16x.png`, `checker-16x.png`, `light-16x.png`, `dark-16x.png`, `inventory-context.png`) and states that only `native.png` contains source pixels; all other previews are nearest-neighbor enlargements or composites.
 
 Every prompt begins with:
 
