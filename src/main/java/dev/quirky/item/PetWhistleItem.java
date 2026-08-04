@@ -180,12 +180,11 @@ public class PetWhistleItem extends Item {
 		return level.getSkyDarken() >= 5 || !level.dimensionType().hasSkyLight();
 	}
 
-	/** 长笛音色（吹奏感，接近口哨）。26.2 playSeededSound 无 delay 参数，无法做延迟音序，
-	 * 用三音上行叠簇制造“鸣哨”拉长听感。数值可调：
-	 * 音量 2.0（原 1.0，实测太轻）；基准音高 1.5 + 随机 0-0.2（原 1.0-1.2，实测不够尖）；
-	 * 三音间隔 +0.15/+0.3，音量递减（2.0/1.3/0.9）避免和弦感过重。
-	 * 坐定指挥：更高更短的双音（2.0/2.2），与召集哨区分。
-	 * 不用山羊角号角（实测太像劫掠者号角声，听感沉闷）。 */
+	/** 哨音：清亮高双音长笛（接近真实口哨，实测音高 ≥1.8 才够尖）。
+	 * 26.2 playSeededSound 无 delay 参数，无法做延迟音序，用紧密双音制造"鸣哨"听感。
+	 * 数值可调：召集哨 1.8/2.0（音量 2.0/1.2，略低一档与坐定区分）；
+	 * 坐定指挥 2.0/2.2（音量 1.6/1.0，更高更短）。
+	 * 不用山羊角号角（实测太像劫掠者号角声，听感沉闷）；不要三重音叠簇（实测沉闷有节奏感）。 */
 	private static void playWhistleSound(ServerLevel level, Player player, boolean sittingCommand) {
 		double x = player.getX();
 		double y = player.getY();
@@ -195,9 +194,7 @@ public class PetWhistleItem extends Item {
 			level.playSound(null, x, y, z, SoundEvents.NOTE_BLOCK_FLUTE, SoundSource.PLAYERS, 1.0F, 2.2F);
 			return;
 		}
-		float basePitch = 1.5F + level.getRandom().nextFloat() * 0.2F;
-		level.playSound(null, x, y, z, SoundEvents.NOTE_BLOCK_FLUTE, SoundSource.PLAYERS, 2.0F, basePitch);
-		level.playSound(null, x, y, z, SoundEvents.NOTE_BLOCK_FLUTE, SoundSource.PLAYERS, 1.3F, basePitch + 0.15F);
-		level.playSound(null, x, y, z, SoundEvents.NOTE_BLOCK_FLUTE, SoundSource.PLAYERS, 0.9F, basePitch + 0.3F);
+		level.playSound(null, x, y, z, SoundEvents.NOTE_BLOCK_FLUTE, SoundSource.PLAYERS, 2.0F, 1.8F);
+		level.playSound(null, x, y, z, SoundEvents.NOTE_BLOCK_FLUTE, SoundSource.PLAYERS, 1.2F, 2.0F);
 	}
 }

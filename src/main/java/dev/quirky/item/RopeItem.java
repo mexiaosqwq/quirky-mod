@@ -5,7 +5,6 @@ import dev.quirky.config.QuirkyConfig;
 import dev.quirky.config.QuirkyConfigHolder;
 import dev.quirky.rope.RopeSupportLogic;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ItemParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
@@ -66,12 +65,10 @@ public class RopeItem extends BlockItem {
 			return InteractionResult.SUCCESS;
 		}
 
-		// 对非绳方块：沿点击面放置（底面 → 挂在该方块下；顶面 → 挂在方块上；侧面不支持）
-		Direction face = context.getClickedFace();
-		if (face != Direction.DOWN && face != Direction.UP) {
-			return InteractionResult.FAIL;
-		}
-		BlockPos target = clicked.relative(face);
+		// 对非绳方块：只要点击的方块可支撑（完整固体/栅栏/墙顶），就在其下方挂一段绳。
+		// 不限点击面（底面/顶面/侧面都行）——玩家直觉是“点哪个方块，绳就挂在哪块下方”；
+		// 点击地面/实心底座时下方是实心方块，isPlaceable 失败自然拒绝。
+		BlockPos target = clicked.below();
 		if (target.getY() < level.getMinY() || target.getY() > level.getMaxY()) {
 			return InteractionResult.FAIL;
 		}

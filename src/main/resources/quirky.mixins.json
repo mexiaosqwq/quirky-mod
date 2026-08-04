@@ -17,6 +17,7 @@
     "PhantomTauntMixin",
     "QuiverTooltipMixin",
     "ServerPlayerMixin",
+    "SlotPouchGuardMixin",
     "TooltipDetailsMixin",
     "WakeUpMixin",
     "DeathCamServerMixin"

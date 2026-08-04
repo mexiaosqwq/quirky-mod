@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "R": "quirky:rope",
+    "L": "minecraft:lantern"
+  },
+  "pattern": ["R", "L"],
+  "result": {
+    "id": "quirky:rope_lantern",
+    "count": 1
+  }
+}

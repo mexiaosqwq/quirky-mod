@@ -2,6 +2,7 @@ package dev.quirky.item;
 
 import java.util.List;
 
+import dev.quirky.ModItems;
 import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
@@ -84,6 +85,10 @@ public class EnderPouchItem extends Item {
 			ItemStack toStore = player.getItemInHand(otherHand);
 			if (toStore.isEmpty()) {
 				return InteractionResult.PASS;
+			}
+			// 末影袋本身不能塞进末影箱（防止把自己锁进容器）；静默无反馈
+			if (toStore.is(ModItems.ENDER_POUCH)) {
+				return InteractionResult.SUCCESS;
 			}
 			// container.addItem 拷贝输入、只存入放得下的部分并返回剩余；必须用手槽引用本身传入，
 			// 取回 remaining 写回手槽，避免部分存入时手槽仍是原数量（复制 bug）
