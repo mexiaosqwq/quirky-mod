@@ -20,18 +20,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * 诱鱼区加速咬钩：FishingHook.tick() 内 catchingFish 的分支链为
  * nibble → timeUntilHooked → timeUntilLured（递减语句 timeUntilLured -= fishingSpeed）。
  * HEAD 快照“本 tick 是否执行该递减分支”（nibble==0 && timeUntilHooked==0 && timeUntilLured>0），
- * RETURN 若快照为真且浮漂位于诱鱼区内则额外再减 2（clamp ≥0）→ 诱鱼阶段约 3× 速（26.2
- * 默认 fishingSpeed=1）。实测 2×（-1）感知太弱，强化为 -2。
+ * RETURN 若快照为真且浮漂位于诱鱼区内则额外再减（{@link BaitZoneLogic#extraLureDecrement}）→
+ * 诱鱼阶段约 3× 速（26.2 默认 fishingSpeed=1）。
  * 区内浮漂每 tick 25% 概率冒泡（服务端 sendParticles），作为“生效中”的可见反馈。
  * 判定确定性：分支执行 ⇔ HEAD 条件成立（同 tick 内三个字段仅 catchingFish 修改）。
  * 二进制：多区域不叠加。
+ * 关键：额外递减 clamp ≥1（非 0）——原版转换（timeUntilLured<=0 → timeUntilHooked）
+ * 只在原版递减后触发，若 mixin 把值打成 0，下一 tick 原版走 else 分支重掷 100-600、进度丢失
+ * （曾致诱鱼区实际无加速，历史 bug，见 BaitZoneLogicTest）。
  */
 @Mixin(FishingHook.class)
 public abstract class FishingHookBaitMixin {
-	// TODO 临时诊断日志（鱼饵“无加速”问题定位后删除）
-	@Unique
-	private static final org.slf4j.Logger BAIT_DEBUG = org.slf4j.LoggerFactory.getLogger("quirky-bait-debug");
-
 	@Shadow
 	private int nibble;
 
@@ -43,12 +42,6 @@ public abstract class FishingHookBaitMixin {
 
 	@Unique
 	private boolean quirky$decrementingThisTick;
-
-	@Unique
-	private boolean quirky$loggedZoneHit;
-
-	@Unique
-	private boolean quirky$loggedNoZone;
 
 	@Inject(method = "tick", at = @At("HEAD"))
 	private void quirky$snapshotDecrementState(CallbackInfo ci) {
@@ -69,17 +62,8 @@ public abstract class FishingHookBaitMixin {
 			return;
 		}
 		if (this.quirky$inBaitZone()) {
-			if (!this.quirky$loggedZoneHit) {
-				this.quirky$loggedZoneHit = true;
-				BAIT_DEBUG.info("[bait-debug] hook ENTERED bait zone at {}, extra decrement active (radius={})",
-					self.blockPosition(), QuirkyConfigHolder.get().fishBaitRadius);
-			}
-			this.timeUntilLured = Math.max(0, this.timeUntilLured - 2);
+			this.timeUntilLured = BaitZoneLogic.extraLureDecrement(this.timeUntilLured);
 			this.quirky$bobberFeedback();
-		} else if (!this.quirky$loggedNoZone) {
-			this.quirky$loggedNoZone = true;
-			BAIT_DEBUG.info("[bait-debug] hook lure-tick at {} but NO bait zone found (radius={})",
-				self.blockPosition(), QuirkyConfigHolder.get().fishBaitRadius);
 		}
 	}
 

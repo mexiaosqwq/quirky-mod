@@ -84,7 +84,8 @@
   - **落在水面**：化开，生成一个不可见的**诱鱼区实体**（`quirky:bait_zone`），半径 **4 格**、持续 **90 秒**。
   - **雨天加成（有机扩展）**：降雨期间生成的区域持续 **150 秒**且气泡更密——与原版"雨天钓鱼更快"的设计态度一致，主题自洽；已存在的区域不追溯延长（生成时快照天气）。
   - **落在地面/方块**：碎裂消失（碎屑粒子+轻响），不生成区域。
-- 诱鱼区效果：`FishingHook` 的服务器 tick 中，若浮漂位于任一诱鱼区内，`timeUntilLured` 倒计**额外再减 1**（即咬钩等待速度约 ×2）。
+- 诱鱼区效果：`FishingHook` 的服务器 tick 中，若浮漂位于任一诱鱼区内，`timeUntilLured` 倒计**额外再减 2**（原 -1 实测感知太弱，2026-08-04 强化；即咬钩等待速度约 ×3）。
+  - **实现约束（历史 bug 教训）**：额外递减必须 clamp ≥1，不能 clamp 0——原版转换（timeUntilLured<=0 → timeUntilHooked）只在原版自身递减后触发；若额外递减把值打成 0，下一 tick 原版走 else 分支重掷 100-600、进度全部丢失，加速实际失效（用户实测"钓鱼速率没变"根因）。详见 `BaitZoneLogicTest.lureSequenceAcceleratesToThirdWithoutReroll`。
   - 二进制判定：在多个区域内不叠加（避免堆叠破坏平衡）。
   - 与诱饵附魔（lureSpeed）的关系：lureSpeed 是每次递减的基础步长，本效果是额外步长，二者相加不冲突，实测约为"再快一倍"，温和。
 - 区域结束或玩家收竿重抛不影响区域本身（区域是独立实体）。
@@ -121,7 +122,7 @@
 
 ### 2.7 实现要点与风险（已验证锚点）
 
-- Mixin 策略（已验 FishingHook 结构）：`FishingHook.tick()`（FishingHook.java:153）内分支链为 nibble → timeUntilHooked → timeUntilLured，递减语句 `timeUntilLured -= fishingSpeed`（局部变量 fishingSpeed 声明于 :299，字段 nibble/timeUntilHooked/timeUntilLured :64-66）。策略：@Shadow 三个字段，@Inject HEAD 快照"本 tick 是否执行递减分支"（nibble==0 && timeUntilHooked==0 && timeUntilLured>0），@Inject TAIL 若快照为真且浮漂在诱鱼区内 → 额外再减一次（clamp ≥0）。判定确定性：分支执行 ⇔ HEAD 条件成立。
+- Mixin 策略（已验 FishingHook 结构）：`FishingHook.tick()`（FishingHook.java:153）内分支链为 nibble → timeUntilHooked → timeUntilLured，递减语句 `timeUntilLured -= fishingSpeed`（局部变量 fishingSpeed 声明于 :299，字段 nibble/timeUntilHooked/timeUntilLured :64-66）。策略：@Shadow 三个字段，@Inject HEAD 快照"本 tick 是否执行递减分支"（nibble==0 && timeUntilHooked==0 && timeUntilLured>0），@Inject TAIL 若快照为真且浮漂在诱鱼区内 → 额外再减（clamp ≥1，理由见 §2.2 实现约束）。另：区内浮漂每 tick 25% 概率服务端冒泡（sendParticles BUBBLE），作为"生效中"的可见反馈。判定确定性：分支执行 ⇔ HEAD 条件成立。
 - 区域判定性能：每浮漂每 tick 做一次 `level.getEntities(EntityType 过滤, AABB)`——浮漂数量极少，开销可忽略；不引入自定义 spatial 索引。
 - 诱鱼区实体：无重力、无碰撞、不可见、tick 倒计时自毁，注册进 `ModEntities`。
 
