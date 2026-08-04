@@ -12,6 +12,45 @@ class ReportError(ValueError):
     """Raised when a visual report violates its role contract."""
 
 
+_EDIT_OPS = {"add", "update", "delete"}
+_SEVERITIES = {"blocking", "major", "minor"}
+
+
+def validate_edit_plan(value: Any, label: str) -> dict[str, Any]:
+    """Validate the machine-executable edit-plan structure (semantic checks run at apply time)."""
+    if not isinstance(value, Mapping):
+        raise ReportError(f"{label} must be an object")
+    version = value.get("version")
+    if version != 1:
+        raise ReportError(f"{label}.version must equal 1")
+    operations = value.get("operations")
+    if not isinstance(operations, list):
+        raise ReportError(f"{label}.operations must be a list")
+    for index, operation in enumerate(operations):
+        op_label = f"{label}.operations[{index}]"
+        if not isinstance(operation, Mapping):
+            raise ReportError(f"{op_label} must be an object")
+        op = operation.get("op")
+        if op not in _EDIT_OPS:
+            raise ReportError(f"{op_label}.op must be one of {sorted(_EDIT_OPS)}")
+        if op == "add":
+            layer = operation.get("layer")
+            if not isinstance(layer, Mapping) or not isinstance(layer.get("id"), str) or not layer["id"].strip():
+                raise ReportError(f"{op_label}.layer must include a non-empty id")
+        elif op == "update":
+            layer_id = operation.get("layerId")
+            patch = operation.get("patch")
+            if not isinstance(layer_id, str) or not layer_id.strip():
+                raise ReportError(f"{op_label}.layerId must be a non-empty string")
+            if not isinstance(patch, Mapping) or not patch:
+                raise ReportError(f"{op_label}.patch must be a non-empty object")
+        elif op == "delete":
+            layer_id = operation.get("layerId")
+            if not isinstance(layer_id, str) or not layer_id.strip():
+                raise ReportError(f"{op_label}.layerId must be a non-empty string")
+    return value
+
+
 def _required(report: Mapping[str, Any], key: str, expected: type) -> Any:
     if key not in report:
         raise ReportError(f"missing {key}")
@@ -76,6 +115,12 @@ def _validate_region(region: Any, width: int, height: int, label: str) -> None:
         raise ReportError(f"{label}.region is outside the canvas")
 
 
+def _validate_verdict(report: Mapping[str, Any]) -> None:
+    verdict = _required(report, "verdict", str)
+    if not verdict.strip():
+        raise ReportError("verdict must be a non-empty string")
+
+
 def _validate_auditor(report: Mapping[str, Any], width: int, height: int) -> None:
     status = _required(report, "status", str)
     if status not in {"pass_visual", "changes_required", "unknown", "blocked"}:
@@ -90,6 +135,9 @@ def _validate_auditor(report: Mapping[str, Any], width: int, height: int) -> Non
             if not isinstance(value, str) or not value.strip():
                 raise ReportError(f"{label}.{key} must be a non-empty string")
         _validate_region(finding.get("region"), width, height, label)
+        severity = finding.get("severity")
+        if severity not in _SEVERITIES:
+            raise ReportError(f"{label}.severity must be one of {sorted(_SEVERITIES)}")
         confidence = finding.get("confidence")
         if type(confidence) not in {int, float} or not 0.0 <= confidence <= 1.0:
             raise ReportError(f"{label}.confidence must be in 0..1")
@@ -124,4 +172,10 @@ def validate_visual_report(raw: str, role: str, width: int, height: int) -> dict
         _validate_designer(report)
     else:
         _validate_auditor(report, width, height)
+    _validate_verdict(report)
+    if "editPlan" in report:
+        validate_edit_plan(report["editPlan"], "editPlan")
+        if role == "auditor" and report.get("status") == "changes_required":
+            if not report["editPlan"].get("operations"):
+                raise ReportError("changes_required auditor report must provide a non-empty editPlan")
     return report

@@ -18,16 +18,22 @@ def auditor_report():
         "role": "VISUAL_AUDITOR",
         "assetId": "quirky:item/example",
         "imageLoaded": True,
+        "verdict": "整体读作胸甲，金色略多",
         "status": "changes_required",
         "findings": [
             {
                 "visibleFact": "The top two colors merge at native scale",
                 "judgment": "The opening is difficult to read",
                 "recommendation": "Increase value separation by one palette step",
+                "severity": "major",
                 "region": {"x": 4, "y": 1, "width": 6, "height": 3},
                 "confidence": 0.9,
             }
         ],
+        "editPlan": {
+            "version": 1,
+            "operations": [{"op": "update", "layerId": "body", "patch": {"x": 1}}],
+        },
         "unknowns": [],
         "humanReviewRequired": True,
     }
@@ -40,6 +46,7 @@ def designer_report():
         "role": "VISUAL_DESIGNER",
         "assetId": "quirky:item/example",
         "imageLoaded": True,
+        "verdict": "整体读作胸甲，肩部可再收窄",
         "observations": ["The silhouette reads as a pouch"],
         "proposals": ["Separate the rim and contents with one value step"],
         "unknowns": [],
@@ -121,6 +128,91 @@ class VisualReportTest(unittest.TestCase):
             self.assertIn('"role": "VISUAL_AUDITOR"', accepted.stdout)
             self.assertEqual(rejected.returncode, 2)
             self.assertTrue(rejected.stderr.startswith("ERROR:"), rejected.stderr)
+
+
+class EditPlanContractTest(unittest.TestCase):
+    def test_verdict_required(self):
+        report = auditor_report()
+        del report["verdict"]
+        with self.assertRaises(ReportError):
+            validate_visual_report(json.dumps(report), "auditor", 16, 16)
+
+    def test_verdict_must_be_nonempty_string(self):
+        report = auditor_report()
+        report["verdict"] = ""
+        with self.assertRaises(ReportError):
+            validate_visual_report(json.dumps(report), "auditor", 16, 16)
+
+    def test_auditor_findings_require_severity(self):
+        report = auditor_report()
+        del report["findings"][0]["severity"]
+        with self.assertRaises(ReportError):
+            validate_visual_report(json.dumps(report), "auditor", 16, 16)
+
+    def test_severity_must_be_enum(self):
+        report = auditor_report()
+        report["findings"][0]["severity"] = "urgent"
+        with self.assertRaises(ReportError):
+            validate_visual_report(json.dumps(report), "auditor", 16, 16)
+
+    def test_changes_required_requires_nonempty_editplan(self):
+        report = auditor_report()
+        report["editPlan"] = {"version": 1, "operations": []}
+        with self.assertRaises(ReportError):
+            validate_visual_report(json.dumps(report), "auditor", 16, 16)
+
+    def test_changes_required_with_editplan_passes(self):
+        report = auditor_report()
+        result = validate_visual_report(json.dumps(report), "auditor", 16, 16)
+        self.assertEqual(result["editPlan"]["operations"][0]["op"], "update")
+
+    def test_pass_visual_allows_empty_editplan(self):
+        report = auditor_report()
+        report["status"] = "pass_visual"
+        report["editPlan"] = {"version": 1, "operations": []}
+        result = validate_visual_report(json.dumps(report), "auditor", 16, 16)
+        self.assertEqual(result["status"], "pass_visual")
+
+    def test_editplan_unknown_op_rejected(self):
+        report = auditor_report()
+        report["editPlan"] = {"version": 1, "operations": [{"op": "explode", "layerId": "a"}]}
+        with self.assertRaises(ReportError):
+            validate_visual_report(json.dumps(report), "auditor", 16, 16)
+
+    def test_editplan_add_requires_layer(self):
+        report = auditor_report()
+        report["editPlan"] = {"version": 1, "operations": [{"op": "add"}]}
+        with self.assertRaises(ReportError):
+            validate_visual_report(json.dumps(report), "auditor", 16, 16)
+
+    def test_editplan_update_requires_layerid_and_patch(self):
+        report = auditor_report()
+        report["editPlan"] = {"version": 1, "operations": [{"op": "update", "layerId": "a"}]}
+        with self.assertRaises(ReportError):
+            validate_visual_report(json.dumps(report), "auditor", 16, 16)
+
+    def test_designer_also_supports_editplan(self):
+        report = designer_report()
+        report["editPlan"] = {
+            "version": 1,
+            "operations": [
+                {"op": "add", "layer": {"id": "n", "operation": "point", "color": "transparent", "x": 1, "y": 1}}
+            ],
+        }
+        result = validate_visual_report(json.dumps(report), "designer", 16, 16)
+        self.assertEqual(len(result["editPlan"]["operations"]), 1)
+
+    def test_validate_edit_plan_rejects_non_object(self):
+        from tools.texture_pipeline.reports import validate_edit_plan
+
+        with self.assertRaises(ReportError):
+            validate_edit_plan(["not", "an", "object"], "editPlan")
+
+    def test_designer_requires_verdict_too(self):
+        report = designer_report()
+        del report["verdict"]
+        with self.assertRaises(ReportError):
+            validate_visual_report(json.dumps(report), "designer", 16, 16)
 
 
 if __name__ == "__main__":
