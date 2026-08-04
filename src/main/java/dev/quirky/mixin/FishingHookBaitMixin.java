@@ -28,6 +28,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(FishingHook.class)
 public abstract class FishingHookBaitMixin {
+	// TODO 临时诊断日志（鱼饵“无加速”问题定位后删除）
+	@Unique
+	private static final org.slf4j.Logger BAIT_DEBUG = org.slf4j.LoggerFactory.getLogger("quirky-bait-debug");
+
 	@Shadow
 	private int nibble;
 
@@ -39,6 +43,12 @@ public abstract class FishingHookBaitMixin {
 
 	@Unique
 	private boolean quirky$decrementingThisTick;
+
+	@Unique
+	private boolean quirky$loggedZoneHit;
+
+	@Unique
+	private boolean quirky$loggedNoZone;
 
 	@Inject(method = "tick", at = @At("HEAD"))
 	private void quirky$snapshotDecrementState(CallbackInfo ci) {
@@ -59,8 +69,17 @@ public abstract class FishingHookBaitMixin {
 			return;
 		}
 		if (this.quirky$inBaitZone()) {
+			if (!this.quirky$loggedZoneHit) {
+				this.quirky$loggedZoneHit = true;
+				BAIT_DEBUG.info("[bait-debug] hook ENTERED bait zone at {}, extra decrement active (radius={})",
+					self.blockPosition(), QuirkyConfigHolder.get().fishBaitRadius);
+			}
 			this.timeUntilLured = Math.max(0, this.timeUntilLured - 2);
 			this.quirky$bobberFeedback();
+		} else if (!this.quirky$loggedNoZone) {
+			this.quirky$loggedNoZone = true;
+			BAIT_DEBUG.info("[bait-debug] hook lure-tick at {} but NO bait zone found (radius={})",
+				self.blockPosition(), QuirkyConfigHolder.get().fishBaitRadius);
 		}
 	}
 

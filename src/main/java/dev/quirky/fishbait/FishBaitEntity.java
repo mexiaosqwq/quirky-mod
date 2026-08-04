@@ -24,6 +24,8 @@ import net.minecraft.world.phys.HitResult;
  * 溅起水花；落在陆地/方块则碎裂消失，不生成区域。
  */
 public class FishBaitEntity extends ThrowableItemProjectile {
+	// TODO 临时诊断日志（鱼饵“无加速”问题定位后删除）
+	private static final org.slf4j.Logger BAIT_DEBUG = org.slf4j.LoggerFactory.getLogger("quirky-bait-debug");
 	public FishBaitEntity(EntityType<? extends FishBaitEntity> type, Level level) {
 		super(type, level);
 	}
@@ -69,12 +71,17 @@ public class FishBaitEntity extends ThrowableItemProjectile {
 				zone.init(ticks);
 				zone.setPos(this.getX(), y, this.getZ());
 				serverLevel.addFreshEntity(zone);
+				BAIT_DEBUG.info("[bait-debug] zone spawned at ({}, {}, {}), duration={}t, radius={}",
+					this.getX(), y, this.getZ(), ticks, QuirkyConfigHolder.get().fishBaitRadius);
+			} else {
+				BAIT_DEBUG.warn("[bait-debug] BAIT_ZONE.create returned NULL (canSpawn check failed?)");
 			}
 			// 小型水花 + 轻响（音量 0.4）
 			serverLevel.playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.GENERIC_SPLASH, SoundSource.PLAYERS, 0.4F, 1.0F);
 			serverLevel.sendParticles(ParticleTypes.SPLASH, this.getX(), y - 0.15, this.getZ(), 10, 0.6, 0.1, 0.6, 0.05);
 		} else {
 			// 陆地碎裂：碎屑粒子 + 轻响
+			BAIT_DEBUG.info("[bait-debug] bait landed on LAND at {}, no zone", this.blockPosition());
 			serverLevel.playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ITEM_BREAK, SoundSource.PLAYERS, 0.5F, 1.0F);
 			serverLevel.sendParticles(
 				new ItemParticleOption(ParticleTypes.ITEM, ModItems.FISH_BAIT),
