@@ -10,6 +10,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -147,7 +148,12 @@ public final class RopeSupportLogic {
 			}
 			level.setBlock(dropPos, Blocks.AIR.defaultBlockState(), 3);
 			for (ItemStack stack : dropStacks(state)) {
-				Block.popResource(level, dropPos, stack);
+				// 不用 Block.popResource（受 BLOCK_DROPS 规则门控，规则关时吞物品）；
+				// 绳掉落不是方块破坏，直接生成 ItemEntity 绕开规则
+				ItemEntity item = new ItemEntity(level,
+					dropPos.getX() + 0.5, dropPos.getY() + 0.5, dropPos.getZ() + 0.5, stack);
+				item.setPickUpDelay(20);
+				level.addFreshEntity(item);
 			}
 			level.playSound(null, dropPos, SoundEvents.WOOL_BREAK, SoundSource.BLOCKS, 0.4F, 1.0F);
 			if (level instanceof ServerLevel serverLevel) {

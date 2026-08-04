@@ -10,6 +10,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -126,8 +127,13 @@ public final class HarvestHandler {
 		if (player.hasInfiniteMaterials()) {
 			return;
 		}
+		// 不用 Block.popResource（受 BLOCK_DROPS 规则门控，规则关时吞物品）；
+		// 收割产物是玩家应得的战利品，不是方块破坏掉落，直接生成 ItemEntity 绕开规则
 		for (ItemStack drop : drops) {
-			Block.popResource(level, pos, drop);
+			ItemEntity item = new ItemEntity(level,
+				pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, drop);
+			item.setPickUpDelay(20);
+			level.addFreshEntity(item);
 		}
 	}
 

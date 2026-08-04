@@ -85,13 +85,15 @@ public class EnderPouchItem extends Item {
 			if (toStore.isEmpty()) {
 				return InteractionResult.PASS;
 			}
+			// container.addItem 拷贝输入、只存入放得下的部分并返回剩余；必须用手槽引用本身传入，
+			// 取回 remaining 写回手槽，避免部分存入时手槽仍是原数量（复制 bug）
 			ItemStack remaining = container.addItem(toStore);
+			player.setItemInHand(otherHand, remaining);
 			if (remaining.isEmpty()) {
-				player.setItemInHand(otherHand, ItemStack.EMPTY);
 				level.playSound(null, player.getX(), player.getY(), player.getZ(),
 					SoundEvents.ENDER_CHEST_OPEN, SoundSource.PLAYERS, 0.5F, 1.6F);
 			} else {
-				// 末影箱已满：低沉唔声反馈，物品留手不吞
+				// 末影箱已满/放不下部分：低沉唔声反馈，remaining 已写回手槽不吞
 				level.playSound(null, player.getX(), player.getY(), player.getZ(),
 					SoundEvents.ENDER_CHEST_CLOSE, SoundSource.PLAYERS, 0.5F, 0.5F);
 			}

@@ -83,7 +83,7 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 
 	public BoomerangEntity(ServerLevel level, Player owner, ItemStack item, int throwSlot) {
 		super(ModEntities.BOOMERANG, level);
-		this.item = item.copy();
+		this.item = item.copyWithCount(1);
 		this.throwSlot = throwSlot;
 		this.maxRange = QuirkyConfigHolder.get().boomerangRange;
 		this.setOwner(owner);
@@ -280,7 +280,9 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 			return false;
 		}
 		// destroyBlock 内部会触发 2001 破坏粒子，掉落受 BLOCK_DROPS 规则管辖
-		level.destroyBlock(pos, true, this, 3);
+		// 创造模式不掉物（对齐原版创造手挖 ServerPlayerGameMode 的 preventsBlockDrops）
+		boolean dropBlocks = !(owner instanceof Player p && p.hasInfiniteMaterials());
+		level.destroyBlock(pos, dropBlocks, this, 3);
 		level.playSound(null, pos, state.getSoundType().getBreakSound(), SoundSource.BLOCKS, 0.8F, 1.0F);
 		return true;
 	}
@@ -295,15 +297,19 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	private void retrieveFor(ServerLevel level, Entity owner) {
 		boolean broken = this.applyFlightDurability(level, owner);
 		if (owner instanceof Player player) {
-			if (!broken) {
+			boolean creative = player.hasInfiniteMaterials();
+			// 回旋镖本体：仅生存模式归还（投掷时消耗了 1 个）；创造模式手里未消耗，不归还以免复制
+			if (!broken && !creative) {
 				if (this.returnToInventory(player)) {
 					player.playSound(SoundEvents.ARMOR_EQUIP_GENERIC.value(), 0.5F, 1.0F);
 				} else {
 					level.addFreshEntity(new ItemEntity(level, player.getX(), player.getY(), player.getZ(), this.item));
 				}
 			}
+			// 拾取物：放入背包，部分放入的剩余就地掉落（不吞物品）
 			for (ItemStack stack : this.collected) {
-				if (!player.getInventory().add(stack)) {
+				player.getInventory().add(stack);
+				if (!stack.isEmpty()) {
 					level.addFreshEntity(new ItemEntity(level, player.getX(), player.getY(), player.getZ(), stack));
 				}
 			}
@@ -339,7 +345,12 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	/** 兜底掉落（10 秒上限/投掷者不可用）：坠入虚空不掉落，其余就地掉落。 */
 	private void dropAllAndDiscard(ServerLevel level) {
 		if (this.getY() >= level.getMinY() - 32.0) {
-			level.addFreshEntity(new ItemEntity(level, this.getX(), this.getY(), this.getZ(), this.item));
+			// 创造模式不掉落回旋镖本体（手里未消耗，掉落即复制）；拾取物照常掉落
+			Entity owner = this.getOwner();
+			boolean creative = owner instanceof Player p && p.hasInfiniteMaterials();
+			if (!creative) {
+				level.addFreshEntity(new ItemEntity(level, this.getX(), this.getY(), this.getZ(), this.item));
+			}
 			for (ItemStack stack : this.collected) {
 				level.addFreshEntity(new ItemEntity(level, this.getX(), this.getY(), this.getZ(), stack));
 			}

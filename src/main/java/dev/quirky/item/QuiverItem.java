@@ -12,6 +12,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -97,7 +98,9 @@ public class QuiverItem extends Item {
 		return InteractionResult.SUCCESS;
 	}
 
-	/** 优先副手空位 → 第一个背包空位 → 都满则掉落脚下（不吞物品）。 */
+	/** 优先副手空位 → 第一个背包空位 → 都满则掉落脚下（不吞物品）。
+	 *  不用 Block.popResource（受 BLOCK_DROPS 规则门控，规则关时会吞物品）；
+	 *  箭袋取箭不是方块破坏，直接生成 ItemEntity 绕开规则。 */
 	private static void giveOrDrop(Level level, Player player, ItemStack stack) {
 		Inventory inventory = player.getInventory();
 		if (inventory.getItem(Inventory.SLOT_OFFHAND).isEmpty()) {
@@ -109,9 +112,10 @@ public class QuiverItem extends Item {
 			inventory.setItem(freeSlot, stack);
 			return;
 		}
-		// popResource 依赖 BLOCK_DROPS 游戏规则：先确认服务端
 		if (level instanceof ServerLevel serverLevel) {
-			Block.popResource(serverLevel, player.blockPosition(), stack);
+			ItemEntity item = new ItemEntity(serverLevel, player.getX(), player.getY() + 0.5, player.getZ(), stack);
+			item.setPickUpDelay(20);
+			serverLevel.addFreshEntity(item);
 		}
 	}
 }
