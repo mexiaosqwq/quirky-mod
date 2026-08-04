@@ -103,38 +103,14 @@ def _apply_command(arguments: argparse.Namespace) -> None:
     if "editPlan" in plan:
         plan = plan["editPlan"]
     plan = validate_edit_plan(plan, "editPlan")
+    if not plan["operations"]:
+        raise AssetError("edit plan has no operations; nothing to apply")
     source = apply_edit_plan(package.source, plan)
     # 整体契约校验（坐标/色名/重复 id 兜底），失败不改文件
     with tempfile.TemporaryDirectory() as tmp:
         probe_dir = Path(tmp) / "package"
         probe_dir.mkdir()
-        (probe_dir / "asset.json").write_text(
-            json.dumps(
-                {
-                    "schemaVersion": 1,
-                    "assetId": package.spec.asset_id,
-                    "assetClass": package.spec.asset_class,
-                    "output": {
-                        "path": str(package.spec.output.path),
-                        "width": package.spec.output.width,
-                        "height": package.spec.output.height,
-                        "colorMode": package.spec.output.color_mode,
-                    },
-                    "styleProfile": package.spec.style_profile,
-                    "brief": package.spec.brief,
-                    "mustHave": list(package.spec.must_have),
-                    "mustNotHave": list(package.spec.must_not_have),
-                    "qualityGates": {
-                        "maximumPaletteSize": package.spec.quality_gates.maximum_palette_size,
-                        "allowPartialAlpha": package.spec.quality_gates.allow_partial_alpha,
-                        "requireVisualAudit": package.spec.quality_gates.require_visual_audit,
-                        "requireHumanApproval": package.spec.quality_gates.require_human_approval,
-                    },
-                },
-                indent=2,
-            ),
-            encoding="utf-8",
-        )
+        (probe_dir / "asset.json").write_bytes((arguments.package / "asset.json").read_bytes())
         (probe_dir / "source.json").write_text(json.dumps(source, indent=2) + "\n", encoding="utf-8")
         load_asset_package(probe_dir)
     (arguments.package / "source.json").write_text(json.dumps(source, indent=2) + "\n", encoding="utf-8")

@@ -175,7 +175,7 @@ def validate_visual_report(raw: str, role: str, width: int, height: int) -> dict
     _validate_verdict(report)
     if "editPlan" in report:
         validate_edit_plan(report["editPlan"], "editPlan")
-        if role == "auditor" and report.get("status") == "changes_required":
-            if not report["editPlan"].get("operations"):
-                raise ReportError("changes_required auditor report must provide a non-empty editPlan")
+    if role == "auditor" and report.get("status") == "changes_required":
+        if "editPlan" not in report or not report["editPlan"].get("operations"):
+            raise ReportError("changes_required auditor report must provide a non-empty editPlan")
     return report

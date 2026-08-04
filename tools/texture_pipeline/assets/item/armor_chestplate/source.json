@@ -1,0 +1,376 @@
+{
+  "canvas": {
+    "width": 16,
+    "height": 16,
+    "background": "transparent"
+  },
+  "palette": {
+    "plate": "#9AA5B1FF",
+    "plate_light": "#C9D0D8FF",
+    "plate_mid": "#7A8794FF",
+    "plate_dark": "#5F6B76FF",
+    "plate_outline": "#3A4450FF",
+    "gold": "#D4AF37FF",
+    "gold_dark": "#8C6B1FFF"
+  },
+  "layers": [
+    {
+      "id": "body_shoulder_top",
+      "operation": "rect",
+      "color": "plate",
+      "x": 2,
+      "y": 2,
+      "width": 12,
+      "height": 2
+    },
+    {
+      "id": "body_chest",
+      "operation": "rect",
+      "color": "plate",
+      "x": 2,
+      "y": 4,
+      "width": 12,
+      "height": 3
+    },
+    {
+      "id": "body_chest_mid",
+      "operation": "rect",
+      "color": "plate",
+      "x": 3,
+      "y": 7,
+      "width": 10,
+      "height": 2
+    },
+    {
+      "id": "body_chest_lower",
+      "operation": "rect",
+      "color": "plate",
+      "x": 3,
+      "y": 9,
+      "width": 10,
+      "height": 1
+    },
+    {
+      "id": "body_waist_top",
+      "operation": "rect",
+      "color": "plate",
+      "x": 4,
+      "y": 10,
+      "width": 8,
+      "height": 1
+    },
+    {
+      "id": "body_waist",
+      "operation": "rect",
+      "color": "plate",
+      "x": 5,
+      "y": 11,
+      "width": 6,
+      "height": 2
+    },
+    {
+      "id": "outline_top_left",
+      "operation": "rect",
+      "color": "plate_outline",
+      "x": 2,
+      "y": 2,
+      "width": 1,
+      "height": 1
+    },
+    {
+      "id": "outline_top_right",
+      "operation": "rect",
+      "color": "plate_outline",
+      "x": 13,
+      "y": 2,
+      "width": 1,
+      "height": 1
+    },
+    {
+      "id": "outline_left",
+      "operation": "rect",
+      "color": "plate_outline",
+      "x": 2,
+      "y": 4,
+      "width": 1,
+      "height": 3
+    },
+    {
+      "id": "outline_right",
+      "operation": "rect",
+      "color": "plate_outline",
+      "x": 13,
+      "y": 4,
+      "width": 1,
+      "height": 3
+    },
+    {
+      "id": "light_a",
+      "operation": "rect",
+      "color": "plate_light",
+      "x": 3,
+      "y": 4,
+      "width": 2,
+      "height": 1
+    },
+    {
+      "id": "light_b",
+      "operation": "point",
+      "color": "plate_light",
+      "x": 3,
+      "y": 5
+    },
+    {
+      "id": "light_c",
+      "operation": "point",
+      "color": "plate_light",
+      "x": 3,
+      "y": 6
+    },
+    {
+      "id": "light_d",
+      "operation": "point",
+      "color": "plate_light",
+      "x": 3,
+      "y": 7
+    },
+    {
+      "id": "light_e",
+      "operation": "point",
+      "color": "plate_light",
+      "x": 3,
+      "y": 8
+    },
+    {
+      "id": "right_face",
+      "operation": "rect",
+      "color": "plate_mid",
+      "x": 10,
+      "y": 5,
+      "width": 2,
+      "height": 4
+    },
+    {
+      "id": "side_shadow_left",
+      "operation": "rect",
+      "color": "plate_dark",
+      "x": 5,
+      "y": 11,
+      "width": 1,
+      "height": 2
+    },
+    {
+      "id": "side_shadow_right",
+      "operation": "rect",
+      "color": "plate_dark",
+      "x": 10,
+      "y": 11,
+      "width": 1,
+      "height": 2
+    },
+    {
+      "id": "hem_shadow",
+      "operation": "rect",
+      "color": "plate_dark",
+      "x": 5,
+      "y": 13,
+      "width": 6,
+      "height": 1
+    },
+    {
+      "id": "outline_neck_left",
+      "operation": "point",
+      "color": "plate_outline",
+      "x": 6,
+      "y": 3
+    },
+    {
+      "id": "outline_neck_right",
+      "operation": "point",
+      "color": "plate_outline",
+      "x": 9,
+      "y": 3
+    },
+    {
+      "id": "gold_shoulder_left",
+      "operation": "rect",
+      "color": "gold",
+      "x": 3,
+      "y": 2,
+      "width": 3,
+      "height": 1
+    },
+    {
+      "id": "gold_shoulder_right",
+      "operation": "rect",
+      "color": "gold",
+      "x": 9,
+      "y": 2,
+      "width": 3,
+      "height": 1
+    },
+    {
+      "id": "chest_bevel_top",
+      "operation": "rect",
+      "color": "plate_light",
+      "x": 5,
+      "y": 4,
+      "width": 6,
+      "height": 1
+    },
+    {
+      "id": "chest_bevel_bottom",
+      "operation": "rect",
+      "color": "plate_mid",
+      "x": 5,
+      "y": 9,
+      "width": 6,
+      "height": 1
+    },
+    {
+      "id": "hem_blend",
+      "operation": "rect",
+      "color": "plate_mid",
+      "x": 5,
+      "y": 12,
+      "width": 6,
+      "height": 1
+    },
+    {
+      "id": "rivet1",
+      "operation": "point",
+      "color": "gold",
+      "x": 5,
+      "y": 5
+    },
+    {
+      "id": "rivet2",
+      "operation": "point",
+      "color": "gold",
+      "x": 10,
+      "y": 5
+    },
+    {
+      "id": "rivet3",
+      "operation": "point",
+      "color": "gold",
+      "x": 5,
+      "y": 12
+    },
+    {
+      "id": "rivet4",
+      "operation": "point",
+      "color": "gold",
+      "x": 10,
+      "y": 12
+    },
+    {
+      "id": "neck_notch",
+      "operation": "rect",
+      "color": "transparent",
+      "x": 7,
+      "y": 2,
+      "width": 2,
+      "height": 3
+    },
+    {
+      "id": "mid_col",
+      "operation": "rect",
+      "color": "plate_mid",
+      "x": 7,
+      "y": 4,
+      "width": 2,
+      "height": 4
+    },
+    {
+      "id": "edge_mid_right",
+      "operation": "rect",
+      "color": "plate_dark",
+      "x": 12,
+      "y": 5,
+      "width": 1,
+      "height": 4
+    },
+    {
+      "id": "gold_dark_left",
+      "operation": "rect",
+      "color": "gold_dark",
+      "x": 4,
+      "y": 3,
+      "width": 3,
+      "height": 1
+    },
+    {
+      "id": "gold_dark_right",
+      "operation": "rect",
+      "color": "gold_dark",
+      "x": 9,
+      "y": 3,
+      "width": 3,
+      "height": 1
+    },
+    {
+      "id": "gold_trim_collar_bridge",
+      "operation": "rect",
+      "color": "#D4AF37FF",
+      "x": 7,
+      "y": 4,
+      "width": 2,
+      "height": 1
+    },
+    {
+      "id": "left_shoulder_corner_highlight",
+      "operation": "point",
+      "color": "#C9D0D8FF",
+      "x": 2,
+      "y": 2,
+      "width": 1,
+      "height": 1
+    },
+    {
+      "id": "hem_occlusion_shadow",
+      "operation": "rect",
+      "color": "#3A4450FF",
+      "x": 5,
+      "y": 13,
+      "width": 6,
+      "height": 1
+    },
+    {
+      "id": "fix_right_shoulder_corner_highlight",
+      "operation": "point",
+      "color": "#C9D0D8",
+      "x": 13,
+      "y": 2,
+      "width": 1,
+      "height": 1
+    },
+    {
+      "id": "fix_hem_center_notch",
+      "operation": "rect",
+      "color": "transparent",
+      "x": 7,
+      "y": 13,
+      "width": 2,
+      "height": 1
+    },
+    {
+      "id": "fix_hem_corner_left_lift",
+      "operation": "point",
+      "color": "#7A8794",
+      "x": 4,
+      "y": 12,
+      "width": 1,
+      "height": 1
+    },
+    {
+      "id": "fix_hem_corner_right_lift",
+      "operation": "point",
+      "color": "#7A8794",
+      "x": 11,
+      "y": 12,
+      "width": 1,
+      "height": 1
+    }
+  ]
+}

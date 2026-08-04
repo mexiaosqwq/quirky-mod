@@ -161,6 +161,12 @@ class EditPlanContractTest(unittest.TestCase):
         with self.assertRaises(ReportError):
             validate_visual_report(json.dumps(report), "auditor", 16, 16)
 
+    def test_changes_required_missing_editplan_rejected(self):
+        report = auditor_report()
+        del report["editPlan"]
+        with self.assertRaises(ReportError):
+            validate_visual_report(json.dumps(report), "auditor", 16, 16)
+
     def test_changes_required_with_editplan_passes(self):
         report = auditor_report()
         result = validate_visual_report(json.dumps(report), "auditor", 16, 16)

@@ -50,6 +50,12 @@ def _line_points(x1: int, y1: int, x2: int, y2: int) -> Iterator[tuple[int, int]
 
 
 def _inside_polygon(px: float, py: float, points: list[list[int]]) -> bool:
+    """Even-odd point-in-polygon test sampling pixel centers (px, py).
+
+    Uses the half-open rule ``px <= intersection_x`` so a pixel center that
+    falls exactly on a polygon edge counts as inside; symmetric polygons
+    therefore render symmetrically instead of drifting one pixel.
+    """
     inside = False
     previous_x, previous_y = points[-1]
     for current_x, current_y in points:

@@ -128,6 +128,17 @@ class CliIntegrationTest(unittest.TestCase):
         source = json.loads((self.package / "source.json").read_text(encoding="utf-8"))
         self.assertEqual([layer["id"] for layer in source["layers"]], ["mark"])
 
+    def test_apply_command_rejects_empty_plan(self):
+        self.write_package()
+        plan = {"version": 1, "operations": []}
+        plan_path = self.root / "plan.json"
+        plan_path.write_text(json.dumps(plan), encoding="utf-8")
+
+        result = self.run_cli("apply", self.package, "--plan", plan_path, "--candidate", "a1", "--build-root", self.build_root)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("no operations", result.stderr)
+
     def test_apply_command_accepts_full_visual_report(self):
         self.write_package()
         report = {

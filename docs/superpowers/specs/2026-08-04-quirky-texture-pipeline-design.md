@@ -319,3 +319,32 @@ No `gradle build` is required unless this change unexpectedly touches formal res
 - Skill baseline omissions are addressed and a fresh agent can retrieve the exact workflow.
 - Existing formal PNG files are unchanged.
 - Existing one-off scripts remain untouched until a separate migration task proves parity.
+
+## 15. Refinement Requirements (from real armor run, 2026-08-04)
+
+The first full-flow test — a gold-trim iron chestplate — exposed six failures and the customer priorities that must drive the next refinement phase. These are binding requirements, superseding any earlier permissive wording.
+
+### 15.1 The text model must NOT do visual judgment
+
+The orchestrator (main text model) cannot read PNGs. It must never:
+- proxy "looking" with ASCII-art rendering and pronounce "contour OK" / "reads as a chestplate";
+- make pixel-level aesthetic decisions (gold tone count, where to place a highlight, which layer to merge);
+- treat auditor confidence numbers (e.g. 0.5–0.62 "converging") as a quality/stop signal.
+
+Visual quality verdicts come **only** from the vision auditor; the orchestrator is a mechanical translator/executor. Confidence has no stopping authority; the auditor explicitly confirming the top visual priority is the signal.
+
+### 15.2 Cost caps — Opus is ~$0.2/call
+
+Claude Opus 5 (GoRouter provider `gorouter`, model `claude-opus-5-thinking`, resolves to `claude-opus-5`) is expensive and unsuitable for long agents. Budget: **1–2 Opus calls per asset**, i.e. a single high-quality "change everything needed" instruction per round, never 8–10 round trips. The workflow must be restructured so the auditor emits a complete, batched, diff-style modification spec in one call and the orchestrator applies it in one pass.
+
+### 15.3 Machine facts always beat vision claims
+
+Opus hallucinates pixel details (claimed a light outline around a green diamond that did not exist in the PNG; the auditor's report must be verified against pixel-facts/analyzer output, never trusted blindly). Vision output is evidence-slotted and subject to programmatic verification.
+
+### 15.4 Stop criteria are qualitative, not numeric
+
+Bad iteration pattern: blindly accepting every auditor suggestion 8 rounds straight until the art fragmented and lost cohesion. Stop when the auditor explicitly confirms the top visual priority is met, then have the human approve. Never plead "converged" on a falling confidence number.
+
+### 15.5 Scripts are acknowledged to be rough
+
+`tools/texture_pipeline/*` were accepted as "not great" by the customer; a polish pass (readability, robustness, fewer hard-coded assumptions) is in scope for the next phase.
