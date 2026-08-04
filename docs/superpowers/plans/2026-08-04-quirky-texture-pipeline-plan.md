@@ -378,7 +378,8 @@ Generate a calibration fixture via the CLI. Spawn each agent in a fresh foregrou
 - [ ] **Step 7: Commit**
 
 ```bash
-git add .pi/agents/texture-visual-designer.md .pi/agents/texture-visual-auditor.md tools/texture_pipeline/tests/test_agent_contracts.py
+git add tools/texture_pipeline/tests/test_agent_contracts.py
+git add -f .pi/agents/texture-visual-designer.md .pi/agents/texture-visual-auditor.md
 git commit -m "feat: add dedicated texture visual agents"
 ```
 
@@ -437,7 +438,8 @@ If the fresh agent invents or skips a step, add the smallest instruction that cl
 - [ ] **Step 8: Commit**
 
 ```bash
-git add .pi/skills/quirky-texture-workflow/SKILL.md tools/texture_pipeline/tests/test_skill_contract.py
+git add tools/texture_pipeline/tests/test_skill_contract.py
+git add -f .pi/skills/quirky-texture-workflow/SKILL.md
 git commit -m "docs: add Quirky texture workflow skill"
 ```
 
