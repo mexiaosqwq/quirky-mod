@@ -113,6 +113,25 @@ root
 
 线路的产物形态：工具脚本 + 转换层 + 一个可复制的实体包模板（`demobeast` 本身即模板）。
 
+## 10. 可复用资产（skill + 脚本）
+
+流水线不只一次性跑通，还要沉淀成以后能直接调用的资产：
+
+### 10.1 工具脚本（可执行部分）
+
+`build/tools/blockbench/`（node/playwright）：launch / model / anim / shot / export / convert 六脚本，命令行直接可用（含参数说明）。
+
+### 10.2 项目 skill（程序性步骤）
+
+新建 project-scope skill `quirky-blockbench-modeling`（写入 `~/.pi/agent/projects-memory/minecraft/skills/`，与现有 quirky-mixin-runtime-audit / quirky-new-item-checklist 同层）：
+
+- **when_to_use**：需要给 Quirky 新增/修改带模型动画的自定义实体时；需要手动调模型时。
+- **procedure_steps**：按 §9 线路四步（建模 → 转换 → 接入 → 验证），引用具体脚本命令与 demobeast 模板路径。
+- **pitfalls**：blockbench-mcp-plugin 仅桌面版（网页版装不了）；WebGL 需 `--enable-unsafe-swiftshader`；截图先示意后落地；26.2 API 一律对照 `$HOME/.cache/mcsrc`（动画时长/插值映射、RenderState 模式）；网页版下载产物走 CDP setDownloadBehavior。
+- **verification_steps**：截图出现在 build/previews/；gradle build 通过；游戏内生成/走动/动画清单（§7）。
+
+用法：以后说"给 X 动物建模"→ 我调 skill 按线路执行；用户也可直接跑脚本。
+
 ## 8. 风险与备选
 
 - **风险 1**：Blockbench 网页版在 headless + 软件渲染下视口渲染慢 → 截图耗时但可用（已验证 WebGL2 可用）；若不可用，fallback 用 `--use-gl=angle --use-angle=swiftshader` 组合再试。
