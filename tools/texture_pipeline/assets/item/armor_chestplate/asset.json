@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "assetId": "quirky:item/armor_chestplate",
+  "assetClass": "item_texture",
+  "output": {
+    "path": "src/main/resources/assets/quirky/textures/item/armor_chestplate.png",
+    "width": 16,
+    "height": 16,
+    "colorMode": "rgba"
+  },
+  "styleProfile": "quirky_vanilla_item",
+  "brief": {
+    "subject": "Iron chestplate with gold trim and rivets",
+    "gameplayMeaning": "Item icon identifying chestplate armor in inventory and hotbar",
+    "visualPriority": [
+      "first read as a chestplate",
+      "then show metal material with gold trim",
+      "remain readable at native 16x16"
+    ]
+  },
+  "mustHave": [
+    "symmetric chestplate silhouette",
+    "shoulder-to-waist width contrast",
+    "metal highlight and shadow",
+    "gold decorative trim"
+  ],
+  "mustNotHave": [
+    "smooth antialiasing",
+    "partial alpha pixels",
+    "full-bleed touching every edge"
+  ],
+  "qualityGates": {
+    "maximumPaletteSize": 8,
+    "allowPartialAlpha": false,
+    "requireVisualAudit": true,
+    "requireHumanApproval": true
+  }
+}

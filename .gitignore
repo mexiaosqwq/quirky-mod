@@ -39,6 +39,11 @@ replay_*.log
 *.hprof
 *.jfr
 
+# python
+
+__pycache__/
+*.py[cod]
+
 # local superpowers worktrees
 
 .worktrees/
