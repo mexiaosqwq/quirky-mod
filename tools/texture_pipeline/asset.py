@@ -143,7 +143,7 @@ def _validate_layer(layer: Any, index: int, palette: Mapping[str, str], width: i
         raise AssetError(f"{label} must be an object")
     layer_id = _nonempty_string(layer, "id", label)
     if not _LAYER_ID.fullmatch(layer_id):
-        raise AssetError(f"{label}.id is invalid")
+        raise AssetError(f"{label}.id must use lower_snake_case (letters, digits, underscores only)")
     operation = _nonempty_string(layer, "operation", label)
     if operation not in _OPERATIONS:
         raise AssetError(f"{label}.operation {operation!r} is unsupported")

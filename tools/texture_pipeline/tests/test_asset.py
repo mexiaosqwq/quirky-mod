@@ -142,6 +142,10 @@ class AssetPackageTest(unittest.TestCase):
     def test_rejects_unknown_operation(self):
         self.assert_invalid(source_changes={"layers.0.operation": "blur"}, message="operation")
 
+    def test_rejects_layer_id_with_hyphen(self):
+        layer = {"id": "bad-id", "operation": "point", "color": "base", "x": 0, "y": 0}
+        self.assert_invalid(source_changes={"layers.0": layer}, message="snake_case")
+
     def test_rejects_invalid_polygon_points(self):
         polygon = {
             "id": "body",
