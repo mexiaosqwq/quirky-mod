@@ -21,7 +21,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * nibble → timeUntilHooked → timeUntilLured（递减语句 timeUntilLured -= fishingSpeed）。
  * HEAD 快照“本 tick 是否执行该递减分支”（nibble==0 && timeUntilHooked==0 && timeUntilLured>0），
  * RETURN 若快照为真且浮漂位于诱鱼区内则额外再减（{@link BaitZoneLogic#extraLureDecrement}）→
- * 诱鱼阶段约 3× 速（26.2 默认 fishingSpeed=1）。
+ * 诱鱼阶段约 4× 速（26.2 默认 fishingSpeed=1；用户调激进：额外 -3，300-600 tick 起始 → 4-8 秒）。
  * 区内浮漂每 tick 25% 概率冒泡（服务端 sendParticles），作为“生效中”的可见反馈。
  * 判定确定性：分支执行 ⇔ HEAD 条件成立（同 tick 内三个字段仅 catchingFish 修改）。
  * 二进制：多区域不叠加。

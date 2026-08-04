@@ -22,12 +22,13 @@ public final class BaitZoneLogic {
 
 	/**
 	 * 诱鱼阶段每 tick 的额外递减（mixin 在 tick RETURN 对区内浮漂调用）：在原版 -1 之后
-	 * 再减 2（clamp ≥1）。保留 1 是关键：原版转换（timeUntilLured<=0 → timeUntilHooked）
+	 * 再减 3（clamp ≥1）→ 合计 -4/tick（约 ×4 速，300-600 tick 起始 → 4-8 秒，2026-08-04 用户调激进）。
+	 * 保留 1 是关键：原版转换（timeUntilLured<=0 → timeUntilHooked）
 	 * 只在其自身递减后触发；若这里 clamp 到 0，下一 tick 原版看到 0 会走 else 分支
 	 * 重掷 100-600，本次诱鱼进度全部丢失 → 加速失效（历史 bug，见 BaitZoneLogicTest）。
 	 */
 	public static int extraLureDecrement(int timeUntilLured) {
-		return Math.max(1, timeUntilLured - 2);
+		return Math.max(1, timeUntilLured - 3);
 	}
 
 	/** 诱鱼区持续 tick 数：雨天且开启加成时 ×5/3，否则为基准秒数 ×20。
