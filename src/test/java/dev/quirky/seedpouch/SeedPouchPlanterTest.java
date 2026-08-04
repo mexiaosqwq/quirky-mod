@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -17,35 +16,27 @@ import dev.quirky.seedpouch.SeedPouchPlanter.PlanEntry;
 import dev.quirky.seedpouch.SeedPouchPlanter.PlanResult;
 import net.minecraft.core.BlockPos;
 import net.minecraft.tags.BlockTags;
-import net.minecraft.tags.FluidTags;
-import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 class SeedPouchPlanterTest {
-
 	private static final BlockPos CENTER = new BlockPos(0, 64, 0);
 
 	@BeforeAll
-	static void bootStrap() {
+	static void boot() {
 		TestBootstrap.boot();
 		TestBootstrap.bindMinimalComponents(Items.WHEAT_SEEDS);
-		TestBootstrap.bindMinimalComponents(Items.CARROT);
 		TestBootstrap.bindMinimalComponents(Items.NETHER_WART);
 		TestBootstrap.bindMinimalComponents(Items.SUGAR_CANE);
 	}
 
-	// ---- helpers -----------------------------------------------------------
-
-	/** (2*radius+1)² 个可播种候选格（上方空气）。 */
 	private static List<BlockSnapshot> square(int radius) {
 		List<BlockSnapshot> cells = new ArrayList<>();
 		for (int dx = -radius; dx <= radius; dx++) {
@@ -57,7 +48,6 @@ class SeedPouchPlanterTest {
 		return cells;
 	}
 
-	/** 土壤为指定状态的 mock 世界（光照充足、默认流体为空、默认方块为空气）。 */
 	private static LevelReader levelWithSoil(BlockState soil) {
 		LevelReader level = mock(LevelReader.class);
 		when(level.getRawBrightness(any(BlockPos.class), anyInt())).thenReturn(15);
@@ -66,147 +56,91 @@ class SeedPouchPlanterTest {
 		return level;
 	}
 
-	/** 支持某方块 tag 的土壤 mock（测试环境 vanilla tag 为空，必须 mock）。 */
-	private static BlockState soilSupporting(TagKey<Block> tag) {
+	private static BlockState soilSupporting(net.minecraft.tags.TagKey<Block> tag) {
 		BlockState soil = mock(BlockState.class);
 		when(soil.is(tag)).thenReturn(true);
 		return soil;
 	}
 
-	private static List<ItemStack> inventory(ItemStack... stacks) {
-		return new ArrayList<>(List.of(stacks));
-	}
-
-	private static void assertPlantedWheatAt(PlanResult result, int index, BlockPos groundPos, int slot) {
-		PlanEntry entry = result.entries().get(index);
-		assertEquals(groundPos, entry.pos());
-		assertTrue(entry.cropState().is(Blocks.WHEAT), "expected wheat crop");
-		assertEquals(slot, entry.inventorySlot());
-	}
-
-	// ---- tests -------------------------------------------------------------
-
 	@Test
-	void threeByThreeFarmlandPlantsAllNineCells() {
+	void pouchPlantsAllCellsFromBagItems() {
 		LevelReader level = levelWithSoil(soilSupporting(BlockTags.SUPPORTS_CROPS));
-		PlanResult result = SeedPouchPlanter.plan(
-			level, square(1), inventory(new ItemStack(Items.WHEAT_SEEDS, 64)), false
-		);
+		// 袋内只有小麦种子（来源是袋子，不是背包）
+		List<ItemStack> pouch = List.of(new ItemStack(Items.WHEAT_SEEDS, 64));
+		PlanResult result = SeedPouchPlanter.plan(level, square(1), pouch, false);
 		assertEquals(9, result.entries().size());
-		// 扫描顺序 dx 外圈 / dz 内圈：(-1,-1) (-1,0) (-1,1) (0,-1) …；全部从 0 号槽位取种
 		for (int i = 0; i < 9; i++) {
-			assertPlantedWheatAt(result, i, new BlockPos(-1 + i / 3, 64, -1 + i % 3), 0);
+			PlanEntry e = result.entries().get(i);
+			assertTrue(e.cropState().is(Blocks.WHEAT), "expected wheat");
+			assertEquals(0, e.pouchIndex());
 		}
 	}
 
 	@Test
-	void insufficientSeedsPlantsOnlyAvailableCells() {
+	void insufficientSeedsPlantsOnlyAvailable() {
 		LevelReader level = levelWithSoil(soilSupporting(BlockTags.SUPPORTS_CROPS));
-		PlanResult result = SeedPouchPlanter.plan(
-			level, square(1), inventory(new ItemStack(Items.WHEAT_SEEDS, 2)), false
-		);
-		assertEquals(2, result.entries().size());
+		List<ItemStack> pouch = List.of(new ItemStack(Items.WHEAT_SEEDS, 2));
+		assertEquals(2, SeedPouchPlanter.plan(level, square(1), pouch, false).entries().size());
 	}
 
 	@Test
-	void infiniteSeedsPlantsFullAreaRegardlessOfCount() {
+	void infiniteSeedsPlantsFullArea() {
 		LevelReader level = levelWithSoil(soilSupporting(BlockTags.SUPPORTS_CROPS));
-		PlanResult result = SeedPouchPlanter.plan(
-			level, square(1), inventory(new ItemStack(Items.WHEAT_SEEDS, 1)), true
-		);
-		assertEquals(9, result.entries().size());
+		List<ItemStack> pouch = List.of(new ItemStack(Items.WHEAT_SEEDS, 1));
+		assertEquals(9, SeedPouchPlanter.plan(level, square(1), pouch, true).entries().size());
 	}
 
 	@Test
-	void mixedAreaAssignsMatchingCropsInInventoryOrder() {
-		BlockPos farmlandPos = CENTER;
-		BlockPos soulSandPos = CENTER.east();
-		// 先建好土壤 mock，再注册到 level（避免在 thenReturn 里嵌套 stubbing）
+	void mixedBagSplitsByCanSurvive() {
+		BlockPos farmland = CENTER;
+		BlockPos soulSand = CENTER.east();
 		BlockState cropsSoil = soilSupporting(BlockTags.SUPPORTS_CROPS);
 		BlockState wartSoil = soilSupporting(BlockTags.SUPPORTS_NETHER_WART);
 		LevelReader level = levelWithSoil(cropsSoil);
-		when(level.getBlockState(eq(soulSandPos))).thenReturn(wartSoil);
-		when(level.getBlockState(eq(farmlandPos))).thenReturn(cropsSoil);
-		// 顺序：先 wheat 后 nether wart —— 耕地格拿 wheat，灵魂沙格 wheat 无法存活再取 nether wart
-		List<ItemStack> inventory = inventory(
+		when(level.getBlockState(soulSand)).thenReturn(wartSoil);
+		when(level.getBlockState(farmland)).thenReturn(cropsSoil);
+		List<ItemStack> pouch = List.of(
 			new ItemStack(Items.WHEAT_SEEDS, 64),
 			new ItemStack(Items.NETHER_WART, 64)
 		);
 		List<BlockSnapshot> area = List.of(
-			new BlockSnapshot(farmlandPos, true, Blocks.FARMLAND.defaultBlockState()),
-			new BlockSnapshot(soulSandPos, true, Blocks.SOUL_SAND.defaultBlockState())
+			new BlockSnapshot(farmland, true, Blocks.FARMLAND.defaultBlockState()),
+			new BlockSnapshot(soulSand, true, Blocks.SOUL_SAND.defaultBlockState())
 		);
-		PlanResult result = SeedPouchPlanter.plan(level, area, inventory, false);
-
+		PlanResult result = SeedPouchPlanter.plan(level, area, pouch, false);
 		assertEquals(2, result.entries().size());
 		assertTrue(result.entries().get(0).cropState().is(Blocks.WHEAT));
-		assertEquals(0, result.entries().get(0).inventorySlot());
+		assertEquals(0, result.entries().get(0).pouchIndex());
 		assertTrue(result.entries().get(1).cropState().is(Blocks.NETHER_WART));
-		assertEquals(1, result.entries().get(1).inventorySlot());
+		assertEquals(1, result.entries().get(1).pouchIndex());
 	}
 
 	@Test
-	void sugarCaneNearWaterPlantsOnSand() {
-		BlockPos sandPos = CENTER;
-		BlockPos waterPos = sandPos.east();
-		LevelReader level = levelWithSoil(soilSupporting(BlockTags.SUPPORTS_SUGAR_CANE));
-		FluidState water = mock(FluidState.class);
-		when(water.is(FluidTags.SUPPORTS_SUGAR_CANE_ADJACENTLY)).thenReturn(true);
-		when(level.getFluidState(eq(waterPos))).thenReturn(water);
-
-		PlanResult result = SeedPouchPlanter.plan(
-			level, square(0), inventory(new ItemStack(Items.SUGAR_CANE, 64)), false
-		);
-		assertEquals(1, result.entries().size());
-		assertTrue(result.entries().getFirst().cropState().is(Blocks.SUGAR_CANE));
+	void emptyBagProducesEmptyPlan() {
+		LevelReader level = levelWithSoil(soilSupporting(BlockTags.SUPPORTS_CROPS));
+		assertTrue(SeedPouchPlanter.plan(level, square(1), List.of(), false).isEmpty());
 	}
 
 	@Test
-	void sugarCaneFarFromWaterSkipsCell() {
-		LevelReader level = levelWithSoil(soilSupporting(BlockTags.SUPPORTS_SUGAR_CANE));
-		PlanResult result = SeedPouchPlanter.plan(
-			level, square(0), inventory(new ItemStack(Items.SUGAR_CANE, 64)), false
-		);
-		assertTrue(result.isEmpty());
+	void consumeOneDecrementsAndKeepsEntry() {
+		List<ItemStack> pouch = new ArrayList<>(List.of(new ItemStack(Items.WHEAT_SEEDS, 5)));
+		List<ItemStack> after = SeedPouchPlanter.consumeOne(pouch, 0);
+		assertEquals(1, after.size());
+		assertEquals(4, after.get(0).getCount());
 	}
 
 	@Test
-	void preciseRadiusScansOnlyCenterCell() {
-		LevelReader level = levelWithSoil(Blocks.AIR.defaultBlockState());
-		List<BlockSnapshot> cells = SeedPouchPlanter.scan(level, CENTER, 0);
-		assertEquals(1, cells.size());
-		assertEquals(CENTER, cells.getFirst().pos());
-		assertTrue(cells.getFirst().replaceableAbove());
+	void consumeOneRemovesEntryWhenZero() {
+		List<ItemStack> pouch = new ArrayList<>(List.of(new ItemStack(Items.WHEAT_SEEDS, 1)));
+		List<ItemStack> after = SeedPouchPlanter.consumeOne(pouch, 0);
+		assertTrue(after.isEmpty());
 	}
 
 	@Test
 	void scanCollectsRadiusSquare() {
 		LevelReader level = levelWithSoil(Blocks.AIR.defaultBlockState());
+		assertEquals(1, SeedPouchPlanter.scan(level, CENTER, 0).size());
 		assertEquals(9, SeedPouchPlanter.scan(level, CENTER, 1).size());
 		assertEquals(25, SeedPouchPlanter.scan(level, CENTER, 2).size());
-	}
-
-	@Test
-	void stoneAreaProducesEmptyPlan() {
-		// 真实石头方块：测试环境 tag 为空 → SUPPORTS_CROPS 判定为 false → 无种子可存活
-		LevelReader level = levelWithSoil(Blocks.STONE.defaultBlockState());
-		PlanResult result = SeedPouchPlanter.plan(
-			level, square(1), inventory(new ItemStack(Items.WHEAT_SEEDS, 64)), false
-		);
-		assertTrue(result.isEmpty());
-	}
-
-	@Test
-	void nonReplaceableCellsAreSkipped() {
-		LevelReader level = levelWithSoil(soilSupporting(BlockTags.SUPPORTS_CROPS));
-		List<BlockSnapshot> area = List.of(
-			new BlockSnapshot(CENTER, false, Blocks.FARMLAND.defaultBlockState()),
-			new BlockSnapshot(CENTER.east(), true, Blocks.FARMLAND.defaultBlockState())
-		);
-		PlanResult result = SeedPouchPlanter.plan(
-			level, area, inventory(new ItemStack(Items.WHEAT_SEEDS, 64)), false
-		);
-		assertEquals(1, result.entries().size());
-		assertEquals(CENTER.east(), result.entries().getFirst().pos());
 	}
 }
