@@ -2,7 +2,6 @@ package dev.quirky.client.mixin;
 
 import java.util.List;
 
-import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
@@ -27,9 +26,6 @@ public abstract class ClockTooltipMixin {
 		TooltipFlag flag,
 		CallbackInfoReturnable<List<Component>> cir
 	) {
-		if (!QuirkyConfigHolder.get().clockTooltip) {
-			return;
-		}
 		ItemStack stack = (ItemStack) (Object) this;
 		if (player == null) {
 			return;

@@ -3,7 +3,6 @@ package dev.quirky.item;
 import java.util.List;
 
 import dev.quirky.ModItems;
-import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -43,9 +42,6 @@ public class EnderPouchItem extends Item {
 
 	@Override
 	public InteractionResult use(Level level, Player player, InteractionHand hand) {
-		if (!QuirkyConfigHolder.get().enderPouchEnabled) {
-			return InteractionResult.PASS;
-		}
 		if (player.isShiftKeyDown()) {
 			return quickStore(level, player, hand);
 		}
@@ -115,9 +111,6 @@ public class EnderPouchItem extends Item {
 
 	/** 末影共鸣：16 格内存在末影人时 10% 概率挑一只激怒（锁定玩家 + 凝视音效）。 */
 	private static void triggerEnderResonance(ServerLevel level, Player player) {
-		if (!QuirkyConfigHolder.get().enderPouchEnderResonance) {
-			return;
-		}
 		List<EnderMan> endermen = level.getEntitiesOfClass(
 			EnderMan.class,
 			player.getBoundingBox().inflate(RESONANCE_RANGE),

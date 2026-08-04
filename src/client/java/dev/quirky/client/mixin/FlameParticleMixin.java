@@ -2,7 +2,6 @@ package dev.quirky.client.mixin;
 
 import dev.quirky.client.soul_lighting.SoulLightingHelper;
 import dev.quirky.client.soul_lighting.SoulLightingModels;
-import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.FlameParticle;
 import net.minecraft.client.particle.SingleQuadParticle;
@@ -47,9 +46,6 @@ public abstract class FlameParticleMixin {
 		CallbackInfo ci
 	) {
 		if (!((Object) this instanceof FlameParticle)) {
-			return;
-		}
-		if (!QuirkyConfigHolder.get().soulLighting) {
 			return;
 		}
 		// 只处理火把/蜡烛自身产生的火焰粒子：粒子所在方块必须是光源方块本身，

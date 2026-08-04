@@ -60,11 +60,11 @@ public class FishBaitEntity extends ThrowableItemProjectile {
 			}
 			BaitZoneEntity zone = ModEntities.BAIT_ZONE.create(serverLevel, EntitySpawnReason.TRIGGERED);
 			if (zone != null) {
-				// 生成时快照天气与配置：雨天 + 开启加成 → ×5/3 时长
+				// 生成时快照天气：雨天 ×5/3 时长加成
 				int ticks = BaitZoneLogic.durationTicks(
 					QuirkyConfigHolder.get().fishBaitDurationSeconds,
 					serverLevel.isRaining(),
-					QuirkyConfigHolder.get().fishBaitRainBonus
+					true
 				);
 				zone.init(ticks);
 				zone.setPos(this.getX(), y, this.getZ());

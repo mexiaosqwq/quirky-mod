@@ -21,9 +21,6 @@ public final class DoubleDoorHandler {
 		if (level.isClientSide()) {
 			return;
 		}
-		if (!QuirkyConfigHolder.get().doubleDoor) {
-			return;
-		}
 		BlockState state = level.getBlockState(pos);
 		if (!(state.getBlock() instanceof DoorBlock)) {
 			return;

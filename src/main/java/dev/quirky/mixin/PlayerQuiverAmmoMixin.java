@@ -3,7 +3,6 @@ package dev.quirky.mixin;
 import java.util.function.Predicate;
 
 import dev.quirky.ModItems;
-import dev.quirky.config.QuirkyConfigHolder;
 import dev.quirky.item.QuiverItem;
 import dev.quirky.quiver.QuiverAmmoSource;
 import dev.quirky.quiver.QuiverAmmoSource.QuiverAmmoRef;
@@ -58,9 +57,6 @@ public abstract class PlayerQuiverAmmoMixin implements QuiverAmmoSource {
 	private void quirky$supplyFromQuiver(ItemStack heldWeapon, CallbackInfoReturnable<ItemStack> cir) {
 		// 每次调用先清旧记录（上次射击残留）
 		this.quirky$clearQuiverAmmo();
-		if (!QuirkyConfigHolder.get().quiverEnabled) {
-			return;
-		}
 		ItemStack returnValue = cir.getReturnValue();
 		// 散装优先：原版已找到非空弹药则不碰箭袋
 		if (!returnValue.isEmpty()) {

@@ -1,6 +1,5 @@
 package dev.quirky.item;
 
-import dev.quirky.config.QuirkyConfigHolder;
 import dev.quirky.entity.BoomerangEntity;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
@@ -26,9 +25,6 @@ public class BoomerangItem extends Item {
 
 	@Override
 	public InteractionResult use(Level level, Player player, InteractionHand hand) {
-		if (!QuirkyConfigHolder.get().boomerangEnabled) {
-			return InteractionResult.FAIL;
-		}
 		if (level.isClientSide()) {
 			return InteractionResult.SUCCESS;
 		}

@@ -55,9 +55,6 @@ public final class DeathCamClient {
 	 * 记录待显示的死亡信息并启动镜头；死亡位置先用客户端本地位置，payload 到达后刷新。
 	 */
 	public static void onKillPacket(Component message, boolean hardcore) {
-		if (!QuirkyConfigHolder.get().deathCam) {
-			return;
-		}
 		pendingDeathMessage = message;
 		pendingHardcore = hardcore;
 		if (!active()) {
@@ -75,9 +72,6 @@ public final class DeathCamClient {
 	 * 不重建时间轴，否则两个包的 yaw 微小差异会让镜头朝向/进度跳变（"会随"感）。
 	 */
 	public static void start(Vec3 pos, float yaw, float pitch) {
-		if (!QuirkyConfigHolder.get().deathCam) {
-			return;
-		}
 		origin = pos;
 		if (timeline == null) {
 			timeline = new DeathCamTimeline(QuirkyConfigHolder.get().deathCamDuration, yaw);

@@ -57,16 +57,13 @@ public class PetWhistleItem extends Item {
 
 	@Override
 	public InteractionResult use(Level level, Player player, InteractionHand hand) {
-		if (!QuirkyConfigHolder.get().petWhistleEnabled) {
-			return InteractionResult.PASS;
-		}
 		if (!level.isClientSide()) {
 			ServerLevel serverLevel = (ServerLevel) level;
 			if (player.isShiftKeyDown()) {
 				toggleSitting(serverLevel, player);
 			} else {
 				callPets(serverLevel, player);
-				if (QuirkyConfigHolder.get().petWhistleTauntPhantoms && phantomActiveConditions(serverLevel)) {
+				if (phantomActiveConditions(serverLevel)) {
 					tauntPhantoms(serverLevel, player);
 				}
 			}
@@ -90,12 +87,9 @@ public class PetWhistleItem extends Item {
 			if (distSq <= radiusSq) {
 				pet.getNavigation().moveTo(player, 1.5);
 				spawnHearts(level, pet);
-			} else if (QuirkyConfigHolder.get().petWhistleTeleportBeyondRadius) {
+			} else {
 				teleportPetToPlayer(level, pet, player);
 				spawnHearts(level, pet);
-			} else {
-				// 关闭传送：仍尝试寻路（可能因距离失败，属预期）
-				pet.getNavigation().moveTo(player, 1.5);
 			}
 		}
 	}

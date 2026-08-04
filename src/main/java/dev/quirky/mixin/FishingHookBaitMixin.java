@@ -58,9 +58,6 @@ public abstract class FishingHookBaitMixin {
 		if (self.level().isClientSide() || self.isRemoved()) {
 			return;
 		}
-		if (!QuirkyConfigHolder.get().fishBaitEnabled) {
-			return;
-		}
 		if (this.quirky$inBaitZone()) {
 			this.timeUntilLured = BaitZoneLogic.extraLureDecrement(this.timeUntilLured);
 			this.quirky$bobberFeedback();

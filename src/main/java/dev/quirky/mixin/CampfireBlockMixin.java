@@ -1,7 +1,6 @@
 package dev.quirky.mixin;
 
 import dev.quirky.ModParticles;
-import dev.quirky.config.QuirkyConfigHolder;
 import dev.quirky.particle.DyedCampfireSmokeOption;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
@@ -67,8 +66,8 @@ public abstract class CampfireBlockMixin {
 		BlockHitResult hitResult,
 		CallbackInfoReturnable<InteractionResult> cir
 	) {
-		if (!QuirkyConfigHolder.get().dyedCampfireSmokeEnabled || !state.getValue(CampfireBlock.LIT)) {
-			return; // 开关关闭或未点燃：走原版行为
+		if (!state.getValue(CampfireBlock.LIT)) {
+			return; // 未点燃：走原版行为
 		}
 		ItemStack itemInHand = player.getItemInHand(hand);
 		if (!(itemInHand.getItem() instanceof DyeItem)) {
@@ -103,7 +102,7 @@ public abstract class CampfireBlockMixin {
 		boolean isPrecise,
 		CallbackInfo ci
 	) {
-		if (!QuirkyConfigHolder.get().dyedCampfireSmokeEnabled || !state.getValue(CampfireBlock.LIT)) {
+		if (!state.getValue(CampfireBlock.LIT)) {
 			return;
 		}
 		if (!(entity instanceof ItemEntity itemEntity) || !(level instanceof ServerLevel serverLevel)) {
@@ -141,9 +140,6 @@ public abstract class CampfireBlockMixin {
 	/** 染色烟粒子替换（makeParticles 静态方法 HEAD）：有色则生成染色粒子并取消原版。 */
 	@Inject(method = "makeParticles(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;ZZ)V", at = @At("HEAD"), cancellable = true)
 	private static void quirky$dyedSmokeParticles(Level level, BlockPos pos, boolean isSignalFire, boolean smoking, CallbackInfo ci) {
-		if (!QuirkyConfigHolder.get().dyedCampfireSmokeEnabled) {
-			return;
-		}
 		if (!(level.getBlockEntity(pos) instanceof CampfireBlockEntity campfire)) {
 			return;
 		}
@@ -176,7 +172,7 @@ public abstract class CampfireBlockMixin {
 			}
 			replaced = true;
 		}
-		if (accessor.quirky$getGlow() && QuirkyConfigHolder.get().dyedCampfireGlow && level.isDarkOutside()) {
+		if (accessor.quirky$getGlow() && level.isDarkOutside()) {
 			RandomSource random = level.getRandom();
 			int glowColor = color != -1 ? color : 0xFFE082; // 无色烟时用暖黄微光
 			// 夜光火星：每 tick 4 颗向上飘散（原 1 颗太稀，玩家反馈“特效太少”）

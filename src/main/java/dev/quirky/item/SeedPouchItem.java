@@ -76,9 +76,6 @@ public class SeedPouchItem extends BundleItem {
 		}
 		Level level = context.getLevel();
 		QuirkyConfig config = QuirkyConfigHolder.get();
-		if (!config.seedPouchEnabled) {
-			return InteractionResult.PASS;
-		}
 		ItemStack pouch = context.getItemInHand();
 		BundleContents contents = pouch.getOrDefault(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY);
 		// 袋内 items 拷贝（plan 只读，消耗在服务端用 consumeOne 重建）

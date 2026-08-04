@@ -38,9 +38,6 @@ public final class HarvestHandler {
 		if (level.isClientSide()) {
 			return InteractionResult.PASS;
 		}
-		if (!QuirkyConfigHolder.get().harvestReplant) {
-			return InteractionResult.PASS;
-		}
 
 		ServerLevel serverLevel = (ServerLevel) level;
 		BlockPos pos = hit.getBlockPos();

@@ -3,7 +3,6 @@ package dev.quirky.client.mixin;
 import java.util.function.Consumer;
 
 import dev.quirky.client.tooltips.AttributeTooltipVisibility;
-import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
@@ -36,7 +35,7 @@ public abstract class AttributeTextHideMixin {
 			return;
 		}
 		if (AttributeTooltipVisibility.vanillaTextHidden(
-			QuirkyConfigHolder.get().attributeTooltip, Minecraft.getInstance(), (ItemStack) (Object) this
+			Minecraft.getInstance(), (ItemStack) (Object) this
 		)) {
 			ci.cancel();
 		}
