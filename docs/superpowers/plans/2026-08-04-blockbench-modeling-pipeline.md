@@ -34,7 +34,7 @@
 - Consumes: `chromium-browser`（已装 149）、`web.blockbench.net`（已验证可达）、`npm playwright`（本任务安装）。
 - Produces: `launch.js` 输出 `--json` 模式返回 `{browserWs, pageLoaded, webgl}`；`shot.js` 接受 `--out <path>` 截图到指定 png。
 
-- [ ] **Step 1: 初始化工具目录与依赖**
+- [x] **Step 1: 初始化工具目录与依赖**
 
 ```bash
 mkdir -p build/tools/blockbench build/previews
@@ -45,7 +45,7 @@ npm install playwright@latest 2>&1 | tail -3   # SKIP_BROWSER_DOWNLOAD=1 环境�
 
 `package.json` 加 `"type": "commonjs"`。
 
-- [ ] **Step 2: 写 launch.js**
+- [x] **Step 2: 写 launch.js**
 
 ```js
 // launch.js — 启动 headless chromium 打开 Blockbench 网页版，等待加载完成
@@ -75,7 +75,7 @@ const URL = process.env.BLOCKBENCH_URL || "https://web.blockbench.net/";
 })().catch(e => { console.error(JSON.stringify({ ok: false, error: String(e) })); process.exit(1); });
 ```
 
-- [ ] **Step 3: 写 shot.js（截图当前视口）**
+- [x] **Step 3: 写 shot.js（截图当前视口）**
 
 ```js
 // shot.js — 打开 Blockbench，等待场景就绪后截图到指定文件
@@ -95,7 +95,7 @@ const out = process.argv[2] || "build/previews/shot.png";
 })().catch(e => { console.error(String(e)); process.exit(1); });
 ```
 
-- [ ] **Step 4: 验证**
+- [x] **Step 4: 验证**
 
 ```bash
 cd build/tools/blockbench
@@ -103,7 +103,7 @@ node launch.js        # 期望 {"ok":true,"webgl":true,...}
 node shot.js ../../previews/bb_launch.png && ls -la ../../previews/bb_launch.png
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add build/tools/blockbench/package.json build/tools/blockbench/launch.js build/tools/blockbench/shot.js build/previews/bb_launch.png
@@ -119,7 +119,7 @@ git commit -m "feat: blockbench modeling tool skeleton (launch + shot via playwr
 - Consumes: Task 1 的 launch 模式（独立启动 chromium + 打开网页版）。
 - Produces: `node model.js --init --json <spec.json>` 在 Blockbench 中建立项目与骨骼树；`node model.js --screenshot <out.png>` 截图当前视口。spec.json 结构：`{bones:[{name,parent,origin:[x,y,z]},...], cubes:[{name,bone,from:[x,y,z],to:[x,y,z],uv:[u,v]},...]}`。
 
-- [ ] **Step 1: 写 model.js 核心（evaluate 调 Blockbench API）**
+- [x] **Step 1: 写 model.js 核心（evaluate 调 Blockbench API）**
 
 ```js
 // 核心 evaluate 片段（Blockbench 全局 API，模式同 MCP 插件源码）
@@ -147,18 +147,18 @@ await page.evaluate((spec) => {
 }, spec);
 ```
 
-- [ ] **Step 2: 加 --screenshot 支持**（复用 Task 1 shot.js 逻辑：等待 `Canvas.updateAll` 后 `page.waitForTimeout(3000)` 截图）
+- [x] **Step 2: 加 --screenshot 支持**（复用 Task 1 shot.js 逻辑：等待 `Canvas.updateAll` 后 `page.waitForTimeout(3000)` 截图）
 
-- [ ] **Step 3: 用最小 spec 验证（一根腿骨架 + 一个 cube）**
+- [x] **Step 3: 用最小 spec 验证（一根腿骨架 + 一个 cube）**
 
 ```bash
 node model.js --init --json '{"bones":[{"name":"root"},{"name":"leg_l","parent":"root","origin":[0,0,0]}],"cubes":[{"name":"leg_box","bone":"leg_l","from":[0,0,0],"to":[2,2,2],"uv":[0,0]}]}'
 node model.js --screenshot ../../previews/model_basic.png
 ```
 
-- [ ] **Step 4: 检查截图**（应看到立方体网格场景），必要时对照 MCP 插件源码调整 API 调用（`server/tools/cubes.ts`、`server/tools/element.ts` 是调用参考）。
+- [x] **Step 4: 检查截图**（应看到立方体网格场景），必要时对照 MCP 插件源码调整 API 调用（`server/tools/cubes.ts`、`server/tools/element.ts` 是调用参考）。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add build/tools/blockbench/model.js build/previews/model_basic.png
@@ -175,7 +175,7 @@ git commit -m "feat: blockbench model.js — create project/bones/cubes via page
 - Consumes: Task 2 的模型。
 - Produces: `anim.js --add --json <anim.json>`（anim.json：`{name,loop,length,bones:{bone:[{time,position?,rotation?,scale?}]}}`）；`export.js --out <path.bbmodel>` 导出项目 JSON。
 
-- [ ] **Step 1: anim.js——动画创建（模式同 MCP 插件 `server/tools/animation.ts`）**
+- [x] **Step 1: anim.js——动画创建（模式同 MCP 插件 `server/tools/animation.ts`）**
 
 ```js
 await page.evaluate((anim) => {
@@ -199,7 +199,7 @@ await page.evaluate((anim) => {
 }, anim);
 ```
 
-- [ ] **Step 2: export.js——导出 .bbmodel**
+- [x] **Step 2: export.js——导出 .bbmodel**
 
 ```js
 const json = await page.evaluate(() => {
@@ -211,7 +211,7 @@ require("fs").writeFileSync(out, JSON.stringify(json, null, 2));
 
 （`Project.selected.save()` 返回可 JSON 序列化的模型数据；若不可用，用 `JSON.stringify(Project.selected, (k,v) => k === 'mesh' ? undefined : v)` 兜底，实现时实测。）
 
-- [ ] **Step 3: 验证——给 Task 2 模型加一条 2 秒循环动画并截图两个时间点**
+- [x] **Step 3: 验证——给 Task 2 模型加一条 2 秒循环动画并截图两个时间点**
 
 ```bash
 node anim.js --add --json '{"name":"walk","loop":true,"length":2,"bones":{"leg_l":[{"time":0,"rotation":[0,0,30]},{"time":1,"rotation":[0,0,-30]},{"time":2,"rotation":[0,0,30]}]}}'
@@ -219,7 +219,7 @@ node model.js --screenshot ../../previews/anim_t0.png
 node export.js --out ../../models/demo_beast.bbmodel && head -c 300 ../../models/demo_beast.bbmodel
 ```
 
-- [ ] **Step 4: 截图给用户确认动画骨架可行，Commit**
+- [x] **Step 4: 截图给用户确认动画骨架可行，Commit**
 
 ```bash
 git add build/tools/blockbench/anim.js build/tools/blockbench/export.js build/previews/anim_t0.png models/demo_beast.bbmodel
@@ -236,22 +236,22 @@ git commit -m "feat: blockbench anim.js + export.js — keyframe animations and 
 - Consumes: Task 3 的 `.bbmodel` 文件。
 - Produces: `convert.js --in <x.bbmodel> --out <dir>` 生成 `XxxModel.java` + `XxxAnimations.java`（26.2 mojmap 代码）。
 
-- [ ] **Step 1: 确认 bbmodel JSON 字段**（`meta/model_format`、`elements[]`（from/to/uv/name）、`outliner`、`animations[]`（bones 关键帧）），用 Task 3 导出的文件实测字段名。
+- [x] **Step 1: 确认 bbmodel JSON 字段**（`meta/model_format`、`elements[]`（from/to/uv/name）、`outliner`、`animations[]`（bones 关键帧）），用 Task 3 导出的文件实测字段名。
 
-- [ ] **Step 2: convert.js 转换规则**
+- [x] **Step 2: convert.js 转换规则**
 
 - 模型：每个 outliner 骨骼 → `ModelPart`；每个 element → `CubeListBuilder.addBox(name, fromX, fromY, fromZ, w, h, d, new CubeDeformation(0))` + `texOffs(uvX, uvY)`；根骨骼在 `createBodyLayer()` 中 `MeshDefinition`/`PartDefinition` 组装（模板给出固定骨架，convert.js 填充 box 数据与父子关系）。
 - 动画：每条 animation → `AnimationDefinition.Builder.withLength(seconds)`；每骨骼每通道 → `.addAnimation(boneName, new AnimationChannel(AnimationChannel.Targets.ROTATION, new Keyframe(t, KeyframeAnimations.degreeVec(x,y,z), AnimationChannel.Interpolations.LINEAR)))`（position 用 posVec、scale 用 scaleVec；时间=秒）。插值映射：linear→LINEAR、smooth/catmullrom→CATMULLROM、step/bezier→LINEAR（注释标注）。
 - 输出：`DemoBeastModel.java`（`public static LayerDefinition createBodyLayer()` + `public static final ModelLayerLocation LAYER_LOCATION = new ModelLayerLocation(Identifier.of("quirky","demo_beast"), "main")`）、`DemoBeastAnimations.java`（`public static final AnimationDefinition WALK/IDLE/TAIL_WAG`）。模板中 model 类含 `setupAnim(EntityRenderState, float walkPos, float walkSpeed, float partialTick)` 骨架，动画应用走 `AnimationDefinition.bake(root)` 的 `KeyframeAnimation`（Task 5 实装时接 AnimationState）。
 
-- [ ] **Step 3: 验证——转换 Task 3 的 demo_beast.bbmodel，产物放 `build/generated/`（不直接进 src）**
+- [x] **Step 3: 验证——转换 Task 3 的 demo_beast.bbmodel，产物放 `build/generated/`（不直接进 src）**
 
 ```bash
 node convert.js --in ../../models/demo_beast.bbmodel --out ../../build/generated/
 ls ../../build/generated/
 ```
 
-- [ ] **Step 4: 人工检查生成代码的 API 与 mcsrc 一致**（`AnimationDefinition.Builder.addAnimation`、`Keyframe` 构造、`LayerDefinition.create`、`CubeListBuilder`），不一致就地修正模板。Commit。
+- [x] **Step 4: 人工检查生成代码的 API 与 mcsrc 一致**（`AnimationDefinition.Builder.addAnimation`、`Keyframe` 构造、`LayerDefinition.create`、`CubeListBuilder`），不一致就地修正模板。Commit。
 
 ```bash
 git add build/tools/blockbench/convert.js build/tools/blockbench/templates/ build/generated/
@@ -270,15 +270,15 @@ git commit -m "feat: convert.js — bbmodel to 26.2 java model/animation code ge
 - Consumes: Task 2/3 脚本。
 - Produces: `models/demo_beast.bbmodel` 最终版 + 纹理 `assets/quirky/textures/entity/demo_beast/demo_beast.png` 的原型（放 `build/previews/` 待确认）。
 
-- [ ] **Step 1: 设计模型 spec**（四足小兽，约 10 cube，64×64 纹理）：root 下 body（from 约 [-4,-2,-6] 到 [4,6,6]，即 8×8×12 居中偏上）、head（前上方 + 双耳）、4 腿（每条 2×6×2，微外扩）、tail（后部，细长）。数值写在 `specs/demo_beast.json`。
+- [x] **Step 1: 设计模型 spec**（四足小兽，约 10 cube，64×64 纹理）：root 下 body（from 约 [-4,-2,-6] 到 [4,6,6]，即 8×8×12 居中偏上）、head（前上方 + 双耳）、4 腿（每条 2×6×2，微外扩）、tail（后部，细长）。数值写在 `specs/demo_beast.json`。
 
-- [ ] **Step 2: 建模型 + 正/侧/前/透四视图截图**，`build/previews/demo_beast_*.png`，**用户确认形态后才继续**。
+- [x] **Step 2: 建模型 + 正/侧/前/透四视图截图**，`build/previews/demo_beast_*.png`，**用户确认形态后才继续**。
 
-- [ ] **Step 3: 纹理**——texgen.js 用 node 生成 64×64 png（纯色底 + 简单花纹/眼睛），写入 `build/previews/demo_beast_tex.png` 并在 Blockbench 中赋给模型（evaluate 设置 `model.textures[0].source`），截图确认。
+- [x] **Step 3: 纹理**——texgen.js 用 node 生成 64×64 png（纯色底 + 简单花纹/眼睛），写入 `build/previews/demo_beast_tex.png` 并在 Blockbench 中赋给模型（evaluate 设置 `model.textures[0].source`），截图确认。
 
-- [ ] **Step 4: 三动画**（walk 2s 对角步态四腿摆动 + 身体俯仰、idle 1.5s 呼吸、tail_wag 1s 尾巴左右摇），每动画截图 2 个时间点给用户确认。
+- [x] **Step 4: 三动画**（walk 2s 对角步态四腿摆动 + 身体俯仰、idle 1.5s 呼吸、tail_wag 1s 尾巴左右摇），每动画截图 2 个时间点给用户确认。
 
-- [ ] **Step 5: 导出最终 .bbmodel + 截图存档，Commit**
+- [x] **Step 5: 导出最终 .bbmodel + 截图存档，Commit**
 
 ```bash
 node export.js --out ../../models/demo_beast.bbmodel
@@ -297,7 +297,7 @@ git commit -m "feat: demo_beast model + textures + walk/idle/tail_wag animations
 - Consumes: Task 5 的动画名（walk/idle/tail_wag）——客户端用；本任务只做实体骨架。
 - Produces: `ModEntities.DEMO_BEAST`（`EntityType<DemoBeastEntity>`，`ResourceKey` 注册模式沿用现有文件）；`DemoBeastEntity extends Animal`，`isFood` 小麦种子，属性：移动速度 0.25、生命 10，goal：`WaterAvoidingRandomStrollGoal`(1.0) + `RandomLookAroundGoal` + `LookAtPlayerGoal`（26.2 类名已验，无 WanderAroundGoal）。
 
-- [ ] **Step 1: 对照 mcsrc 确认 `Animal`/`AgeableMob` 抽象方法**（`getBreedOffspring` 等必须实现的抽象方法），`RandomStrollGoal` 构造签名（`Goal`/`RandomStrollGoal(float speedModifier)` 变体），写实体类：
+- [x] **Step 1: 对照 mcsrc 确认 `Animal`/`AgeableMob` 抽象方法**（`getBreedOffspring` 等必须实现的抽象方法），`RandomStrollGoal` 构造签名（`Goal`/`RandomStrollGoal(float speedModifier)` 变体），写实体类：
 
 ```java
 package dev.quirky.demobeast;
@@ -312,17 +312,17 @@ public class DemoBeastEntity extends Animal {
 }
 ```
 
-- [ ] **Step 2: ModEntities 注册**（沿用现有 `ResourceKey.create(Registries.ENTITY_TYPE, QuirkyMod.id("demo_beast"))` + `EntityType.Builder.of(DemoBeastEntity::new, MobCategory.CREATURE).sized(0.8F, 0.8F)`）。
+- [x] **Step 2: ModEntities 注册**（沿用现有 `ResourceKey.create(Registries.ENTITY_TYPE, QuirkyMod.id("demo_beast"))` + `EntityType.Builder.of(DemoBeastEntity::new, MobCategory.CREATURE).sized(0.8F, 0.8F)`）。
 
-- [ ] **Step 3: 属性注册**（fabric 方式或沿用项目现有实体模式；`Attributes.MOVEMENT_SPEED` 0.25、`MAX_HEALTH` 10，以 mcsrc `Mob.createMobAttributes` 为基）。
+- [x] **Step 3: 属性注册**（fabric 方式或沿用项目现有实体模式；`Attributes.MOVEMENT_SPEED` 0.25、`MAX_HEALTH` 10，以 mcsrc `Mob.createMobAttributes` 为基）。
 
-- [ ] **Step 4: 验证**
+- [x] **Step 4: 验证**
 
 ```bash
 JAVA_HOME=/data/data/com.termux/files/usr/lib/jvm/java-25-openjdk PATH=... gradle build --no-daemon --console=plain
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/main/java/dev/quirky/ModEntities.java src/main/java/dev/quirky/demobeast/
@@ -343,21 +343,21 @@ git commit -m "feat: demo_beast entity — registration, attributes, minimal AI"
 - Consumes: Task 5 纹理（用户确认后的正式版）、Task 6 的 `ModEntities.DEMO_BEAST`。
 - Produces: 注册 `EntityRenderers.register(ModEntities.DEMO_BEAST, DemoBeastRenderer::new)` + `ModelLayerRegistry.registerModelLayer(LAYER_LOCATION, () -> DemoBeastModel.createBodyLayer())`（fabric-rendering-v1，签名已验证）。
 
-- [ ] **Step 1: 对照 mcsrc 原版动物渲染器**（`ChickenRenderer`/`WolfRenderer` 的 RenderState 模式：`extractRenderState`/`setupAnim`/RenderState 字段），写 DemoBeastRenderState（含 `AnimationState walk/idle/tailWag`）与 DemoBeastRenderer（extends `MobRenderer<DemoBeastEntity, DemoBeastRenderState, DemoBeastModel>`）。
+- [x] **Step 1: 对照 mcsrc 原版动物渲染器**（`ChickenRenderer`/`WolfRenderer` 的 RenderState 模式：`extractRenderState`/`setupAnim`/RenderState 字段），写 DemoBeastRenderState（含 `AnimationState walk/idle/tailWag`）与 DemoBeastRenderer（extends `MobRenderer<DemoBeastEntity, DemoBeastRenderState, DemoBeastModel>`）。
 
-- [ ] **Step 2: DemoBeastModel**（extends `EntityModel<DemoBeastRenderState>`）：`createBodyLayer()` 来自 Task 4 产物；`setupAnim(DemoBeastRenderState state, float walkPos, float walkSpeed, float partialTick)` 中：`walk` 用 `KeyframeAnimation.applyWalk(walkPos, walkSpeed, 2.0F, 2.5F)`，`idle`/`tailWag` 用 `apply(state.idle, partialTick)`（AnimationState 在 `tick`/`extractRenderState` 中 `startIfStopped`，对照原版 `WolfModel` 的 AnimationState 用法）。
+- [x] **Step 2: DemoBeastModel**（extends `EntityModel<DemoBeastRenderState>`）：`createBodyLayer()` 来自 Task 4 产物；`setupAnim(DemoBeastRenderState state, float walkPos, float walkSpeed, float partialTick)` 中：`walk` 用 `KeyframeAnimation.applyWalk(walkPos, walkSpeed, 2.0F, 2.5F)`，`idle`/`tailWag` 用 `apply(state.idle, partialTick)`（AnimationState 在 `tick`/`extractRenderState` 中 `startIfStopped`，对照原版 `WolfModel` 的 AnimationState 用法）。
 
-- [ ] **Step 3: QuirkyModClient 注册**（沿用现有 `EntityRenderers.register` 行 + `ModelLayerRegistry.registerModelLayer`）。
+- [x] **Step 3: QuirkyModClient 注册**（沿用现有 `EntityRenderers.register` 行 + `ModelLayerRegistry.registerModelLayer`）。
 
-- [ ] **Step 4: 纹理落地**（Task 5 确认后的 png 复制到 `src/main/resources/assets/quirky/textures/entity/demo_beast/demo_beast.png`；lang 键 `entity.quirky.demo_beast` 加入语言文件）。
+- [x] **Step 4: 纹理落地**（Task 5 确认后的 png 复制到 `src/main/resources/assets/quirky/textures/entity/demo_beast/demo_beast.png`；lang 键 `entity.quirky.demo_beast` 加入语言文件）。
 
-- [ ] **Step 5: 验证**
+- [x] **Step 5: 验证**
 
 ```bash
 gradle build --no-daemon --console=plain   # 必须通过
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/client/java/dev/quirky/client/demobeast/ src/client/java/dev/quirky/client/QuirkyModClient.java src/main/resources/assets/quirky/ src/main/resources/assets/quirky/lang/
@@ -375,15 +375,15 @@ git commit -m "feat: demo_beast client — model, animations, renderer, texture"
 - Consumes: `ModEntities.DEMO_BEAST`。
 - Produces: `ModItems.DEMO_BEAST_SPAWN_EGG`（`new SpawnEggItem(new Item.Properties().spawnEgg(ModEntities.DEMO_BEAST))`，26.2 构造已验证）+ 无序配方（生成蛋 + 小麦种子）+ lang。
 
-- [ ] **Step 1: ModItems 注册**（沿用现有注册模式，注意 `Item.Properties().spawnEgg(type)` 26.2 新 API）。
-- [ ] **Step 2: 配方 json + lang 键**（`item.quirky.demo_beast_spawn_egg`、`entity.quirky.demo_beast`）。
-- [ ] **Step 3: 验证**
+- [x] **Step 1: ModItems 注册**（沿用现有注册模式，注意 `Item.Properties().spawnEgg(type)` 26.2 新 API）。
+- [x] **Step 2: 配方 json + lang 键**（`item.quirky.demo_beast_spawn_egg`、`entity.quirky.demo_beast`）。
+- [x] **Step 3: 验证**
 
 ```bash
 gradle build --no-daemon --console=plain
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/main/java/dev/quirky/ModItems.java src/main/resources/data/quirky/recipe/ src/main/resources/assets/quirky/lang/
@@ -399,11 +399,11 @@ git commit -m "feat: demo_beast spawn egg + recipe + lang keys"
 **Interfaces:**
 - Consumes: 全部前面任务的产物路径。
 
-- [ ] **Step 1: 写 skill**（when_to_use：新增/修改带模型动画的自定义实体；procedure_steps：四步线路+具体命令；pitfalls：网页版装不了 desktop 插件、WebGL 需 `--enable-unsafe-swiftshader`、26.2 动画 API 要点（Keyframe 秒制、插值仅 LINEAR/CATMULLROM、bake→KeyframeAnimation）、ModelLayerRegistry/EntityRendererRegistry/`Item.Properties().spawnEgg`、先截图后落地；verification_steps：截图 + gradle build + 游戏内清单）。
+- [x] **Step 1: 写 skill**（when_to_use：新增/修改带模型动画的自定义实体；procedure_steps：四步线路+具体命令；pitfalls：网页版装不了 desktop 插件、WebGL 需 `--enable-unsafe-swiftshader`、26.2 动画 API 要点（Keyframe 秒制、插值仅 LINEAR/CATMULLROM、bake→KeyframeAnimation）、ModelLayerRegistry/EntityRendererRegistry/`Item.Properties().spawnEgg`、先截图后落地；verification_steps：截图 + gradle build + 游戏内清单）。
 
 - [ ] **Step 2: 用户游戏内验收**：生成蛋刷出 demo_beast → 走动 walk 动画 → 静止 idle → 尾巴摇动。逐项对照 §1 验收标准，任一不通过则回到对应任务修复。
 
-- [ ] **Step 3: 收尾提交**
+- [x] **Step 3: 收尾提交**
 
 ```bash
 git add build/tools/blockbench/ && git commit -m "chore: finalize blockbench modeling pipeline tooling"
