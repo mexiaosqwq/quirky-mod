@@ -183,5 +183,5 @@
   "entity.quirky.parrot_egg": "Parrot Egg",
   "entity.quirky.torch_arrow": "Torch Arrow",
   "entity.quirky.totem_of_holding": "Totem of Holding",
-  "tooltip.quirky.quiver.usage": "Click arrows/fireworks onto the quiver to load · Right-click empty to take out a stack · Bow/crossbow auto-draws when inventory has no loose ammo"
+  "tooltip.quirky.quiver.usage": "Left-click ammo to load · Right-click to take out · Bows auto-draw from quiver"
 }
