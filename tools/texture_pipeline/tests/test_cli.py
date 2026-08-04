@@ -98,6 +98,36 @@ class CliIntegrationTest(unittest.TestCase):
         self.assertTrue(result.stderr.startswith("ERROR:"), result.stderr)
         self.assertNotIn("Traceback", result.stderr)
 
+    def test_apply_command_renders_new_candidate(self):
+        self.write_package()
+        plan = {
+            "version": 1,
+            "operations": [{"op": "add", "layer": {"id": "dot", "operation": "point", "color": "mark", "x": 3, "y": 3}}],
+        }
+        plan_path = self.root / "plan.json"
+        plan_path.write_text(json.dumps(plan), encoding="utf-8")
+
+        result = self.run_cli("apply", self.package, "--plan", plan_path, "--candidate", "a1", "--build-root", self.build_root)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        output = json.loads(result.stdout)
+        self.assertTrue(Path(output["candidate"]).is_file())
+        layers = json.loads((self.package / "source.json").read_text(encoding="utf-8"))["layers"]
+        self.assertEqual(layers[-1]["id"], "dot")
+
+    def test_apply_command_rejects_invalid_plan(self):
+        self.write_package()
+        plan = {"version": 1, "operations": [{"op": "explode", "layerId": "x"}]}
+        plan_path = self.root / "plan.json"
+        plan_path.write_text(json.dumps(plan), encoding="utf-8")
+
+        result = self.run_cli("apply", self.package, "--plan", plan_path, "--candidate", "a1", "--build-root", self.build_root)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue(result.stderr.startswith("ERROR:"), result.stderr)
+        source = json.loads((self.package / "source.json").read_text(encoding="utf-8"))
+        self.assertEqual([layer["id"] for layer in source["layers"]], ["mark"])
+
 
 if __name__ == "__main__":
     unittest.main()

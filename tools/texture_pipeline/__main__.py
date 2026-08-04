@@ -6,15 +6,17 @@ import argparse
 import json
 import re
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
 from .analyzer import analyze_pixels, validate_candidate
+from .apply import ApplyError, apply_edit_plan
 from .asset import AssetError, asset_build_dir, load_asset_package
 from .png_io import PngError, read_rgba_png, write_rgba_png
 from .preview import generate_preview_set
 from .renderer import RenderError, render_source
-from .reports import ReportError, validate_visual_report
+from .reports import ReportError, validate_edit_plan, validate_visual_report
 
 
 _CANDIDATE_ID = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
@@ -90,6 +92,51 @@ def _check_report_command(arguments: argparse.Namespace) -> None:
     _print_json(report)
 
 
+def _apply_command(arguments: argparse.Namespace) -> None:
+    package = load_asset_package(arguments.package)
+    try:
+        plan = json.loads(arguments.plan.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise AssetError(f"invalid edit plan JSON: {exc.msg}") from exc
+    plan = validate_edit_plan(plan, "editPlan")
+    source = apply_edit_plan(package.source, plan)
+    # 整体契约校验（坐标/色名/重复 id 兜底），失败不改文件
+    with tempfile.TemporaryDirectory() as tmp:
+        probe_dir = Path(tmp) / "package"
+        probe_dir.mkdir()
+        (probe_dir / "asset.json").write_text(
+            json.dumps(
+                {
+                    "schemaVersion": 1,
+                    "assetId": package.spec.asset_id,
+                    "assetClass": package.spec.asset_class,
+                    "output": {
+                        "path": str(package.spec.output.path),
+                        "width": package.spec.output.width,
+                        "height": package.spec.output.height,
+                        "colorMode": package.spec.output.color_mode,
+                    },
+                    "styleProfile": package.spec.style_profile,
+                    "brief": package.spec.brief,
+                    "mustHave": list(package.spec.must_have),
+                    "mustNotHave": list(package.spec.must_not_have),
+                    "qualityGates": {
+                        "maximumPaletteSize": package.spec.quality_gates.maximum_palette_size,
+                        "allowPartialAlpha": package.spec.quality_gates.allow_partial_alpha,
+                        "requireVisualAudit": package.spec.quality_gates.require_visual_audit,
+                        "requireHumanApproval": package.spec.quality_gates.require_human_approval,
+                    },
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        (probe_dir / "source.json").write_text(json.dumps(source, indent=2) + "\n", encoding="utf-8")
+        load_asset_package(probe_dir)
+    (arguments.package / "source.json").write_text(json.dumps(source, indent=2) + "\n", encoding="utf-8")
+    _render_command(arguments)
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m tools.texture_pipeline", description="Quirky deterministic PNG asset pipeline")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -115,6 +162,13 @@ def _parser() -> argparse.ArgumentParser:
     preview.add_argument("--build-root", type=Path, default=Path("build/texture-pipeline"))
     preview.set_defaults(handler=_preview_command)
 
+    apply = subparsers.add_parser("apply", help="apply an edit plan to source.json and render a new candidate")
+    apply.add_argument("package", type=Path)
+    apply.add_argument("--plan", required=True, type=Path)
+    apply.add_argument("--candidate", required=True)
+    apply.add_argument("--build-root", type=Path, default=Path("build/texture-pipeline"))
+    apply.set_defaults(handler=_apply_command)
+
     check_report = subparsers.add_parser("check-report", help="validate a strict visual-agent JSON report")
     check_report.add_argument("report", type=Path)
     check_report.add_argument("--role", choices=("designer", "auditor"), required=True)
@@ -129,7 +183,7 @@ def main(argv: list[str] | None = None) -> int:
         arguments = _parser().parse_args(argv)
         arguments.handler(arguments)
         return 0
-    except (AssetError, PngError, RenderError, ReportError, OSError, ValueError) as exc:
+    except (ApplyError, AssetError, PngError, RenderError, ReportError, OSError, ValueError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
 
