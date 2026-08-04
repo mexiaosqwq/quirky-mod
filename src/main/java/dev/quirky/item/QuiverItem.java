@@ -1,39 +1,39 @@
 package dev.quirky.item;
 
-import java.util.Map;
 import java.util.function.Consumer;
 
 import dev.quirky.config.QuirkyConfigHolder;
 import dev.quirky.quiver.QuiverContents;
 import dev.quirky.quiver.QuiverLogic;
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.NonNullList;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.SlotAccess;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.ClickAction;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.item.component.TooltipDisplay;
+import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
 
 /**
- * 箭袋：可染色的弹药容器。
+ * 箭袋：可染色的弹药容器，装取对齐播种袋（光标点击）+ 弓/弩射击自动抽箭。
  *
  * <ul>
- *   <li>潜行+右键 → 把背包里所有箭/烟花吸入（容量上限内）；</li>
- *   <li>右键 → 取出一组，优先副手空位 → 背包空位 → 掉落脚下；</li>
+ *   <li>光标拿弹药左键点箭袋 / 箭袋左键点弹药堆 → 装入（过白名单，受组上限截断，余量退回光标）；</li>
+ *   <li>光标右键点箭袋 → 取出一组到光标（原版 bundle 式）；</li>
+ *   <li>弓/弩射击时，背包无散装弹药则自动从箭袋抽箭（散装优先，箭袋作备用），
+ *       详见 {@link dev.quirky.mixin.PlayerQuiverAmmoMixin}；</li>
  *   <li>染色走原版 DYED_COLOR 组件（炼药锅洗色自动生效）。</li>
  * </ul>
+ *
+ * <p>容量按"组"计（默认 4 组，每组按物品自身 maxStackSize，箭类 64 → 默认 256 支）。
+ * 禁止进入其他容器物品（套娃防护）。</p>
  */
 public class QuiverItem extends Item {
 
@@ -41,16 +41,79 @@ public class QuiverItem extends Item {
 		super(properties);
 	}
 
+	/** 禁止箭袋进入收纳袋/潜影盒/另一个箭袋（套娃防护，同播种袋）。 */
+	@Override
+	public boolean canFitInsideContainerItems() {
+		return false;
+	}
+
+	/** 世界右键无作用（装取都在物品栏光标点击；射击自动抽箭不需要手动操作）。 */
 	@Override
 	public InteractionResult use(Level level, Player player, InteractionHand hand) {
-		if (!QuirkyConfigHolder.get().quiverEnabled) {
-			return InteractionResult.PASS;
+		return InteractionResult.PASS;
+	}
+
+	/** 光标拿弹药点箭袋：左键装入，右键取出一组到光标。 */
+	@Override
+	public boolean overrideOtherStackedOnMe(
+		ItemStack self, ItemStack other, Slot slot, ClickAction clickAction, Player player, SlotAccess carriedItem
+	) {
+		if (clickAction == ClickAction.PRIMARY && !other.isEmpty()) {
+			if (!QuiverLogic.isAmmo(other)) {
+				return false; // 非弹药拒绝
+			}
+			ItemContainerContents initial = self.getOrDefault(QuiverContents.TYPE, ItemContainerContents.EMPTY);
+			int capacity = QuirkyConfigHolder.get().quiverCapacity;
+			QuiverLogic.InsertResult result = QuiverLogic.insert(initial, other.copy(), capacity, QuiverLogic::isAmmo);
+			if (result.inserted() > 0) {
+				self.set(QuiverContents.TYPE, result.contents());
+				other.shrink(result.inserted()); // 退回余量到光标（other 是活引用）
+				player.playSound(SoundEvents.BUNDLE_INSERT, 0.8F, 0.8F + player.level().getRandom().nextFloat() * 0.4F);
+			}
+			return result.inserted() > 0;
 		}
-		ItemStack quiver = player.getItemInHand(hand);
-		if (player.isShiftKeyDown()) {
-			return absorb(level, player, quiver);
+		// 右键 + 空手：取出一组到光标
+		if (clickAction == ClickAction.SECONDARY && other.isEmpty()) {
+			ItemContainerContents initial = self.getOrDefault(QuiverContents.TYPE, ItemContainerContents.EMPTY);
+			QuiverLogic.ExtractResult result = QuiverLogic.extractOne(initial);
+			if (!result.extracted().isEmpty()) {
+				self.set(QuiverContents.TYPE, result.contents());
+				carriedItem.set(result.extracted());
+				player.playSound(SoundEvents.BUNDLE_REMOVE_ONE, 0.8F, 0.8F + player.level().getRandom().nextFloat() * 0.4F);
+				return true;
+			}
 		}
-		return extract(level, player, quiver);
+		return false;
+	}
+
+	/** 光标拿箭袋点格子：左键=收纳该格弹药，右键=取出一组到该格。 */
+	@Override
+	public boolean overrideStackedOnOther(ItemStack self, Slot slot, ClickAction clickAction, Player player) {
+		ItemStack other = slot.getItem();
+		if (clickAction == ClickAction.PRIMARY && !other.isEmpty() && QuiverLogic.isAmmo(other)) {
+			ItemContainerContents initial = self.getOrDefault(QuiverContents.TYPE, ItemContainerContents.EMPTY);
+			int capacity = QuirkyConfigHolder.get().quiverCapacity;
+			QuiverLogic.InsertResult result = QuiverLogic.insert(initial, other.copy(), capacity, QuiverLogic::isAmmo);
+			if (result.inserted() > 0) {
+				self.set(QuiverContents.TYPE, result.contents());
+				other.shrink(result.inserted());
+				player.playSound(SoundEvents.BUNDLE_INSERT, 0.8F, 0.8F + player.level().getRandom().nextFloat() * 0.4F);
+			}
+			return result.inserted() > 0;
+		}
+		if (clickAction == ClickAction.SECONDARY) {
+			ItemContainerContents initial = self.getOrDefault(QuiverContents.TYPE, ItemContainerContents.EMPTY);
+			QuiverLogic.ExtractResult result = QuiverLogic.extractOne(initial);
+			if (!result.extracted().isEmpty()) {
+				ItemStack remainder = slot.safeInsert(result.extracted());
+				if (remainder.isEmpty()) {
+					self.set(QuiverContents.TYPE, result.contents());
+					player.playSound(SoundEvents.BUNDLE_REMOVE_ONE, 0.8F, 0.8F + player.level().getRandom().nextFloat() * 0.4F);
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	@Override
@@ -58,76 +121,5 @@ public class QuiverItem extends Item {
 		ItemStack stack, Item.TooltipContext context, TooltipDisplay display, Consumer<Component> builder, TooltipFlag flag
 	) {
 		builder.accept(Component.translatable("tooltip.quirky.quiver.usage").withStyle(ChatFormatting.GRAY));
-	}
-
-	private InteractionResult absorb(Level level, Player player, ItemStack quiver) {
-		NonNullList<ItemStack> inventory = player.getInventory().getNonEquipmentItems();
-		int capacity = QuirkyConfigHolder.get().quiverCapacity;
-		QuiverLogic.AbsorbResult dryRun = QuiverLogic.absorb(
-			quiver.getOrDefault(QuiverContents.TYPE, ItemContainerContents.EMPTY),
-			inventory,
-			capacity
-		);
-		if (dryRun.nothingConsumed()) {
-			// 无弹药可吸（或已满）：无动作无声音
-			return InteractionResult.PASS;
-		}
-		if (!level.isClientSide()) {
-			// 服务端用权威数据重算并应用
-			QuiverLogic.AbsorbResult result = QuiverLogic.absorb(
-				quiver.getOrDefault(QuiverContents.TYPE, ItemContainerContents.EMPTY),
-				inventory,
-				capacity
-			);
-			for (Map.Entry<Integer, Integer> entry : result.consumedBySlot().entrySet()) {
-				inventory.get(entry.getKey()).shrink(entry.getValue());
-			}
-			quiver.set(QuiverContents.TYPE, result.contents());
-			level.playSound(null, player.getX(), player.getY(), player.getZ(),
-				SoundEvents.ARMOR_EQUIP_LEATHER, SoundSource.PLAYERS, 1.0F, 1.0F);
-			ServerLevel serverLevel = (ServerLevel) level;
-			serverLevel.sendParticles(ParticleTypes.CRIT, player.getX(), player.getEyeY(), player.getZ(),
-				6, 0.3, 0.2, 0.3, 0.05);
-		}
-		return InteractionResult.SUCCESS;
-	}
-
-	private InteractionResult extract(Level level, Player player, ItemStack quiver) {
-		QuiverLogic.ExtractResult dryRun = QuiverLogic.extractOne(
-			quiver.getOrDefault(QuiverContents.TYPE, ItemContainerContents.EMPTY)
-		);
-		if (dryRun.extracted().isEmpty()) {
-			// 空箭袋：无动作
-			return InteractionResult.PASS;
-		}
-		if (!level.isClientSide()) {
-			quiver.set(QuiverContents.TYPE, dryRun.contents());
-			giveOrDrop(level, player, dryRun.extracted());
-			// 取出一组：音高略高以示区别
-			level.playSound(null, player.getX(), player.getY(), player.getZ(),
-				SoundEvents.ARMOR_EQUIP_LEATHER, SoundSource.PLAYERS, 0.8F, 1.3F);
-		}
-		return InteractionResult.SUCCESS;
-	}
-
-	/** 优先副手空位 → 第一个背包空位 → 都满则掉落脚下（不吞物品）。
-	 *  不用 Block.popResource（受 BLOCK_DROPS 规则门控，规则关时会吞物品）；
-	 *  箭袋取箭不是方块破坏，直接生成 ItemEntity 绕开规则。 */
-	private static void giveOrDrop(Level level, Player player, ItemStack stack) {
-		Inventory inventory = player.getInventory();
-		if (inventory.getItem(Inventory.SLOT_OFFHAND).isEmpty()) {
-			inventory.setItem(Inventory.SLOT_OFFHAND, stack);
-			return;
-		}
-		int freeSlot = inventory.getFreeSlot();
-		if (freeSlot != -1) {
-			inventory.setItem(freeSlot, stack);
-			return;
-		}
-		if (level instanceof ServerLevel serverLevel) {
-			ItemEntity item = new ItemEntity(serverLevel, player.getX(), player.getY() + 0.5, player.getZ(), stack);
-			item.setPickUpDelay(20);
-			serverLevel.addFreshEntity(item);
-		}
 	}
 }

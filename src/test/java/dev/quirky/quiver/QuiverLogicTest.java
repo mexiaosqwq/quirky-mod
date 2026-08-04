@@ -206,4 +206,107 @@ class QuiverLogicTest {
 	private static List<ItemStack> nonEmpty(ItemContainerContents contents) {
 		return contents.allItemsCopyStream().filter(stack -> !stack.isEmpty()).toList();
 	}
+
+	// ===== 光标点击装取（对齐播种袋）：insert / findAmmo / decrementGroup =====
+
+	@Test
+	void insertPutsStackIntoFirstEmptyGroup() {
+		QuiverLogic.InsertResult result = QuiverLogic.insert(
+			ItemContainerContents.EMPTY, new ItemStack(Items.ARROW, 64), 4, AMMO
+		);
+		assertEquals(64, result.inserted());
+		List<ItemStack> stored = nonEmpty(result.contents());
+		assertEquals(1, stored.size());
+		assertEquals(64, stored.get(0).getCount());
+	}
+
+	@Test
+	void insertMergesIntoExistingSameGroup() {
+		ItemContainerContents current = ItemContainerContents.fromItems(List.of(new ItemStack(Items.ARROW, 30)));
+		QuiverLogic.InsertResult result = QuiverLogic.insert(current, new ItemStack(Items.ARROW, 40), 4, AMMO);
+		// 30+40=70，组上限 64，装入 34、余 6 退回光标
+		assertEquals(34, result.inserted());
+		List<ItemStack> stored = nonEmpty(result.contents());
+		assertEquals(1, stored.size());
+		assertEquals(64, stored.get(0).getCount());
+	}
+
+	@Test
+	void insertRejectsNonAmmo() {
+		QuiverLogic.InsertResult result = QuiverLogic.insert(
+			ItemContainerContents.EMPTY, new ItemStack(Items.STONE, 32), 4, AMMO
+		);
+		assertEquals(0, result.inserted());
+		assertEquals(0, QuiverLogic.usedSlots(result.contents()));
+	}
+
+	@Test
+	void insertStopsAtCapacityGroups() {
+		// 容量 2 组已满，新种类拒绝
+		ItemContainerContents full = ItemContainerContents.fromItems(List.of(
+			new ItemStack(Items.ARROW, 64),
+			new ItemStack(Items.SPECTRAL_ARROW, 64)
+		));
+		QuiverLogic.InsertResult result = QuiverLogic.insert(full, new ItemStack(Items.TIPPED_ARROW, 16), 2, AMMO);
+		assertEquals(0, result.inserted());
+	}
+
+	@Test
+	void findAmmoReturnsFirstMatchingGroup() {
+		ItemContainerContents contents = ItemContainerContents.fromItems(List.of(
+			new ItemStack(Items.SPECTRAL_ARROW, 32),
+			new ItemStack(Items.ARROW, 64)
+		));
+		QuiverLogic.AmmoMatch match = QuiverLogic.findAmmo(contents, AMMO);
+		assertTrue(match.found());
+		assertTrue(match.stack().is(Items.SPECTRAL_ARROW));
+		assertEquals(0, match.groupIndex());
+	}
+
+	@Test
+	void findAmmoReturnsEmptyWhenNoMatch() {
+		ItemContainerContents contents = ItemContainerContents.fromItems(List.of(new ItemStack(Items.STONE, 32)));
+		QuiverLogic.AmmoMatch match = QuiverLogic.findAmmo(contents, AMMO);
+		assertFalse(match.found());
+		assertTrue(match.stack().isEmpty());
+	}
+
+	@Test
+	void findAmmoRespectsPredicate() {
+		// 弓用 arrows tag：烟花不匹配
+		ItemContainerContents contents = ItemContainerContents.fromItems(List.of(new ItemStack(Items.FIREWORK_ROCKET, 10)));
+		Predicate<ItemStack> arrowsOnly = stack -> stack.is(Items.ARROW) || stack.is(Items.SPECTRAL_ARROW) || stack.is(Items.TIPPED_ARROW);
+		QuiverLogic.AmmoMatch match = QuiverLogic.findAmmo(contents, arrowsOnly);
+		assertFalse(match.found());
+	}
+
+	@Test
+	void decrementGroupReducesCountKeepsGroup() {
+		ItemContainerContents contents = ItemContainerContents.fromItems(List.of(new ItemStack(Items.ARROW, 10)));
+		ItemContainerContents after = QuiverLogic.decrementGroup(contents, 0, 3);
+		List<ItemStack> stored = nonEmpty(after);
+		assertEquals(1, stored.size());
+		assertEquals(7, stored.get(0).getCount());
+	}
+
+	@Test
+	void decrementGroupEmptiesWhenReachesZero() {
+		ItemContainerContents contents = ItemContainerContents.fromItems(List.of(
+			new ItemStack(Items.ARROW, 5),
+			new ItemStack(Items.SPECTRAL_ARROW, 8)
+		));
+		ItemContainerContents after = QuiverLogic.decrementGroup(contents, 0, 5);
+		List<ItemStack> stored = nonEmpty(after);
+		assertEquals(1, stored.size());
+		assertTrue(stored.get(0).is(Items.SPECTRAL_ARROW));
+	}
+
+	@Test
+	void decrementGroupClampsAtAvailable() {
+		// 要求扣 10 但组只有 5：只扣 5
+		ItemContainerContents contents = ItemContainerContents.fromItems(List.of(new ItemStack(Items.ARROW, 5)));
+		ItemContainerContents after = QuiverLogic.decrementGroup(contents, 0, 10);
+		List<ItemStack> stored = nonEmpty(after);
+		assertEquals(0, stored.size());
+	}
 }

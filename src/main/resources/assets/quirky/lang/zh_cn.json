@@ -183,5 +183,5 @@
   "entity.quirky.parrot_egg": "鹦鹉蛋",
   "entity.quirky.torch_arrow": "火把箭",
   "entity.quirky.totem_of_holding": "保留图腾",
-  "tooltip.quirky.quiver.usage": "潜行+右键：装入背包里的箭/烟花 · 右键：取出一组"
+  "tooltip.quirky.quiver.usage": "光标点箭/烟花到箭袋装入 · 空手右键取出一组 · 弓/弩射击时背包无散装弹药自动从箭袋抽取"
 }
