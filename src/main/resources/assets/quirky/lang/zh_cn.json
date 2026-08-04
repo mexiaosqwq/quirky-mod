@@ -172,4 +172,16 @@
   "text.autoconfig.quirky.category.pet_whistle": "宠物口哨",
   "text.autoconfig.quirky.option.petWhistlePhantomMax": "幻翼嘲讽上限",
   "text.autoconfig.quirky.option.petWhistlePhantomMax.@Tooltip": "单次吹哨最多嘲讽的幻翼数量（1-5，默认 3）。",
+  "block.quirky.cloud": "云",
+  "block.quirky.gold_button": "金按钮",
+  "block.quirky.iron_button": "铁按钮",
+  "block.quirky.obsidian_pressure_plate": "黑曜石压力板",
+  "block.quirky.wooden_hopper": "木漏斗",
+  "entity.quirky.bait_zone": "诱鱼区",
+  "entity.quirky.boomerang": "回旋镖",
+  "entity.quirky.fish_bait": "鱼饵球",
+  "entity.quirky.parrot_egg": "鹦鹉蛋",
+  "entity.quirky.torch_arrow": "火把箭",
+  "entity.quirky.totem_of_holding": "保留图腾",
+  "tooltip.quirky.quiver.usage": "潜行+右键：装入背包里的箭/烟花 · 右键：取出一组"
 }

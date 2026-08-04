@@ -170,6 +170,18 @@
   "item.quirky.rope": "Rope",
   "item.quirky.rope_lantern": "Rope Lantern",
   "item.quirky.boomerang": "Boomerang",
+  "block.quirky.cloud": "Cloud",
+  "block.quirky.gold_button": "Gold Button",
+  "block.quirky.iron_button": "Iron Button",
+  "block.quirky.obsidian_pressure_plate": "Obsidian Pressure Plate",
+  "block.quirky.wooden_hopper": "Wooden Hopper",
   "block.quirky.rope": "Rope",
   "block.quirky.rope_lantern": "Rope Lantern",
+  "entity.quirky.bait_zone": "Bait Zone",
+  "entity.quirky.boomerang": "Boomerang",
+  "entity.quirky.fish_bait": "Fish Bait",
+  "entity.quirky.parrot_egg": "Parrot Egg",
+  "entity.quirky.torch_arrow": "Torch Arrow",
+  "entity.quirky.totem_of_holding": "Totem of Holding",
+  "tooltip.quirky.quiver.usage": "Sneak + right-click: load arrows/fireworks · Right-click: take out a stack"
 }

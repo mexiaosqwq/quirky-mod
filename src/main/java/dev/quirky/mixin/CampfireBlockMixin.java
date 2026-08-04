@@ -38,7 +38,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 /**
  * 营火染色烟（服务端权威 + 客户端粒子替换）：
  * - 手持染料右键点燃的营火 → 消耗 1 染料、烟柱染色；白染料复原（清色）；重染同时清夜光。
- * - 染料/荧光石粉/火药以物品实体丢入营火 → 分别染色 / 夜光 / 一次性浓烟爆（已染色用该色，未染色为中性灰白；不改变底色）。
+ * - 染料/荧光石粉/火药/烈焰粉以物品实体丢入营火 → 分别染色 / 夜光火星 / 一次性猛烟爆+火星 / 火焰星花迸发（不改变底色；火药/烈焰粉均为一次性表演）。
  * - 静态 makeParticles 替换为染色粒子；placeLiquid 熄灭（水浇）时清色清夜光。
  * 注入点均声明在 CampfireBlock 本类：useItemOn(CampfireBlock.java:91)、entityInside(:116)、
  * makeParticles(:233 静态)、placeLiquid(:202)。
@@ -121,6 +121,8 @@ public abstract class CampfireBlockMixin {
 			serverLevel.playSound(null, pos, SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.3F, 1.0F);
 		} else if (stack.is(Items.GUNPOWDER)) {
 			gunpowderBurst(serverLevel, pos, state, accessor.quirky$getSmokeColor());
+		} else if (stack.is(Items.BLAZE_POWDER)) {
+			blazeBurst(serverLevel, pos, state);
 		} else {
 			return;
 		}
@@ -171,15 +173,18 @@ public abstract class CampfireBlockMixin {
 		if (accessor.quirky$getGlow() && QuirkyConfigHolder.get().dyedCampfireGlow && level.isDarkOutside()) {
 			RandomSource random = level.getRandom();
 			int glowColor = color != -1 ? color : 0xFFE082; // 无色烟时用暖黄微光
-			level.addAlwaysVisibleParticle(
-				ColorParticleOption.create(ParticleTypes.ENTITY_EFFECT, ARGB.color(255, glowColor)),
-				pos.getX() + 0.5 + random.nextDouble() / 2.0 * (random.nextBoolean() ? 1 : -1),
-				pos.getY() + random.nextDouble() + random.nextDouble(),
-				pos.getZ() + 0.5 + random.nextDouble() / 2.0 * (random.nextBoolean() ? 1 : -1),
-				0.0,
-				0.03,
-				0.0
-			);
+			// 夜光火星：每 tick 4 颗向上飘散（原 1 颗太稀，玩家反馈“特效太少”）
+			for (int i = 0; i < 4; i++) {
+				level.addAlwaysVisibleParticle(
+					ColorParticleOption.create(ParticleTypes.ENTITY_EFFECT, ARGB.color(255, glowColor)),
+					pos.getX() + 0.5 + random.nextDouble() * 0.8 * (random.nextBoolean() ? 1 : -1),
+					pos.getY() + random.nextDouble() * 1.5,
+					pos.getZ() + 0.5 + random.nextDouble() * 0.8 * (random.nextBoolean() ? 1 : -1),
+					(random.nextDouble() - 0.5) * 0.02,
+					0.05 + random.nextDouble() * 0.03,
+					(random.nextDouble() - 0.5) * 0.02
+				);
+			}
 		}
 		if (replaced) {
 			ci.cancel(); // 只替换烟柱；无色+夜光时保留原版烟
@@ -231,23 +236,34 @@ public abstract class CampfireBlockMixin {
 		);
 	}
 
-	/** 火药烟爆：已染色用该色喷一大股；未染色喷中性灰白浓烟（火药爆燃的自然烟色，不喷彩色），一次性小表演，不改变底色。 */
+	/** 火药烟爆：已染色用该色喷一大股 + 火星；未染色喷中性灰白浓烟 + 火星。一次性猛爆，不改变底色。 */
 	private static void gunpowderBurst(ServerLevel level, BlockPos pos, BlockState state, int currentColor) {
-		level.playSound(null, pos, SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.BLOCKS, 1.0F, 1.0F);
+		level.playSound(null, pos, SoundEvents.FIREWORK_ROCKET_BLAST, SoundSource.BLOCKS, 0.9F, 1.0F);
 		boolean signalFire = state.getValue(CampfireBlock.SIGNAL_FIRE);
 		int burstColor = currentColor != -1 ? currentColor : 0xD3D3D3; // 未染色 → 中性浅灰
-		int count = currentColor != -1 ? 24 : 30; // 无色时量更大，突出“一股浓烟”的质感
 		level.sendParticles(
 			new DyedCampfireSmokeOption(burstColor, signalFire),
-			pos.getX() + 0.5,
-			pos.getY() + 0.5,
-			pos.getZ() + 0.5,
-			count,
-			0.65,
-			0.75,
-			0.65,
-			0.12
+			pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
+			45, 0.7, 0.8, 0.7, 0.13
 		);
+		// 火星：FLAME 向外迸射 + LAVA 闪烁
+		level.sendParticles(ParticleTypes.FLAME,
+			pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
+			18, 0.5, 0.4, 0.5, 0.16);
+		level.sendParticles(ParticleTypes.LAVA,
+			pos.getX() + 0.5, pos.getY() + 0.4, pos.getZ() + 0.5,
+			8, 0.4, 0.3, 0.4, 0.0);
+	}
+
+	/** 烈焰粉火焰星花：迸发 FLAME + LAVA 火星，像拨旺火堆，暖橙一次性表演（不染色不夜光）。 */
+	private static void blazeBurst(ServerLevel level, BlockPos pos, BlockState state) {
+		level.playSound(null, pos, SoundEvents.BLAZE_SHOOT, SoundSource.BLOCKS, 0.8F, 1.3F);
+		level.sendParticles(ParticleTypes.FLAME,
+			pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
+			28, 0.45, 0.5, 0.45, 0.18);
+		level.sendParticles(ParticleTypes.LAVA,
+			pos.getX() + 0.5, pos.getY() + 0.4, pos.getZ() + 0.5,
+			12, 0.4, 0.3, 0.4, 0.0);
 	}
 
 	private static void notifyChanged(ServerLevel level, BlockPos pos, BlockState state, CampfireBlockEntity campfire) {

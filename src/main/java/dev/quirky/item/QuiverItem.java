@@ -1,12 +1,15 @@
 package dev.quirky.item;
 
 import java.util.Map;
+import java.util.function.Consumer;
 
 import dev.quirky.config.QuirkyConfigHolder;
 import dev.quirky.quiver.QuiverContents;
 import dev.quirky.quiver.QuiverLogic;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -17,7 +20,9 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.ItemContainerContents;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 
@@ -46,6 +51,13 @@ public class QuiverItem extends Item {
 			return absorb(level, player, quiver);
 		}
 		return extract(level, player, quiver);
+	}
+
+	@Override
+	public void appendHoverText(
+		ItemStack stack, Item.TooltipContext context, TooltipDisplay display, Consumer<Component> builder, TooltipFlag flag
+	) {
+		builder.accept(Component.translatable("tooltip.quirky.quiver.usage").withStyle(ChatFormatting.GRAY));
 	}
 
 	private InteractionResult absorb(Level level, Player player, ItemStack quiver) {
