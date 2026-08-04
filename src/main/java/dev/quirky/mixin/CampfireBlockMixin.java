@@ -46,6 +46,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(CampfireBlock.class)
 public abstract class CampfireBlockMixin {
 
+	/** 染色烟限时（tick）：约 5 分钟，到期自动恢复无色。 */
+	private static final int SMOKE_COLOR_TICKS = 6000;
+	/** 萤石夜光限时（tick）：约 2 分钟，到期自动熄灭。 */
+	private static final int GLOW_TICKS = 2400;
+
 	/** 手持染料右键（useItemOn HEAD，未点燃时走原版）。 */
 	@Inject(
 		method = "useItemOn(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/InteractionHand;Lnet/minecraft/world/phys/BlockHitResult;)Lnet/minecraft/world/InteractionResult;",
@@ -117,6 +122,7 @@ public abstract class CampfireBlockMixin {
 			applyDye(serverLevel, pos, state, campfire, dye);
 		} else if (stack.is(Items.GLOWSTONE_DUST)) {
 			accessor.quirky$setGlow(true);
+			accessor.quirky$setGlowTicks(GLOW_TICKS); // 约 2 分钟限时，到期自动熄灭
 			notifyChanged(serverLevel, pos, state, campfire);
 			serverLevel.playSound(null, pos, SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.3F, 1.0F);
 		} else if (stack.is(Items.GUNPOWDER)) {
@@ -191,36 +197,16 @@ public abstract class CampfireBlockMixin {
 		}
 	}
 
-	/** 水浇熄灭（placeLiquid 返回 true 时）清色清夜光：重新点燃后是无色烟。 */
-	@Inject(
-		method = "placeLiquid(Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/material/FluidState;)Z",
-		at = @At("TAIL")
-	)
-	private void quirky$clearColorOnDouse(
-		LevelAccessor level,
-		BlockPos pos,
-		BlockState state,
-		FluidState fluidState,
-		CallbackInfoReturnable<Boolean> cir
-	) {
-		if (!Boolean.TRUE.equals(cir.getReturnValue())) {
-			return;
-		}
-		if (level.getBlockEntity(pos) instanceof CampfireBlockEntity campfire) {
-			CampfireBlockEntityAccessor accessor = (CampfireBlockEntityAccessor) campfire;
-			if (accessor.quirky$getSmokeColor() != -1 || accessor.quirky$getGlow()) {
-				accessor.quirky$setSmokeColor(-1);
-				accessor.quirky$setGlow(false);
-				campfire.setChanged();
-			}
-		}
-	}
+	/** 灭火即清色清夜光：统一在 {@link CampfireBlockEntityStateMixin} 的 setBlockState 注入处理（覆盖水浇/铲子扑灭/投射物等所有 LIT 变 false 路径）。重新点燃后是无色烟。 */
 
-	/** 染料落地：染色 + 嘶声 + 对应色烟爆发 + 同步。白染料清色（复原）；重染清夜光。 */
+	/** 染料落地：染色 + 嘶声 + 对应色烟爆发 + 同步。白染料清色（复原，0 tick）；重染清夜光。 */
 	private static void applyDye(ServerLevel level, BlockPos pos, BlockState state, CampfireBlockEntity campfire, DyeColor dye) {
 		CampfireBlockEntityAccessor accessor = (CampfireBlockEntityAccessor) campfire;
-		accessor.quirky$setSmokeColor(dye == DyeColor.WHITE ? -1 : dye.getTextureDiffuseColor());
+		boolean isWhite = dye == DyeColor.WHITE;
+		accessor.quirky$setSmokeColor(isWhite ? -1 : dye.getTextureDiffuseColor());
+		accessor.quirky$setSmokeColorTicks(isWhite ? 0 : SMOKE_COLOR_TICKS); // 约 5 分钟限时，白染料立即清
 		accessor.quirky$setGlow(false);
+		accessor.quirky$setGlowTicks(0);
 		notifyChanged(level, pos, state, campfire);
 		level.playSound(null, pos, SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.3F, 1.0F);
 		level.sendParticles(

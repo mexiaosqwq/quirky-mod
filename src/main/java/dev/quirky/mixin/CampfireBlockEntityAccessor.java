@@ -23,4 +23,16 @@ public interface CampfireBlockEntityAccessor {
 
 	@Accessor("quirky$glow")
 	void quirky$setGlow(boolean glow);
+
+	@Accessor("quirky$smokeColorTicks")
+	int quirky$getSmokeColorTicks();
+
+	@Accessor("quirky$smokeColorTicks")
+	void quirky$setSmokeColorTicks(int ticks);
+
+	@Accessor("quirky$glowTicks")
+	int quirky$getGlowTicks();
+
+	@Accessor("quirky$glowTicks")
+	void quirky$setGlowTicks(int ticks);
 }

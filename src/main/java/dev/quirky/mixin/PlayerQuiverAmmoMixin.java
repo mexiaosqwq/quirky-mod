@@ -54,7 +54,7 @@ public abstract class PlayerQuiverAmmoMixin implements QuiverAmmoSource {
 		this.quirky$ammoRef = null;
 	}
 
-	@Inject(method = "getProjectile(Lnet/minecraft/world/item/ItemStack;)Lnet/minecraft/world/item/ItemStack;", at = @At("RETURN"))
+	@Inject(method = "getProjectile(Lnet/minecraft/world/item/ItemStack;)Lnet/minecraft/world/item/ItemStack;", at = @At("RETURN"), cancellable = true)
 	private void quirky$supplyFromQuiver(ItemStack heldWeapon, CallbackInfoReturnable<ItemStack> cir) {
 		// 每次调用先清旧记录（上次射击残留）
 		this.quirky$clearQuiverAmmo();
