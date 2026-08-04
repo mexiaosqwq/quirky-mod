@@ -156,6 +156,25 @@ class CliIntegrationTest(unittest.TestCase):
         layers = json.loads((self.package / "source.json").read_text(encoding="utf-8"))["layers"]
         self.assertEqual(layers[-1]["id"], "dot")
 
+    def test_apply_command_backs_up_previous_source(self):
+        self.write_package()
+        plan = {
+            "version": 1,
+            "operations": [{"op": "add", "layer": {"id": "dot", "operation": "point", "color": "mark", "x": 3, "y": 3}}],
+        }
+        plan_path = self.root / "plan.json"
+        plan_path.write_text(json.dumps(plan), encoding="utf-8")
+
+        result = self.run_cli("apply", self.package, "--plan", plan_path, "--candidate", "a3", "--build-root", self.build_root)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        snapshot = self.build_root / "quirky/item/pipeline_test_example/candidates/a3.source.json"
+        self.assertTrue(snapshot.is_file(), "apply must snapshot the pre-apply source.json")
+        before = json.loads(snapshot.read_text(encoding="utf-8"))
+        self.assertEqual([layer["id"] for layer in before["layers"]], ["mark"])
+        after = json.loads((self.package / "source.json").read_text(encoding="utf-8"))
+        self.assertEqual([layer["id"] for layer in after["layers"]], ["mark", "dot"])
+
 
 if __name__ == "__main__":
     unittest.main()

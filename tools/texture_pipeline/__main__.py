@@ -113,6 +113,11 @@ def _apply_command(arguments: argparse.Namespace) -> None:
         (probe_dir / "asset.json").write_bytes((arguments.package / "asset.json").read_bytes())
         (probe_dir / "source.json").write_text(json.dumps(source, indent=2) + "\n", encoding="utf-8")
         load_asset_package(probe_dir)
+    # 应用前快照当前 source.json（与候选同目录，供回滚）
+    output_dir = asset_build_dir(arguments.build_root, package.spec.asset_id)
+    snapshot = output_dir / "candidates" / f"{arguments.candidate}.source.json"
+    snapshot.parent.mkdir(parents=True, exist_ok=True)
+    snapshot.write_text(json.dumps(package.source, indent=2) + "\n", encoding="utf-8")
     (arguments.package / "source.json").write_text(json.dumps(source, indent=2) + "\n", encoding="utf-8")
     _render_command(arguments)
 
