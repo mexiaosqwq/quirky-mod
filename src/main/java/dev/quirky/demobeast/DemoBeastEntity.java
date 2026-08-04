@@ -3,6 +3,7 @@ package dev.quirky.demobeast;
 import dev.quirky.ModEntities;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.AgeableMob;
+import net.minecraft.world.entity.AnimationState;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
@@ -22,8 +23,24 @@ import net.minecraft.world.level.Level;
  * goal 用 WaterAvoidingRandomStrollGoal/RandomLookAroundGoal/LookAtPlayerGoal（26.2 无 WanderAroundGoal）。
  */
 public class DemoBeastEntity extends Animal {
+	/** 动画状态（客户端渲染用，服务端同步字段为空实现） */
+	public final AnimationState walkAnimationState = new AnimationState();
+	public final AnimationState idleAnimationState = new AnimationState();
+	public final AnimationState tailWagAnimationState = new AnimationState();
+
 	public DemoBeastEntity(EntityType<? extends Animal> type, Level level) {
 		super(type, level);
+	}
+
+	@Override
+	public void tick() {
+		if (this.level().isClientSide()) {
+			boolean moving = this.walkAnimation.isMoving();
+			this.walkAnimationState.animateWhen(moving, this.tickCount);
+			this.idleAnimationState.animateWhen(!moving, this.tickCount);
+			this.tailWagAnimationState.animateWhen(true, this.tickCount);
+		}
+		super.tick();
 	}
 
 	@Override

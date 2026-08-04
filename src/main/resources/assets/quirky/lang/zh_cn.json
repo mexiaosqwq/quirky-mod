@@ -171,5 +171,7 @@
   "text.autoconfig.quirky.option.petWhistleTauntPhantoms.@Tooltip": "夜晚吹哨会把附近 1-3 只幻翼掼到身边地面，30 秒内近战可稳定输出。",
   "text.autoconfig.quirky.category.pet_whistle": "宠物口哨",
   "text.autoconfig.quirky.option.petWhistlePhantomMax": "幻翼嘲讽上限",
-  "text.autoconfig.quirky.option.petWhistlePhantomMax.@Tooltip": "单次吹哨最多嘲讽的幻翼数量（1-5，默认 3）。"
+  "text.autoconfig.quirky.option.petWhistlePhantomMax.@Tooltip": "单次吹哨最多嘲讽的幻翼数量（1-5，默认 3）。",
+  "item.quirky.demo_beast_spawn_egg": "Demo Beast 生成蛋",
+  "entity.quirky.demo_beast": "小兽"
 }

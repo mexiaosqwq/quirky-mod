@@ -20,6 +20,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.DyedItemColor;
 
@@ -40,6 +41,7 @@ public final class ModItems {
 	private static final ResourceKey<Item> ROPE_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("rope"));
 	private static final ResourceKey<Item> ROPE_LANTERN_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("rope_lantern"));
 	private static final ResourceKey<Item> BOOMERANG_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("boomerang"));
+	private static final ResourceKey<Item> DEMO_BEAST_SPAWN_EGG_ID = ResourceKey.create(Registries.ITEM, QuirkyMod.id("demo_beast_spawn_egg"));
 
 	public static final Item BOTTLED_CLOUD = new BottledCloudItem(
 		new Item.Properties().stacksTo(1).craftRemainder(Items.GLASS_BOTTLE).usingConvertsTo(Items.GLASS_BOTTLE).setId(BOTTLED_CLOUD_ID)
@@ -118,6 +120,10 @@ public final class ModItems {
 		new Item.Properties().setId(BOOMERANG_ID).durability(250)
 	);
 
+	public static final Item DEMO_BEAST_SPAWN_EGG = new SpawnEggItem(
+		new Item.Properties().spawnEgg(ModEntities.DEMO_BEAST).setId(DEMO_BEAST_SPAWN_EGG_ID)
+	);
+
 	private ModItems() {
 	}
 
@@ -138,6 +144,7 @@ public final class ModItems {
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("rope"), ROPE);
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("rope_lantern"), ROPE_LANTERN);
 		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("boomerang"), BOOMERANG);
+		Registry.register(BuiltInRegistries.ITEM, QuirkyMod.id("demo_beast_spawn_egg"), DEMO_BEAST_SPAWN_EGG);
 
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES)
 			.register(output -> {

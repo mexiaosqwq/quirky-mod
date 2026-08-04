@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "minecraft:wheat_seeds",
+    "minecraft:egg"
+  ],
+  "result": {
+    "id": "quirky:demo_beast_spawn_egg",
+    "count": 1
+  }
+}

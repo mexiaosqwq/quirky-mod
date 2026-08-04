@@ -14,7 +14,7 @@ const path = require("path");
 const argv = process.argv.slice(2);
 const get = (f) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : null; };
 const inPath = get("--in");
-const outDir = get("--out") || "build/generated/";
+const outDir = get("--out") || "../../generated/";
 const cls = get("--class") || "DemoBeast";
 const pkg = get("--package") || "dev.quirky.client.demobeast";
 
@@ -29,8 +29,8 @@ const safeId = (n) => "part" + n.replace(/[^A-Za-z0-9_]/g, "_");
 
 // ---- 解析节点：uuid -> {kind, name, origin, rotation, data} ----
 const nodes = new Map();
-for (const g of bb.groups || []) nodes.set(g.uuid, { kind: "group", name: g.name, origin: g.origin || [0, 0, 0], rotation: g.rotation || [0, 0, 0], data: g });
-for (const e of bb.elements || []) nodes.set(e.uuid, { kind: "cube", name: e.name, from: e.from, to: e.to, origin: e.origin || e.from, data: e });
+for (const g of bb.groups || []) nodes.set(g.uuid, { uuid: g.uuid, kind: "group", name: g.name, origin: g.origin || [0, 0, 0], rotation: g.rotation || [0, 0, 0], data: g });
+for (const e of bb.elements || []) nodes.set(e.uuid, { uuid: e.uuid, kind: "cube", name: e.name, from: e.from, to: e.to, origin: e.origin || e.from, data: e });
 // outliner 树（对象=group 引用，字符串=element uuid）；groups 数组无 children 字段，层级全在 outliner
 function parseOutliner(items) {
 	const out = [];
@@ -49,7 +49,10 @@ const isBoxUv = bb.meta.box_uv === true;
 
 function cubeBuilderExpr(cube, boneOrigin) {
 	const [fx, fy, fz] = cube.from, [tx, ty, tz] = cube.to;
-	const x = fx - boneOrigin[0], y = fy - boneOrigin[1], z = fz - boneOrigin[2];
+	const x = fx - boneOrigin[0], z = fz - boneOrigin[2];
+	// MC 中 addBox 的 y 是顶面且 y 向下：Blockbench from.y=底面 → 顶面 = to.y
+	// 局部顶 = boneOrigin.bb_y − cube.to_y（经 y 翻转）
+	const y = boneOrigin[1] - ty;
 	const w = tx - fx, h = ty - fy, d = tz - fz;
 	let u = 0, v = 0;
 	if (isBoxUv && cube.data.faces && cube.data.faces.north) {
@@ -57,7 +60,7 @@ function cubeBuilderExpr(cube, boneOrigin) {
 	} else if (cube.data.uv_offset) {
 		u = Number(cube.data.uv_offset[0]); v = Number(cube.data.uv_offset[1]);
 	}
-	return `CubeListBuilder.create().texOffs(${Math.round(u)}, ${Math.round(v)}).addBox(${f2(x)}, ${f2(-y)}, ${f2(z)}, ${f2(w)}, ${f2(h)}, ${f2(d)})`;
+	return `CubeListBuilder.create().texOffs(${Math.round(u)}, ${Math.round(v)}).addBox(${f2(x)}, ${f2(y)}, ${f2(z)}, ${f2(w)}, ${f2(h)}, ${f2(d)})`;
 }
 
 // 深度优先：父栈存 {varName, uuid}
