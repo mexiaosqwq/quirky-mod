@@ -16,6 +16,7 @@ class SeedFilterTest {
 		TestBootstrap.bindMinimalComponents(Items.WHEAT_SEEDS);
 		TestBootstrap.bindMinimalComponents(Items.NETHER_WART);
 		TestBootstrap.bindMinimalComponents(Items.SUGAR_CANE);
+		TestBootstrap.bindMinimalComponents(Items.COCOA_BEANS);
 		TestBootstrap.bindMinimalComponents(Items.LANTERN);
 		TestBootstrap.bindMinimalComponents(Items.STICK);
 	}
@@ -33,6 +34,12 @@ class SeedFilterTest {
 	@Test
 	void sugarCaneAccepted() {
 		assertTrue(SeedFilter.isSeed(new ItemStack(Items.SUGAR_CANE)));
+	}
+
+	@Test
+	void cocoaBeansAccepted() {
+		// 可可豆是丛林农场常见作物，需能入袋（CocoaBlock 非 CropBlock，靠白名单显式收录）
+		assertTrue(SeedFilter.isSeed(new ItemStack(Items.COCOA_BEANS)));
 	}
 
 	@Test

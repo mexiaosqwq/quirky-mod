@@ -4,6 +4,7 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.CactusBlock;
+import net.minecraft.world.level.block.CocoaBlock;
 import net.minecraft.world.level.block.CropBlock;
 import net.minecraft.world.level.block.NetherWartBlock;
 import net.minecraft.world.level.block.PitcherCropBlock;
@@ -32,6 +33,7 @@ public final class SeedFilter {
 			|| block instanceof NetherWartBlock
 			|| block instanceof SugarCaneBlock
 			|| block instanceof CactusBlock
+			|| block instanceof CocoaBlock
 			|| block instanceof StemBlock
 			|| block instanceof SweetBerryBushBlock
 			|| block instanceof PitcherCropBlock
