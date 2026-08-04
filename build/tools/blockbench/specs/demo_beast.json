@@ -1,0 +1,24 @@
+{
+  "name": "demo_beast",
+  "bones": [
+    { "name": "root", "origin": [0, 0, 0] },
+    { "name": "body", "parent": "root", "origin": [0, 4, 0] },
+    { "name": "head", "parent": "body", "origin": [0, 8, -5] },
+    { "name": "leg_front_l", "parent": "body", "origin": [3.5, 4, -4] },
+    { "name": "leg_front_r", "parent": "body", "origin": [-3.5, 4, -4] },
+    { "name": "leg_back_l", "parent": "body", "origin": [3.5, 4, 4] },
+    { "name": "leg_back_r", "parent": "body", "origin": [-3.5, 4, 4] },
+    { "name": "tail", "parent": "body", "origin": [0, 6, 6] }
+  ],
+  "cubes": [
+    { "name": "body_box", "bone": "body", "from": [-4, 4, -6], "to": [4, 12, 6], "uv": [0, 0] },
+    { "name": "head_box", "bone": "head", "from": [-3, 10, -10], "to": [3, 16, -4], "uv": [32, 0] },
+    { "name": "ear_l", "bone": "head", "from": [-2.5, 15, -9], "to": [-0.5, 19, -7], "uv": [32, 10] },
+    { "name": "ear_r", "bone": "head", "from": [0.5, 15, -9], "to": [2.5, 19, -7], "uv": [32, 10] },
+    { "name": "leg_front_l_box", "bone": "leg_front_l", "from": [2.5, 0, -5], "to": [4.5, 4, -3], "uv": [0, 16] },
+    { "name": "leg_front_r_box", "bone": "leg_front_r", "from": [-4.5, 0, -5], "to": [-2.5, 4, -3], "uv": [8, 16] },
+    { "name": "leg_back_l_box", "bone": "leg_back_l", "from": [2.5, 0, 3], "to": [4.5, 4, 5], "uv": [0, 20] },
+    { "name": "leg_back_r_box", "bone": "leg_back_r", "from": [-4.5, 0, 3], "to": [-2.5, 4, 5], "uv": [8, 20] },
+    { "name": "tail_box", "bone": "tail", "from": [-0.5, 5, 6], "to": [0.5, 9, 10], "uv": [40, 0] }
+  ]
+}

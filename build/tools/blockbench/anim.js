@@ -38,30 +38,34 @@ const args = ["--no-sandbox", "--enable-unsafe-swiftshader", "--disable-dev-shm-
 		if (doClear) {
 			[...Animation.all].forEach((a) => a.remove());
 		}
-		if (!anim) return { cleared: true, remaining: Animation.all.length };
-		const data = {
-			format_version: "1.8.0",
-			animations: {
-				[`animation.${anim.name}`]: {
-					loop: !!anim.loop,
-					animation_length: anim.length,
-					bones: Object.fromEntries(
-						Object.entries(anim.bones || {}).map(([bone, kfs]) => {
-							const ch = { position: {}, rotation: {}, scale: {} };
-							for (const kf of kfs) {
-								if (kf.position) ch.position[kf.time] = kf.position;
-								if (kf.rotation) ch.rotation[kf.time] = kf.rotation;
-								if (kf.scale) ch.scale[kf.time] = kf.scale;
-							}
-							return [bone, ch];
-						})
-					),
+		const anims = anim && Array.isArray(anim.animations) ? anim.animations : (anim ? [anim] : []);
+		if (!anims.length) return { cleared: doClear, remaining: Animation.all.length };
+		const created = [];
+		for (const a of anims) {
+			const data = {
+				format_version: "1.8.0",
+				animations: {
+					[`animation.${a.name}`]: {
+						loop: !!a.loop,
+						animation_length: a.length,
+						bones: Object.fromEntries(
+							Object.entries(a.bones || {}).map(([bone, kfs]) => {
+								const ch = { position: {}, rotation: {}, scale: {} };
+								for (const kf of kfs) {
+									if (kf.position) ch.position[kf.time] = kf.position;
+									if (kf.rotation) ch.rotation[kf.time] = kf.rotation;
+									if (kf.scale) ch.scale[kf.time] = kf.scale;
+								}
+								return [bone, ch];
+							})
+						),
+					},
 				},
-			},
-		};
-		Animator.loadFile({ content: JSON.stringify(data) });
-		const added = Animation.all.find((a) => a.name === anim.name);
-		return { added: added ? added.name : null, total: Animation.all.length };
+			};
+			Animator.loadFile({ content: JSON.stringify(data) });
+			created.push(a.name);
+		}
+		return { added: created, total: Animation.all.length };
 	}, { anim, doClear });
 
 	console.log(JSON.stringify(result));

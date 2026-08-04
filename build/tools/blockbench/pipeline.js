@@ -22,6 +22,8 @@ const fs = require("fs");
 		const [t, a] = s.split(":");
 		return { time: parseFloat(t), anim: a === "_" ? null : a };
 	});
+	const texPath = get("--tex");
+	const texDataUrl = texPath ? "data:image/png;base64," + fs.readFileSync(texPath).toString("base64") : null;
 
 	const browser = await chromium.launch({ executablePath: CHROME, headless: true, args });
 	const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
@@ -32,9 +34,21 @@ const fs = require("fs");
 		{ timeout: 60000 }
 	);
 
-	const modelResult = await page.evaluate((s) => {
+	const modelResult = await page.evaluate(({ s, texDataUrl }) => {
 		if (!Project) newProject(Formats.bedrock);
 		[...Outliner.elements].forEach((el) => el.remove());
+		if (texDataUrl) {
+			// 创建/复用纹理并注入生成的 PNG
+			let tex = Texture.getDefault();
+			if (!tex) {
+				tex = new Texture({ name: "demo_beast", width: 64, height: 64 }).add();
+			}
+			tex.fromDataURL(texDataUrl);
+			tex.width = 64;
+			tex.height = 64;
+			tex.setAsDefaultTexture();
+			Canvas.updateAllUVs && Canvas.updateAllUVs();
+		}
 		const boneMap = {};
 		for (const b of s.bones || []) {
 			const g = new Group({ name: b.name, origin: b.origin || [0, 0, 0] }).init();
@@ -60,7 +74,7 @@ const fs = require("fs");
 		}
 		Canvas.updateAll();
 		return { format: Project.format ? Project.format.id : "?", elements: Outliner.elements.length, added };
-	}, spec);
+	}, { s: spec, texDataUrl });
 
 	const animResult = await page.evaluate(({ anims }) => {
 		[...Animation.all].forEach((a) => a.remove());
@@ -92,12 +106,21 @@ const fs = require("fs");
 		return { created, total: Animation.all.length };
 	}, { anims });
 
-	// 截图（多时间点，切到动画并定位时间）
+	// 截图（多时间点，切到动画模式并定位时间）
+	await page.evaluate(() => {
+		if (Modes.selected && Modes.selected.id !== "animate" && Modes.options.animate) {
+			Modes.options.animate.select();
+		}
+	});
 	for (const shot of shots) {
 		await page.evaluate(({ time, anim }) => {
 			if (anim) {
-				const a = Animation.all.find((x) => x.name === anim);
-				if (a) { a.select(); Timeline.time = time; Animator.preview(); }
+				const a = Animation.all.find((x) => x.name === anim || x.name === "animation." + anim);
+				if (a) {
+					if (!a.selected) a.select();
+					Timeline.setTime(time);
+					Animator.preview();
+				}
 			}
 		}, shot);
 		await page.waitForTimeout(3500);
