@@ -98,6 +98,10 @@ def _apply_command(arguments: argparse.Namespace) -> None:
         plan = json.loads(arguments.plan.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise AssetError(f"invalid edit plan JSON: {exc.msg}") from exc
+    if not isinstance(plan, dict):
+        raise AssetError("edit plan must be a JSON object")
+    if "editPlan" in plan:
+        plan = plan["editPlan"]
     plan = validate_edit_plan(plan, "editPlan")
     source = apply_edit_plan(package.source, plan)
     # 整体契约校验（坐标/色名/重复 id 兜底），失败不改文件

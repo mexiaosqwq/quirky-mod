@@ -128,6 +128,23 @@ class CliIntegrationTest(unittest.TestCase):
         source = json.loads((self.package / "source.json").read_text(encoding="utf-8"))
         self.assertEqual([layer["id"] for layer in source["layers"]], ["mark"])
 
+    def test_apply_command_accepts_full_visual_report(self):
+        self.write_package()
+        report = {
+            "editPlan": {
+                "version": 1,
+                "operations": [{"op": "add", "layer": {"id": "dot", "operation": "point", "color": "mark", "x": 2, "y": 2}}],
+            }
+        }
+        plan_path = self.root / "report.json"
+        plan_path.write_text(json.dumps(report), encoding="utf-8")
+
+        result = self.run_cli("apply", self.package, "--plan", plan_path, "--candidate", "a2", "--build-root", self.build_root)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        layers = json.loads((self.package / "source.json").read_text(encoding="utf-8"))["layers"]
+        self.assertEqual(layers[-1]["id"], "dot")
+
 
 if __name__ == "__main__":
     unittest.main()
