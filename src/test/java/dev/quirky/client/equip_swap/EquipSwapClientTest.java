@@ -7,7 +7,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import dev.quirky.TestBootstrap;
-import dev.quirky.config.QuirkyConfig;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.world.Container;
@@ -26,35 +25,23 @@ class EquipSwapClientTest {
 		TestBootstrap.bindItem(Items.IRON_CHESTPLATE);
 		TestBootstrap.bindItem(Items.WIND_CHARGE);
 		TestBootstrap.bindItem(Items.FIREWORK_ROCKET);
+		TestBootstrap.bindItem(Items.STONE);
 	}
 
 	@Test
-	void dedicatedOffhandItemsDoNotDependOnEquipSwap() {
-		QuirkyConfig config = new QuirkyConfig();
-		config.equipSwap = false;
-		config.offhandSwap = true;
-
-		assertTrue(EquipSwapClient.isQuickEquipEnabled(new ItemStack(Items.WIND_CHARGE), config));
-		assertTrue(EquipSwapClient.isQuickEquipEnabled(new ItemStack(Items.FIREWORK_ROCKET), config));
+	void offhandItemsAlwaysEnabled() {
+		assertTrue(EquipSwapClient.isQuickEquipEnabled(new ItemStack(Items.WIND_CHARGE)));
+		assertTrue(EquipSwapClient.isQuickEquipEnabled(new ItemStack(Items.FIREWORK_ROCKET)));
 	}
 
 	@Test
-	void ordinaryEquipmentDoesNotDependOnOffhandSwap() {
-		QuirkyConfig config = new QuirkyConfig();
-		config.equipSwap = true;
-		config.offhandSwap = false;
-
-		assertTrue(EquipSwapClient.isQuickEquipEnabled(new ItemStack(Items.IRON_CHESTPLATE), config));
+	void equippableItemsAlwaysEnabled() {
+		assertTrue(EquipSwapClient.isQuickEquipEnabled(new ItemStack(Items.IRON_CHESTPLATE)));
 	}
 
 	@Test
-	void disabledFeaturesDoNotInterceptTheirItems() {
-		QuirkyConfig config = new QuirkyConfig();
-		config.equipSwap = false;
-		config.offhandSwap = false;
-
-		assertFalse(EquipSwapClient.isQuickEquipEnabled(new ItemStack(Items.IRON_CHESTPLATE), config));
-		assertFalse(EquipSwapClient.isQuickEquipEnabled(new ItemStack(Items.FIREWORK_ROCKET), config));
+	void nonEquippableNonOffhandRejected() {
+		assertFalse(EquipSwapClient.isQuickEquipEnabled(new ItemStack(Items.STONE)));
 	}
 
 	@Test

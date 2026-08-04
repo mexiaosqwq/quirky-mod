@@ -32,7 +32,7 @@ import net.minecraft.world.phys.Vec3;
  * 宠物口哨：一声哨响把宠物召集到身边（白天），夜晚还能把幻翼掼到地面近战。
  *
  * <ul>
- *   <li>右键 → 半径内宠物起身寻路走向玩家；超半径（同维度）直接传送（可配置关闭）；</li>
+ *   <li>右键 → 半径内宠物起身寻路走向玩家；超半径（同维度）直接传送；</li>
  *   <li>潜行+右键 → 切换半径内狼/猫的坐定状态（鹦鹉不受影响）；</li>
  *   <li>夜晚（幻翼活跃条件）→ 额外嘲讽 1-3 只幻翼锁定玩家 30 秒（锚点钉在玩家头顶，
  *       幻翼自行飞入并盘旋俯冲，不传送）。</li>
@@ -57,16 +57,13 @@ public class PetWhistleItem extends Item {
 
 	@Override
 	public InteractionResult use(Level level, Player player, InteractionHand hand) {
-		if (!QuirkyConfigHolder.get().petWhistleEnabled) {
-			return InteractionResult.PASS;
-		}
 		if (!level.isClientSide()) {
 			ServerLevel serverLevel = (ServerLevel) level;
 			if (player.isShiftKeyDown()) {
 				toggleSitting(serverLevel, player);
 			} else {
 				callPets(serverLevel, player);
-				if (QuirkyConfigHolder.get().petWhistleTauntPhantoms && phantomActiveConditions(serverLevel)) {
+				if (phantomActiveConditions(serverLevel)) {
 					tauntPhantoms(serverLevel, player);
 				}
 			}
@@ -90,12 +87,9 @@ public class PetWhistleItem extends Item {
 			if (distSq <= radiusSq) {
 				pet.getNavigation().moveTo(player, 1.5);
 				spawnHearts(level, pet);
-			} else if (QuirkyConfigHolder.get().petWhistleTeleportBeyondRadius) {
+			} else {
 				teleportPetToPlayer(level, pet, player);
 				spawnHearts(level, pet);
-			} else {
-				// 关闭传送：仍尝试寻路（可能因距离失败，属预期）
-				pet.getNavigation().moveTo(player, 1.5);
 			}
 		}
 	}

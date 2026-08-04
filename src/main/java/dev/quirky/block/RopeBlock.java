@@ -1,7 +1,6 @@
 package dev.quirky.block;
 
 import dev.quirky.ModBlocks;
-import dev.quirky.config.QuirkyConfigHolder;
 import dev.quirky.rope.RopeSupportLogic;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -116,7 +115,7 @@ public class RopeBlock extends Block implements SimpleWaterloggedBlock {
 		InteractionHand hand,
 		BlockHitResult hitResult
 	) {
-		if (state.is(ModBlocks.ROPE) && itemStack.is(Items.LANTERN) && QuirkyConfigHolder.get().ropeEnabled) {
+		if (state.is(ModBlocks.ROPE) && itemStack.is(Items.LANTERN)) {
 			if (level.isClientSide()) {
 				return InteractionResult.SUCCESS;
 			}

@@ -82,9 +82,7 @@ public class ParrotEggEntity extends ThrowableItemProjectile {
 		}
 		ServerLevel serverLevel = (ServerLevel) this.level();
 		float hatchChance;
-		if (!QuirkyConfigHolder.get().parrotEggEnabled) {
-			hatchChance = 0.0F;
-		} else if (isOnJungle(serverLevel, hitResult)) {
+		if (isOnJungle(serverLevel, hitResult)) {
 			hatchChance = ParrotEggHatchLogic.jungleBoost(QuirkyConfigHolder.get().parrotEggHatchChance);
 		} else {
 			hatchChance = QuirkyConfigHolder.get().parrotEggHatchChance;

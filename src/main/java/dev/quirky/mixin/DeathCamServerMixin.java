@@ -1,6 +1,5 @@
 package dev.quirky.mixin;
 
-import dev.quirky.config.QuirkyConfigHolder;
 import dev.quirky.deathcam.DeathCamPayload;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.level.ServerPlayer;
@@ -21,9 +20,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class DeathCamServerMixin {
 	@Inject(method = "die(Lnet/minecraft/world/damagesource/DamageSource;)V", at = @At("RETURN"))
 	private void quirky$sendDeathCam(DamageSource source, CallbackInfo ci) {
-		if (!QuirkyConfigHolder.get().deathCam) {
-			return;
-		}
 		ServerPlayer player = (ServerPlayer) (Object) this;
 		if (player.level().getGameRules().get(GameRules.IMMEDIATE_RESPAWN)) {
 			return; // doImmediateRespawn：客户端直接重生、不显示死亡界面，镜头无意义

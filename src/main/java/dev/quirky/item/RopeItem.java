@@ -59,9 +59,6 @@ public class RopeItem extends BlockItem {
 
 	@Override
 	public InteractionResult useOn(UseOnContext context) {
-		if (!QuirkyConfigHolder.get().ropeEnabled) {
-			return InteractionResult.FAIL;
-		}
 		Level level = context.getLevel();
 		Player player = context.getPlayer();
 		ItemStack stack = context.getItemInHand();

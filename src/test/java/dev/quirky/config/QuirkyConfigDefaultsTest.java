@@ -8,15 +8,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class QuirkyConfigDefaultsTest {
 
 	@Test
-	void allTogglesDefaultOn() {
+	void itemParamsMatchHardcodedDefaults() {
 		QuirkyConfig c = new QuirkyConfig();
-		assertTrue(c.mapPreview);
-		assertTrue(c.harvestReplant);
-		assertTrue(c.doubleDoor);
-		assertTrue(c.clockTooltip);
-		assertTrue(c.equipSwap && c.offhandSwap);
-		assertTrue(c.melonSeed);
-		assertTrue(c.totemOfHolding);
+		assertEquals(4, c.quiverCapacity);
+		assertEquals(32, c.ropeMaxExtendPerUse);
+		assertEquals(12, c.boomerangRange);
+		assertEquals(2, c.boomerangDamage);
+		assertEquals(0.05F, c.boomerangBreakChance);
+		assertEquals(0.5F, c.parrotEggHatchChance);
+		assertEquals(0.03F, c.parrotEggTwinChance);
+		assertEquals(1, c.seedPouchRadius);
+		assertEquals(90, c.fishBaitDurationSeconds);
+		assertEquals(4, c.fishBaitRadius);
+		assertEquals(24, c.petWhistleRadius);
+		assertEquals(3, c.petWhistlePhantomMax);
 	}
 
 	@Test
@@ -49,18 +54,18 @@ class QuirkyConfigDefaultsTest {
 	}
 
 	@Test
-	void clientQolTogglesDefaultOn() {
+	void mechanicsParamsWithinBounds() {
 		QuirkyConfig c = new QuirkyConfig();
-		assertTrue(c.soulLighting && c.shulkerTooltip
-			&& c.foodTooltip && c.attributeTooltip && c.usageTicker
-			&& c.deathCam && c.ladderSnap && c.offhandSwap);
-		assertEquals(50, c.deathCamDuration);
+		assertTrue(c.wakeUpSlowFallingSeconds >= 0 && c.wakeUpSlowFallingSeconds <= 60);
+		assertTrue(c.arrowDingVolume >= 0.0F && c.arrowDingVolume <= 1.0F);
 	}
 
 	@Test
-	void clientQolParamsWithinBounds() {
+	void clientParamsWithinBounds() {
 		QuirkyConfig c = new QuirkyConfig();
+		assertEquals(50, c.deathCamDuration);
 		assertTrue(c.tickerHoldTicks >= 20 && c.tickerHoldTicks <= 200);
+		assertTrue(c.tickerAnimTicks >= 2 && c.tickerAnimTicks <= 20);
 		assertTrue(c.deathCamDuration >= 40 && c.deathCamDuration <= 100);
 	}
 }

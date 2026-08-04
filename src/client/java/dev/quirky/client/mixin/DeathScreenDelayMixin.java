@@ -1,7 +1,6 @@
 package dev.quirky.client.mixin;
 
 import dev.quirky.client.deathcam.DeathCamClient;
-import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.protocol.game.ClientboundPlayerCombatKillPacket;
@@ -36,9 +35,6 @@ public class DeathScreenDelayMixin {
 		cancellable = true
 	)
 	private void quirky$delayDeathScreen(ClientboundPlayerCombatKillPacket packet, CallbackInfo ci) {
-		if (!QuirkyConfigHolder.get().deathCam) {
-			return;
-		}
 		ci.cancel();
 		DeathCamClient.onKillPacket(packet.message(), this.level.getLevelData().isHardcore());
 	}

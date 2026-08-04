@@ -8,9 +8,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import dev.quirky.TestBootstrap;
-import dev.quirky.config.QuirkyConfig;
-import dev.quirky.config.QuirkyConfigHolder;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityEquipment;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -19,7 +16,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.equipment.Equippable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -182,101 +178,5 @@ class EquipSwapServerTest {
 
 		assertEquals(sword, player.getInventory().getItem(9));
 		assertTrue(player.getInventory().getItem(40).isEmpty());
-	}
-
-	@Test
-	void dedicatedOffhandSwapWorksWhenEquipSwapIsDisabled() {
-		QuirkyConfig config = new QuirkyConfig();
-		config.equipSwap = false;
-		config.offhandSwap = true;
-		QuirkyConfigHolder.set(config);
-		try {
-			ServerPlayer player = creativePlayer();
-			ItemStack windCharge = new ItemStack(Items.WIND_CHARGE, 3);
-			player.getInventory().setItem(9, windCharge);
-
-			assertTrue(EquipSwapServer.trySwap(player, 0, 9));
-			assertEquals(windCharge, player.getInventory().getItem(40));
-			assertTrue(player.getInventory().getItem(9).isEmpty());
-		} finally {
-			QuirkyConfigHolder.set(new QuirkyConfig());
-		}
-	}
-
-	@Test
-	void normalEquipmentIsRejectedWhenEquipSwapIsDisabled() {
-		QuirkyConfig config = new QuirkyConfig();
-		config.equipSwap = false;
-		config.offhandSwap = true;
-		QuirkyConfigHolder.set(config);
-		try {
-			ServerPlayer player = creativePlayer();
-			ItemStack chestplate = new ItemStack(Items.IRON_CHESTPLATE);
-			player.getInventory().setItem(0, chestplate);
-			when(player.getEquipmentSlotForItem(chestplate)).thenReturn(EquipmentSlot.CHEST);
-			when(player.isEquippableInSlot(chestplate, EquipmentSlot.CHEST)).thenReturn(true);
-
-			assertFalse(EquipSwapServer.trySwap(player, 0, 36));
-			assertEquals(chestplate, player.getInventory().getItem(0));
-		} finally {
-			QuirkyConfigHolder.set(new QuirkyConfig());
-		}
-	}
-
-	@Test
-	void offhandSwapDisabledFallsBackToEquippablePath() {
-		QuirkyConfigHolder.set(new QuirkyConfig());
-		try {
-			QuirkyConfigHolder.get().offhandSwap = false;
-			// 盾牌带 EQUIPPABLE：开关关闭时回退原版装备路径（盾牌原版即副手槽）
-			ServerPlayer player = creativePlayer();
-			ItemStack shield = new ItemStack(Items.SHIELD);
-			// 测试环境无法完整初始化盾牌组件，手动附加 EQUIPPABLE（主手/副手皆可装备）
-			shield.set(DataComponents.EQUIPPABLE, Equippable.builder(EquipmentSlot.OFFHAND).build());
-			player.getInventory().setItem(9, shield);
-			when(player.getEquipmentSlotForItem(shield)).thenReturn(EquipmentSlot.OFFHAND);
-			when(player.isEquippableInSlot(shield, EquipmentSlot.OFFHAND)).thenReturn(true);
-
-			assertTrue(EquipSwapServer.trySwap(player, 0, 9));
-
-			assertEquals(shield, player.getInventory().getItem(40));
-		} finally {
-			QuirkyConfigHolder.set(new QuirkyConfig());
-		}
-	}
-
-	@Test
-	void fireworkRocketRejectedWhenOffhandSwapDisabled() {
-		QuirkyConfigHolder.set(new QuirkyConfig());
-		try {
-			QuirkyConfigHolder.get().offhandSwap = false;
-			ServerPlayer player = creativePlayer();
-			ItemStack fireworkRocket = new ItemStack(Items.FIREWORK_ROCKET);
-			player.getInventory().setItem(9, fireworkRocket);
-
-			assertFalse(EquipSwapServer.trySwap(player, 0, 9));
-
-			assertEquals(fireworkRocket, player.getInventory().getItem(9));
-			assertTrue(player.getInventory().getItem(40).isEmpty());
-		} finally {
-			QuirkyConfigHolder.set(new QuirkyConfig());
-		}
-	}
-
-	@Test
-	void torchRejectedWhenOffhandSwapDisabled() {
-		QuirkyConfigHolder.set(new QuirkyConfig());
-		try {
-			QuirkyConfigHolder.get().offhandSwap = false;
-			// 火把无 EQUIPPABLE：开关关闭时被拒（火把装副手是 mod 专属行为）
-			ServerPlayer player = creativePlayer();
-			player.getInventory().setItem(9, new ItemStack(Items.TORCH));
-
-			assertFalse(EquipSwapServer.trySwap(player, 0, 9));
-
-			assertTrue(player.getInventory().getItem(40).isEmpty());
-		} finally {
-			QuirkyConfigHolder.set(new QuirkyConfig());
-		}
 	}
 }

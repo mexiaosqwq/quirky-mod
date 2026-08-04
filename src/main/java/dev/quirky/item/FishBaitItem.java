@@ -2,7 +2,6 @@ package dev.quirky.item;
 
 import java.util.function.Consumer;
 
-import dev.quirky.config.QuirkyConfigHolder;
 import dev.quirky.fishbait.FishBaitEntity;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Direction;
@@ -36,9 +35,6 @@ public class FishBaitItem extends Item implements ProjectileItem {
 
 	@Override
 	public InteractionResult use(Level level, Player player, InteractionHand hand) {
-		if (!QuirkyConfigHolder.get().fishBaitEnabled) {
-			return InteractionResult.PASS;
-		}
 		ItemStack stack = player.getItemInHand(hand);
 		level.playSound(
 			null, player.getX(), player.getY(), player.getZ(),

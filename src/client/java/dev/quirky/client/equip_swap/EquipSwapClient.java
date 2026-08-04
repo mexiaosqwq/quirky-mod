@@ -1,8 +1,6 @@
 package dev.quirky.client.equip_swap;
 
 import dev.quirky.client.mixin.AbstractContainerScreenAccessor;
-import dev.quirky.config.QuirkyConfig;
-import dev.quirky.config.QuirkyConfigHolder;
 import dev.quirky.equip_swap.EquipSwapPayload;
 import dev.quirky.equip_swap.OffhandSwapItems;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -38,7 +36,7 @@ public final class EquipSwapClient {
 					return true;
 				}
 				ItemStack stack = slot.getItem();
-				if (!isQuickEquipEnabled(stack, QuirkyConfigHolder.get())) {
+				if (!isQuickEquipEnabled(stack)) {
 					return true;
 				}
 				int slotIndex = serverSlotIndex(slot, screen, client.player);
@@ -53,9 +51,9 @@ public final class EquipSwapClient {
 		});
 	}
 
-	static boolean isQuickEquipEnabled(ItemStack stack, QuirkyConfig config) {
-		return (stack.has(DataComponents.EQUIPPABLE) && config.equipSwap)
-			|| (OffhandSwapItems.isOffhandSwapItem(stack) && config.offhandSwap);
+	static boolean isQuickEquipEnabled(ItemStack stack) {
+		return stack.has(DataComponents.EQUIPPABLE)
+			|| OffhandSwapItems.isOffhandSwapItem(stack);
 	}
 
 	static int serverSlotIndex(Slot slot, Screen screen, @Nullable Player player) {

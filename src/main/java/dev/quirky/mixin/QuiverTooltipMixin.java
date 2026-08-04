@@ -26,9 +26,6 @@ public abstract class QuiverTooltipMixin {
 		if (cir.isCancelled()) {
 			return;
 		}
-		if (!QuirkyConfigHolder.get().quiverEnabled) {
-			return;
-		}
 		if (!stack.is(ModItems.QUIVER)) {
 			return;
 		}

@@ -21,12 +21,12 @@ public final class AttributeTooltipVisibility {
 	}
 
 	/**
-	 * 原版属性文本段是否应隐藏：config 开启、未按 Shift、且横条确有可替代内容
+	 * 原版属性文本段是否应隐藏：未按 Shift 且横条确有可替代内容
 	 * （AttributeLineCollector 只渲染 6 类属性；携带其他修饰符的物品横条为空时不隐藏，
 	 * 避免属性信息静默丢失）。
 	 */
-	public static boolean vanillaTextHidden(boolean configOn, @Nullable Minecraft minecraft, ItemStack stack) {
-		if (!configOn || shiftHidesCompactRow(minecraft)) {
+	public static boolean vanillaTextHidden(@Nullable Minecraft minecraft, ItemStack stack) {
+		if (shiftHidesCompactRow(minecraft)) {
 			return false;
 		}
 		return !AttributeLineCollector.collect(stack, RegistryAccess.EMPTY).isEmpty();

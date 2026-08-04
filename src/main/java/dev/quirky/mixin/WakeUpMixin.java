@@ -38,9 +38,6 @@ public abstract class WakeUpMixin {
 		if (player.level().isClientSide()) {
 			return; // 仅服务端执行，避免双端叠加音效/效果
 		}
-		if (!QuirkyConfigHolder.get().wakeUpProtectionEnabled) {
-			return;
-		}
 		boolean deepSleep = !forcefulWakeUp && this.quirky$sleptLongEnough;
 		int durationTicks = WakeUpLogic.durationTicks(deepSleep, QuirkyConfigHolder.get().wakeUpSlowFallingSeconds);
 		if (durationTicks <= 0) {

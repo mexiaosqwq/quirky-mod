@@ -254,7 +254,7 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		}
 
 		// 打碎判定：秒破类必碎 / 免疫与冒险不打碎 / 其余默认 5% 摇骰
-		if (QuirkyConfigHolder.get().boomerangBreakBlocks && this.breakBlock(level, pos, state)) {
+		if (this.breakBlock(level, pos, state)) {
 			return; // 打碎 → 穿透继续飞
 		}
 

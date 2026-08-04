@@ -3,7 +3,6 @@ package dev.quirky.mixin;
 import java.util.List;
 import java.util.Optional;
 
-import dev.quirky.config.QuirkyConfigHolder;
 import dev.quirky.tooltips.AttributeTooltipComponent.AttributeLine;
 import dev.quirky.tooltips.AttributeLineCollector;
 import dev.quirky.tooltips.AttributeTooltipComponent;
@@ -33,9 +32,6 @@ public abstract class TooltipDetailsMixin {
 		if (cir.isCancelled()) {
 			return;
 		}
-		if (!QuirkyConfigHolder.get().shulkerTooltip) {
-			return;
-		}
 		// 只对潜影盒生效：箱子/熔炉等其他容器物品也可能带 CONTAINER 组件，
 		// 不限定 tag 会把它们也渲染成潜影盒网格
 		if (stack.is(ItemTags.SHULKER_BOXES)) {
@@ -52,9 +48,6 @@ public abstract class TooltipDetailsMixin {
 		if (cir.isCancelled()) {
 			return;
 		}
-		if (!QuirkyConfigHolder.get().attributeTooltip) {
-			return;
-		}
 		// 26.2 中 ENCHANTMENT 为数据包注册表，tooltip 调用路径无注册表访问，传 EMPTY 走栈上附魔组件读取
 		List<AttributeLine> lines = AttributeLineCollector.collect(stack, RegistryAccess.EMPTY);
 		if (!lines.isEmpty()) {
@@ -65,9 +58,6 @@ public abstract class TooltipDetailsMixin {
 	@Inject(method = "getTooltipImage", at = @At("HEAD"), cancellable = true)
 	private void quirky$foodTooltip(ItemStack stack, CallbackInfoReturnable<Optional<TooltipComponent>> cir) {
 		if (cir.isCancelled()) {
-			return;
-		}
-		if (!QuirkyConfigHolder.get().foodTooltip) {
 			return;
 		}
 		TooltipDisplay display = stack.getOrDefault(DataComponents.TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT);

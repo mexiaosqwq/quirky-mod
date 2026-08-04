@@ -80,14 +80,6 @@ public final class UsageTickerHud {
 	}
 
 	private static void tick(Player player) {
-		if (!QuirkyConfigHolder.get().usageTicker) {
-			itemElement.reset();
-			for (TickerElement element : armorElements) {
-				element.reset();
-			}
-			toolElement.reset();
-			return;
-		}
 		if (player != lastPlayer) {
 			lastPlayer = player;
 			lastSnapshot = null;
@@ -132,9 +124,6 @@ public final class UsageTickerHud {
 	}
 
 	private static void render(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
-		if (!QuirkyConfigHolder.get().usageTicker) {
-			return;
-		}
 		Minecraft minecraft = Minecraft.getInstance();
 		if (minecraft.player == null) {
 			return;

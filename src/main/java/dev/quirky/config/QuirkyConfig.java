@@ -4,311 +4,173 @@ import me.shedaniel.autoconfig.ConfigData;
 import me.shedaniel.autoconfig.annotation.Config;
 import me.shedaniel.autoconfig.annotation.ConfigEntry;
 
+/**
+ * 配置集中定义。机制默认全开且不可关闭（v1.1 整理：删除全部布尔开关），
+ * 这里只保留玩家可调数值参数，按「物品 / 机制 / 客户端」三组分类。
+ */
 @Config(name = "quirky")
 public class QuirkyConfig implements ConfigData {
 
-	// ==== 行为类机制开关（默认全开，关掉即恢复原版行为）====
+	// ==== 物品组：各物品机制的数值参数 ====
 
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean mapPreview = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean harvestReplant = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean doubleDoor = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean clockTooltip = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean equipSwap = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean offhandSwap = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean melonSeed = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean totemOfHolding = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean soulLighting = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean shulkerTooltip = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean foodTooltip = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean attributeTooltip = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean usageTicker = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean deathCam = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean ladderSnap = true;
-
-	// ==== 批 A：弓箭叮声 / 起床保护 / 鹦鹉蛋 / 营火染色烟 ====
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean arrowDingEnabled = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public float arrowDingVolume = 0.6F;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean wakeUpProtectionEnabled = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.BoundedDiscrete(min = 0, max = 60)
-	@ConfigEntry.Gui.Tooltip
-	public int wakeUpSlowFallingSeconds = 12;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean parrotEggEnabled = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public float parrotEggHatchChance = 0.5F;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public float parrotEggTwinChance = 0.03F;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean dyedCampfireSmokeEnabled = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean dyedCampfireGlow = true;
-
-	// ==== 批 B：播种袋 / 鱼饵球 ====
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean seedPouchEnabled = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.BoundedDiscrete(min = 0, max = 2)
-	@ConfigEntry.Gui.Tooltip
-	public int seedPouchRadius = 1;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean fishBaitEnabled = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.BoundedDiscrete(min = 10, max = 300)
-	@ConfigEntry.Gui.Tooltip
-	public int fishBaitDurationSeconds = 90;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.BoundedDiscrete(min = 2, max = 8)
-	@ConfigEntry.Gui.Tooltip
-	public int fishBaitRadius = 4;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean fishBaitRainBonus = true;
-
-	// ==== 批 C：箭袋 / 末影袋 / 宠物口哨 ====
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean quiverEnabled = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean enderPouchEnabled = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean enderPouchEnderResonance = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean petWhistleEnabled = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean petWhistleTeleportBeyondRadius = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean petWhistleTauntPhantoms = true;
-
-	// ==== 箭袋参数（服务端）====
-
-	@ConfigEntry.Category("quiver")
+	@ConfigEntry.Category("items")
 	@ConfigEntry.BoundedDiscrete(min = 1, max = 8)
 	@ConfigEntry.Gui.Tooltip
 	public int quiverCapacity = 4;
 
-	// ==== 宠物口哨参数（服务端）====
-
-	@ConfigEntry.Category("pet_whistle")
-	@ConfigEntry.BoundedDiscrete(min = 8, max = 64)
-	@ConfigEntry.Gui.Tooltip
-	public int petWhistleRadius = 24;
-
-	@ConfigEntry.Category("pet_whistle")
-	@ConfigEntry.BoundedDiscrete(min = 1, max = 5)
-	@ConfigEntry.Gui.Tooltip
-	public int petWhistlePhantomMax = 3;
-
-	// ==== 批 D：绳捆 / 回旋镖 ====
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean ropeEnabled = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean boomerangEnabled = true;
-
-	@ConfigEntry.Category("toggles")
-	@ConfigEntry.Gui.Tooltip
-	public boolean boomerangBreakBlocks = true;
-
-	// ==== 机动与玩具参数（绳捆 / 回旋镖）====
-
-	@ConfigEntry.Category("mobility")
+	@ConfigEntry.Category("items")
 	@ConfigEntry.BoundedDiscrete(min = 1, max = 64)
 	@ConfigEntry.Gui.Tooltip
 	public int ropeMaxExtendPerUse = 32;
 
-	@ConfigEntry.Category("mobility")
+	@ConfigEntry.Category("items")
 	@ConfigEntry.BoundedDiscrete(min = 4, max = 24)
 	@ConfigEntry.Gui.Tooltip
 	public int boomerangRange = 12;
 
-	@ConfigEntry.Category("mobility")
+	@ConfigEntry.Category("items")
 	@ConfigEntry.BoundedDiscrete(min = 0, max = 4)
 	@ConfigEntry.Gui.Tooltip
 	public int boomerangDamage = 2;
 
-	@ConfigEntry.Category("mobility")
+	@ConfigEntry.Category("items")
 	@ConfigEntry.Gui.Tooltip
 	public float boomerangBreakChance = 0.05F;
 
-	// ==== 图腾手感参数（服务端）====
+	@ConfigEntry.Category("items")
+	@ConfigEntry.Gui.Tooltip
+	public float parrotEggHatchChance = 0.5F;
 
-	@ConfigEntry.Category("totem")
+	@ConfigEntry.Category("items")
+	@ConfigEntry.Gui.Tooltip
+	public float parrotEggTwinChance = 0.03F;
+
+	@ConfigEntry.Category("items")
+	@ConfigEntry.BoundedDiscrete(min = 0, max = 2)
+	@ConfigEntry.Gui.Tooltip
+	public int seedPouchRadius = 1;
+
+	@ConfigEntry.Category("items")
+	@ConfigEntry.BoundedDiscrete(min = 10, max = 300)
+	@ConfigEntry.Gui.Tooltip
+	public int fishBaitDurationSeconds = 90;
+
+	@ConfigEntry.Category("items")
+	@ConfigEntry.BoundedDiscrete(min = 2, max = 8)
+	@ConfigEntry.Gui.Tooltip
+	public int fishBaitRadius = 4;
+
+	@ConfigEntry.Category("items")
+	@ConfigEntry.BoundedDiscrete(min = 8, max = 64)
+	@ConfigEntry.Gui.Tooltip
+	public int petWhistleRadius = 24;
+
+	@ConfigEntry.Category("items")
+	@ConfigEntry.BoundedDiscrete(min = 1, max = 5)
+	@ConfigEntry.Gui.Tooltip
+	public int petWhistlePhantomMax = 3;
+
+	// ==== 保留图腾（物品组，含服务端与客户端渲染参数）====
+
+	@ConfigEntry.Category("items")
 	@ConfigEntry.BoundedDiscrete(min = 1, max = 2)
 	@ConfigEntry.Gui.Tooltip
 	public int spawnHeightOffset = 1;
 
-	@ConfigEntry.Category("totem")
+	@ConfigEntry.Category("items")
 	@ConfigEntry.BoundedDiscrete(min = 1, max = 10)
 	@ConfigEntry.Gui.Tooltip
 	public int hitsToRetrieve = 3;
 
-	@ConfigEntry.Category("totem")
+	@ConfigEntry.Category("items")
 	@ConfigEntry.Gui.Tooltip
 	public float hitSoundVolume = 1.0F;
 
-	@ConfigEntry.Category("totem")
+	@ConfigEntry.Category("items")
 	@ConfigEntry.Gui.Tooltip
 	public float hitSoundPitch = 1.0F;
 
-	@ConfigEntry.Category("totem")
+	@ConfigEntry.Category("items")
 	@ConfigEntry.Gui.Tooltip
 	public float retrieveSoundVolume = 0.5F;
 
-	@ConfigEntry.Category("totem")
+	@ConfigEntry.Category("items")
 	@ConfigEntry.BoundedDiscrete(min = 1, max = 100)
 	@ConfigEntry.Gui.Tooltip
 	public int enchantParticleChance = 4;
 
-	@ConfigEntry.Category("totem")
+	@ConfigEntry.Category("items")
 	@ConfigEntry.BoundedDiscrete(min = 1, max = 100)
 	@ConfigEntry.Gui.Tooltip
 	public int endRodParticleChance = 12;
 
-	@ConfigEntry.Category("totem")
+	@ConfigEntry.Category("items")
 	@ConfigEntry.Gui.Tooltip
 	public float endRodParticleXzSpread = 0.35F;
 
-	@ConfigEntry.Category("totem")
+	@ConfigEntry.Category("items")
 	@ConfigEntry.Gui.Tooltip
 	public float endRodParticleYSpread = 0.3F;
 
-	@ConfigEntry.Category("totem")
+	@ConfigEntry.Category("items")
 	@ConfigEntry.Gui.Tooltip
 	public float particleXzSpread = 0.45F;
 
-	@ConfigEntry.Category("totem")
+	@ConfigEntry.Category("items")
 	@ConfigEntry.Gui.Tooltip
 	public float particleYSpread = 0.55F;
 
-	// ==== 图腾手感参数（客户端渲染）====
-
-	@ConfigEntry.Category("totem")
+	@ConfigEntry.Category("items")
 	@ConfigEntry.Gui.Tooltip
 	public float modelScale = 1.8F;
 
-	@ConfigEntry.Category("totem")
+	@ConfigEntry.Category("items")
 	@ConfigEntry.Gui.Tooltip
 	public float bobAmplitude = 0.25F;
 
-	@ConfigEntry.Category("totem")
+	@ConfigEntry.Category("items")
 	@ConfigEntry.BoundedDiscrete(min = 4, max = 60)
 	@ConfigEntry.Gui.Tooltip
 	public int bobPeriod = 12;
 
-	@ConfigEntry.Category("totem")
+	@ConfigEntry.Category("items")
 	@ConfigEntry.BoundedDiscrete(min = 4, max = 60)
 	@ConfigEntry.Gui.Tooltip
 	public int spinPeriod = 8;
 
-	@ConfigEntry.Category("totem")
+	@ConfigEntry.Category("items")
 	@ConfigEntry.Gui.Tooltip
 	public float swayAmplitude = 0.08F;
 
-	@ConfigEntry.Category("totem")
+	@ConfigEntry.Category("items")
 	@ConfigEntry.BoundedDiscrete(min = 4, max = 60)
 	@ConfigEntry.Gui.Tooltip
 	public int swayPeriod = 20;
 
-	// ==== 客户端实用功能参数 ====
+	// ==== 机制组：行为类机制的数值参数 ====
 
-	@ConfigEntry.Category("client_qol")
+	@ConfigEntry.Category("mechanics")
+	@ConfigEntry.Gui.Tooltip
+	public float arrowDingVolume = 0.6F;
+
+	@ConfigEntry.Category("mechanics")
+	@ConfigEntry.BoundedDiscrete(min = 0, max = 60)
+	@ConfigEntry.Gui.Tooltip
+	public int wakeUpSlowFallingSeconds = 12;
+
+	// ==== 客户端组：显示类数值参数 ====
+
+	@ConfigEntry.Category("client")
 	@ConfigEntry.BoundedDiscrete(min = 20, max = 200)
 	@ConfigEntry.Gui.Tooltip
 	public int tickerHoldTicks = 50;
 
-	@ConfigEntry.Category("client_qol")
+	@ConfigEntry.Category("client")
 	@ConfigEntry.BoundedDiscrete(min = 2, max = 20)
 	@ConfigEntry.Gui.Tooltip
 	public int tickerAnimTicks = 5;
 
-	@ConfigEntry.Category("client_qol")
+	@ConfigEntry.Category("client")
 	@ConfigEntry.BoundedDiscrete(min = 40, max = 100)
 	@ConfigEntry.Gui.Tooltip
 	public int deathCamDuration = 50;

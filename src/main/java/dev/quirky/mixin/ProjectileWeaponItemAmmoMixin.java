@@ -14,7 +14,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import dev.quirky.ModItems;
-import dev.quirky.config.QuirkyConfigHolder;
 import dev.quirky.quiver.QuiverAmmoSource;
 import dev.quirky.quiver.QuiverAmmoSource.QuiverAmmoRef;
 import dev.quirky.quiver.QuiverContents;
@@ -51,9 +50,6 @@ public abstract class ProjectileWeaponItemAmmoMixin {
 		boolean forceInfinite,
 		CallbackInfoReturnable<ItemStack> cir
 	) {
-		if (!QuirkyConfigHolder.get().quiverEnabled) {
-			return;
-		}
 		if (!(holder instanceof Player player)) {
 			return;
 		}
