@@ -117,6 +117,28 @@ class RendererTest(unittest.TestCase):
             {(0, 0), (1, 0), (2, 0), (3, 0), (0, 1), (0, 2), (0, 3)},
         )
 
+    def test_polygon_symmetric_edges_render_symmetric(self):
+        # 左右交点（2.5 / 12.5）相对中心 7.5 对称；边界像素归属必须一致，
+        # 否则同一多边形左缘多 1px（armor_chestplate v01 实测缺陷）。
+        pixels = render_source(
+            source(
+                16,
+                16,
+                [
+                    {
+                        "id": "body",
+                        "operation": "polygon",
+                        "color": "red",
+                        "points": [[3, 2], [12, 2], [13, 5], [13, 9], [11, 11], [11, 13], [9, 14], [6, 14], [4, 13], [4, 11], [2, 9], [2, 5]],
+                    }
+                ],
+            )
+        )
+
+        row = pixels[3]
+        filled = [x for x, pixel in enumerate(row) if pixel[3] == 255]
+        self.assertEqual(filled, list(range(3, 13)))
+
     def test_copy_reads_from_snapshot_when_regions_overlap(self):
         pixels = render_source(
             source(
@@ -126,12 +148,25 @@ class RendererTest(unittest.TestCase):
                     {"id": "red", "operation": "point", "color": "red", "x": 0, "y": 0},
                     {"id": "green", "operation": "point", "color": "green", "x": 1, "y": 0},
                     {"id": "blue", "operation": "point", "color": "blue", "x": 2, "y": 0},
-                    {"id": "copy", "operation": "copy", "x": 0, "y": 0, "width": 3, "height": 1, "destX": 1, "destY": 0},
+                    {"id": "copy", "operation": "copy", "x": 0, "y": 0, "width": 3, "height": 1, "dest_x": 1, "dest_y": 0},
                 ],
             )
         )
 
         self.assertEqual(pixels[0], [R, R, G, B])
+
+    def test_copy_rejects_legacy_camel_case_fields(self):
+        with self.assertRaises(KeyError):
+            render_source(
+                source(
+                    4,
+                    1,
+                    [
+                        {"id": "red", "operation": "point", "color": "red", "x": 0, "y": 0},
+                        {"id": "copy", "operation": "copy", "x": 0, "y": 0, "width": 3, "height": 1, "destX": 1, "destY": 0},
+                    ],
+                )
+            )
 
     def test_mirror_replaces_complete_canvas(self):
         horizontal = render_source(

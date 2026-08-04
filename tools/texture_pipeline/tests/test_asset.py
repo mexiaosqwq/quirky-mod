@@ -159,10 +159,23 @@ class AssetPackageTest(unittest.TestCase):
             "y": 0,
             "width": 4,
             "height": 4,
-            "destX": 14,
-            "destY": 14,
+            "dest_x": 14,
+            "dest_y": 14,
         }
         self.assert_invalid(source_changes={"layers.0": copy}, message="copy.*bounds")
+
+    def test_rejects_legacy_camel_case_copy_fields(self):
+        copy = {
+            "id": "body",
+            "operation": "copy",
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 2,
+            "destX": 2,
+            "destY": 2,
+        }
+        self.assert_invalid(source_changes={"layers.0": copy}, message="dest_x")
 
     def test_rejects_unknown_mirror_axis(self):
         mirror = {"id": "body", "operation": "mirror", "axis": "diagonal"}

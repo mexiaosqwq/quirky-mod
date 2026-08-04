@@ -190,8 +190,8 @@ def _validate_layer(layer: Any, index: int, palette: Mapping[str, str], width: i
         y = _coordinate(layer, "y", label)
         rect_width = _positive_int(layer, "width", label)
         rect_height = _positive_int(layer, "height", label)
-        dest_x = _coordinate(layer, "destX", label)
-        dest_y = _coordinate(layer, "destY", label)
+        dest_x = _coordinate(layer, "dest_x", label)
+        dest_y = _coordinate(layer, "dest_y", label)
         if not _inside_rect(x, y, rect_width, rect_height, width, height) or not _inside_rect(
             dest_x, dest_y, rect_width, rect_height, width, height
         ):

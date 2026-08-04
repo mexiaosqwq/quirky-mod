@@ -56,7 +56,7 @@ def _inside_polygon(px: float, py: float, points: list[list[int]]) -> bool:
         crosses = (current_y > py) != (previous_y > py)
         if crosses:
             intersection_x = (previous_x - current_x) * (py - current_y) / (previous_y - current_y) + current_x
-            if px < intersection_x:
+            if px <= intersection_x:
                 inside = not inside
         previous_x, previous_y = current_x, current_y
     return inside
@@ -108,7 +108,7 @@ def render_source(source: Mapping[str, Any]) -> Pixels:
             snapshot = [row[:] for row in pixels]
             for offset_y in range(layer["height"]):
                 for offset_x in range(layer["width"]):
-                    pixels[layer["destY"] + offset_y][layer["destX"] + offset_x] = snapshot[layer["y"] + offset_y][
+                    pixels[layer["dest_y"] + offset_y][layer["dest_x"] + offset_x] = snapshot[layer["y"] + offset_y][
                         layer["x"] + offset_x
                     ]
         elif operation == "mirror":
