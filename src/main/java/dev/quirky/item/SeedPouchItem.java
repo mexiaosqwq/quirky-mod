@@ -54,6 +54,13 @@ public class SeedPouchItem extends BundleItem {
 		super(properties);
 	}
 
+	/** 26.2 原版允许 bundle 套娃（canFitInsideContainerItems 默认 true，BundleItem 不覆写）；
+	 * 播种袋作为专用种子容器显式禁止进入其他容器物品（收纳袋/潜影盒），与潜影盒不进潜影盒同理。 */
+	@Override
+	public boolean canFitInsideContainerItems() {
+		return false;
+	}
+
 	/** 右键空气时不触发原版 Bundle 的 startUsingItem+dropContent（连续丢物品）机制；
 	 * 种地走 useOn，容器交互走 override，use 在此静默 PASS。 */
 	@Override

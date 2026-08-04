@@ -25,7 +25,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -35,7 +34,8 @@ import net.minecraft.world.phys.Vec3;
  * <ul>
  *   <li>右键 → 半径内宠物起身寻路走向玩家；超半径（同维度）直接传送（可配置关闭）；</li>
  *   <li>潜行+右键 → 切换半径内狼/猫的坐定状态（鹦鹉不受影响）；</li>
- *   <li>夜晚（幻翼活跃条件）→ 额外嘲讽 1-3 只幻翼到玩家身边 30 秒（锚点钉在玩家头顶）。</li>
+ *   <li>夜晚（幻翼活跃条件）→ 额外嘲讽 1-3 只幻翼锁定玩家 30 秒（锚点钉在玩家头顶，
+ *       幻翼自行飞入并盘旋俯冲，不传送）。</li>
  * </ul>
  */
 public class PetWhistleItem extends Item {
@@ -48,9 +48,6 @@ public class PetWhistleItem extends Item {
 	private static final int TAUNT_DURATION_TICKS = 600;
 	/** 幻翼嘲讽锚点高度（玩家头顶上方格数）。 */
 	private static final int TAUNT_ANCHOR_ABOVE = 5;
-	/** 幻翼被掼到地面时离玩家距离（格）。 */
-	private static final int TAUNT_GROUND_MIN_DIST = 3;
-	private static final int TAUNT_GROUND_MAX_DIST = 5;
 	/** 幻翼嘲讽截止时间的 NBT 键（gameTime），PhantomTauntMixin 每 tick 读取。 */
 	public static final String TAUNT_UNTIL_KEY = "taunt_until";
 
@@ -117,7 +114,7 @@ public class PetWhistleItem extends Item {
 		}
 	}
 
-	/** 夜间幻翼嘲讽：把 1-3 只幻翼掼到玩家身边地面，锁定玩家 30 秒。 */
+	/** 夜间幻翼嘲讽：锁定 1-3 只幻翼目标为玩家 30 秒（锚点钉在玩家头顶，自行飞入盘旋俯冲）。 */
 	private void tauntPhantoms(ServerLevel level, Player player) {
 		List<Phantom> phantoms = level.getEntitiesOfClass(
 			Phantom.class,
@@ -131,33 +128,11 @@ public class PetWhistleItem extends Item {
 		Collections.shuffle(phantoms, new java.util.Random(level.getRandom().nextLong()));
 		for (int i = 0; i < count && i < phantoms.size(); i++) {
 			Phantom phantom = phantoms.get(i);
-			teleportPhantomNearPlayer(level, phantom, player);
 			phantom.setTarget(player);
 			markTaunted(level, phantom);
 			phantom.playSound(SoundEvents.PHANTOM_SWOOP, 1.0F, 1.0F);
 			level.sendParticles(ParticleTypes.DUST_PLUME, phantom.getX(), phantom.getY(), phantom.getZ(), 8, 0.4, 0.1, 0.4, 0.0);
 		}
-	}
-
-	/** 幻翼传送到玩家周围 3-5 格的地面位置（高度图落地，防卡墙）。 */
-	private static void teleportPhantomNearPlayer(ServerLevel level, Phantom phantom, Player player) {
-		BlockPos playerPos = player.blockPosition();
-		for (int attempt = 0; attempt < 12; attempt++) {
-			int xd = Mth.nextInt(level.getRandom(), -TAUNT_GROUND_MAX_DIST, TAUNT_GROUND_MAX_DIST);
-			int zd = Mth.nextInt(level.getRandom(), -TAUNT_GROUND_MAX_DIST, TAUNT_GROUND_MAX_DIST);
-			int distSq = xd * xd + zd * zd;
-			if (distSq < TAUNT_GROUND_MIN_DIST * TAUNT_GROUND_MIN_DIST || distSq > TAUNT_GROUND_MAX_DIST * TAUNT_GROUND_MAX_DIST) {
-				continue;
-			}
-			BlockPos surface = level.getHeightmapPos(
-				Heightmap.Types.MOTION_BLOCKING,
-				new BlockPos(playerPos.getX() + xd, 0, playerPos.getZ() + zd)
-			);
-			phantom.snapTo(surface.getX() + 0.5, surface.getY() + 1.0, surface.getZ() + 0.5, phantom.getYRot(), phantom.getXRot());
-			return;
-		}
-		// 找不到合适位置：直接放玩家正上方（仍然可达）
-		phantom.snapTo(playerPos.getX() + 0.5, playerPos.getY() + 8, playerPos.getZ() + 0.5, phantom.getYRot(), phantom.getXRot());
 	}
 
 	/** 在幻翼 NBT 写入嘲讽截止时间（gameTime + 600 tick），PhantomTauntMixin 每 tick 读取。 */
@@ -205,10 +180,24 @@ public class PetWhistleItem extends Item {
 		return level.getSkyDarken() >= 5 || !level.dimensionType().hasSkyLight();
 	}
 
-	/** 长笛音色（吹奏感，接近口哨）：普通召集用 1.0-1.2 随机音高；坐定指挥用更高音短促变体。
+	/** 长笛音色（吹奏感，接近口哨）。26.2 playSeededSound 无 delay 参数，无法做延迟音序，
+	 * 用三音上行叠簇制造“鸣哨”拉长听感。数值可调：
+	 * 音量 2.0（原 1.0，实测太轻）；基准音高 1.5 + 随机 0-0.2（原 1.0-1.2，实测不够尖）；
+	 * 三音间隔 +0.15/+0.3，音量递减（2.0/1.3/0.9）避免和弦感过重。
+	 * 坐定指挥：更高更短的双音（2.0/2.2），与召集哨区分。
 	 * 不用山羊角号角（实测太像劫掠者号角声，听感沉闷）。 */
 	private static void playWhistleSound(ServerLevel level, Player player, boolean sittingCommand) {
-		float pitch = sittingCommand ? 1.6F : 1.0F + level.getRandom().nextFloat() * 0.2F;
-		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.NOTE_BLOCK_FLUTE, SoundSource.PLAYERS, 1.0F, pitch);
+		double x = player.getX();
+		double y = player.getY();
+		double z = player.getZ();
+		if (sittingCommand) {
+			level.playSound(null, x, y, z, SoundEvents.NOTE_BLOCK_FLUTE, SoundSource.PLAYERS, 1.6F, 2.0F);
+			level.playSound(null, x, y, z, SoundEvents.NOTE_BLOCK_FLUTE, SoundSource.PLAYERS, 1.0F, 2.2F);
+			return;
+		}
+		float basePitch = 1.5F + level.getRandom().nextFloat() * 0.2F;
+		level.playSound(null, x, y, z, SoundEvents.NOTE_BLOCK_FLUTE, SoundSource.PLAYERS, 2.0F, basePitch);
+		level.playSound(null, x, y, z, SoundEvents.NOTE_BLOCK_FLUTE, SoundSource.PLAYERS, 1.3F, basePitch + 0.15F);
+		level.playSound(null, x, y, z, SoundEvents.NOTE_BLOCK_FLUTE, SoundSource.PLAYERS, 0.9F, basePitch + 0.3F);
 	}
 }

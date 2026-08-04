@@ -38,7 +38,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 /**
  * 营火染色烟（服务端权威 + 客户端粒子替换）：
  * - 手持染料右键点燃的营火 → 消耗 1 染料、烟柱染色；白染料复原（清色）；重染同时清夜光。
- * - 染料/荧光石粉/火药以物品实体丢入营火 → 分别染色 / 夜光 / 一次性彩色烟爆（不改变底色）。
+ * - 染料/荧光石粉/火药以物品实体丢入营火 → 分别染色 / 夜光 / 一次性浓烟爆（已染色用该色，未染色为中性灰白；不改变底色）。
  * - 静态 makeParticles 替换为染色粒子；placeLiquid 熄灭（水浇）时清色清夜光。
  * 注入点均声明在 CampfireBlock 本类：useItemOn(CampfireBlock.java:91)、entityInside(:116)、
  * makeParticles(:233 静态)、placeLiquid(:202)。
@@ -231,38 +231,23 @@ public abstract class CampfireBlockMixin {
 		);
 	}
 
-	/** 火药烟爆：已染色用该色喷一大股；未染色喷五彩，一次性小表演，不改变底色。 */
+	/** 火药烟爆：已染色用该色喷一大股；未染色喷中性灰白浓烟（火药爆燃的自然烟色，不喷彩色），一次性小表演，不改变底色。 */
 	private static void gunpowderBurst(ServerLevel level, BlockPos pos, BlockState state, int currentColor) {
 		level.playSound(null, pos, SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.BLOCKS, 1.0F, 1.0F);
 		boolean signalFire = state.getValue(CampfireBlock.SIGNAL_FIRE);
-		if (currentColor != -1) {
-			level.sendParticles(
-				new DyedCampfireSmokeOption(currentColor, signalFire),
-				pos.getX() + 0.5,
-				pos.getY() + 0.5,
-				pos.getZ() + 0.5,
-				24,
-				0.6,
-				0.7,
-				0.6,
-				0.12
-			);
-		} else {
-			int[] rainbow = {0xE74C3C, 0xF39C12, 0xF1C40F, 0x2ECC71, 0x3498DB, 0x9B59B6};
-			for (int color : rainbow) {
-				level.sendParticles(
-					new DyedCampfireSmokeOption(color, signalFire),
-					pos.getX() + 0.5,
-					pos.getY() + 0.5,
-					pos.getZ() + 0.5,
-					5,
-					0.7,
-					0.7,
-					0.7,
-					0.12
-				);
-			}
-		}
+		int burstColor = currentColor != -1 ? currentColor : 0xD3D3D3; // 未染色 → 中性浅灰
+		int count = currentColor != -1 ? 24 : 30; // 无色时量更大，突出“一股浓烟”的质感
+		level.sendParticles(
+			new DyedCampfireSmokeOption(burstColor, signalFire),
+			pos.getX() + 0.5,
+			pos.getY() + 0.5,
+			pos.getZ() + 0.5,
+			count,
+			0.65,
+			0.75,
+			0.65,
+			0.12
+		);
 	}
 
 	private static void notifyChanged(ServerLevel level, BlockPos pos, BlockState state, CampfireBlockEntity campfire) {

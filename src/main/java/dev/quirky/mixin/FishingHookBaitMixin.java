@@ -3,6 +3,8 @@ package dev.quirky.mixin;
 import dev.quirky.config.QuirkyConfigHolder;
 import dev.quirky.fishbait.BaitZoneEntity;
 import dev.quirky.fishbait.BaitZoneLogic;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.projectile.FishingHook;
 import net.minecraft.world.level.entity.EntityTypeTest;
@@ -17,8 +19,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /**
  * 诱鱼区加速咬钩：FishingHook.tick() 内 catchingFish 的分支链为
  * nibble → timeUntilHooked → timeUntilLured（递减语句 timeUntilLured -= fishingSpeed）。
- * HEAD 快照"本 tick 是否执行该递减分支"（nibble==0 && timeUntilHooked==0 && timeUntilLured>0），
- * RETURN 若快照为真且浮漂位于诱鱼区内则额外再减一次（clamp ≥0）。
+ * HEAD 快照“本 tick 是否执行该递减分支”（nibble==0 && timeUntilHooked==0 && timeUntilLured>0），
+ * RETURN 若快照为真且浮漂位于诱鱼区内则额外再减 2（clamp ≥0）→ 诱鱼阶段约 3× 速（26.2
+ * 默认 fishingSpeed=1）。实测 2×（-1）感知太弱，强化为 -2。
+ * 区内浮漂每 tick 25% 概率冒泡（服务端 sendParticles），作为“生效中”的可见反馈。
  * 判定确定性：分支执行 ⇔ HEAD 条件成立（同 tick 内三个字段仅 catchingFish 修改）。
  * 二进制：多区域不叠加。
  */
@@ -55,7 +59,24 @@ public abstract class FishingHookBaitMixin {
 			return;
 		}
 		if (this.quirky$inBaitZone()) {
-			this.timeUntilLured = Math.max(0, this.timeUntilLured - 1);
+			this.timeUntilLured = Math.max(0, this.timeUntilLured - 2);
+			this.quirky$bobberFeedback();
+		}
+	}
+
+	/** 区内浮漂冒泡反馈（服务端 sendParticles）：25%/tick，让玩家明确看到诱鱼区在起作用。 */
+	@Unique
+	private void quirky$bobberFeedback() {
+		Entity self = (Entity) (Object) this;
+		if (self.getRandom().nextFloat() >= 0.25F) {
+			return;
+		}
+		if (self.level() instanceof ServerLevel serverLevel) {
+			serverLevel.sendParticles(
+				ParticleTypes.BUBBLE,
+				self.getX(), self.getY() + 0.1, self.getZ(),
+				2, 0.15, 0.05, 0.15, 0.01
+			);
 		}
 	}
 
