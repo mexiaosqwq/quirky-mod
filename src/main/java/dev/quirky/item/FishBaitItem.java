@@ -7,6 +7,7 @@ import dev.quirky.fishbait.FishBaitEntity;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Position;
+import dev.quirky.tooltips.TooltipShiftState;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
@@ -60,6 +61,10 @@ public class FishBaitItem extends Item implements ProjectileItem {
 	public void appendHoverText(
 		ItemStack stack, Item.TooltipContext context, TooltipDisplay display, Consumer<Component> builder, TooltipFlag flag
 	) {
+		// 高级 tooltip 模式：未按 Shift 时由 TooltipShiftGateMixin 隐藏并追加提示行
+		if (TooltipShiftState.isSuppressing()) {
+			return;
+		}
 		builder.accept(Component.translatable("tooltip.quirky.fish_bait").withStyle(ChatFormatting.GRAY));
 	}
 }

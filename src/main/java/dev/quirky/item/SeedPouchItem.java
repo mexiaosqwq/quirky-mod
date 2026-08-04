@@ -14,6 +14,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.ParticleTypes;
+import dev.quirky.tooltips.TooltipShiftState;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
@@ -203,6 +204,10 @@ public class SeedPouchItem extends BundleItem {
 	public void appendHoverText(
 		ItemStack stack, TooltipContext context, TooltipDisplay display, Consumer<Component> builder, TooltipFlag flag
 	) {
+		// 高级 tooltip 模式：未按 Shift 时由 TooltipShiftGateMixin 隐藏并追加提示行
+		if (TooltipShiftState.isSuppressing()) {
+			return;
+		}
 		builder.accept(Component.translatable("tooltip.quirky.seed_pouch").withStyle(ChatFormatting.GRAY));
 	}
 }

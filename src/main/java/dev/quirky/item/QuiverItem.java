@@ -6,6 +6,7 @@ import dev.quirky.config.QuirkyConfigHolder;
 import dev.quirky.quiver.QuiverContents;
 import dev.quirky.quiver.QuiverLogic;
 import net.minecraft.ChatFormatting;
+import dev.quirky.tooltips.TooltipShiftState;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
@@ -120,6 +121,10 @@ public class QuiverItem extends Item {
 	public void appendHoverText(
 		ItemStack stack, Item.TooltipContext context, TooltipDisplay display, Consumer<Component> builder, TooltipFlag flag
 	) {
+		// 高级 tooltip 模式：未按 Shift 时由 TooltipShiftGateMixin 隐藏并追加提示行
+		if (TooltipShiftState.isSuppressing()) {
+			return;
+		}
 		builder.accept(Component.translatable("tooltip.quirky.quiver.usage").withStyle(ChatFormatting.GRAY));
 	}
 }

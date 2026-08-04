@@ -13,7 +13,9 @@
     "DeathScreenDelayMixin",
     "GuiDeathScreenDelayMixin",
     "DeathCamSkipMixin",
-    "LocalPlayerAIStepMixin"
+    "LocalPlayerAIStepMixin",
+    "TooltipShiftGateMixin",
+    "TooltipComponentHideMixin"
   ],
   "injectors": {
     "defaultRequire": 1

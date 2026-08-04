@@ -2,6 +2,7 @@ package dev.quirky.client.mixin;
 
 import java.util.List;
 
+import dev.quirky.client.tooltips.TooltipShiftHelper;
 import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.component.DataComponents;
@@ -32,6 +33,10 @@ public abstract class ClockTooltipMixin {
 		}
 		ItemStack stack = (ItemStack) (Object) this;
 		if (player == null) {
+			return;
+		}
+		// 高级 tooltip 模式：未按 Shift 时隐藏时钟行（提示行由 TooltipShiftGateMixin 追加）
+		if (TooltipShiftHelper.shouldSuppress(stack)) {
 			return;
 		}
 		TooltipDisplay display = stack.getOrDefault(DataComponents.TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT);

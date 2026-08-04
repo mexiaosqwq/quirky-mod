@@ -4,25 +4,32 @@ import dev.quirky.block.RopeBlock;
 import dev.quirky.config.QuirkyConfig;
 import dev.quirky.config.QuirkyConfigHolder;
 import dev.quirky.rope.RopeSupportLogic;
+import dev.quirky.tooltips.TooltipShiftState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ItemParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluids;
+import net.minecraft.ChatFormatting;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * 绳捆放置物品（绳 / 挂灯绳共用一个类）：
@@ -36,6 +43,18 @@ import java.util.List;
 public class RopeItem extends BlockItem {
 	public RopeItem(Block block, Properties properties) {
 		super(block, properties);
+	}
+
+	/** 用途说明（高级 tooltip 模式受控）：右键悬挂/延伸，潜行右键批量铺设，手持灯笼右键挂灯。 */
+	@Override
+	public void appendHoverText(
+		ItemStack stack, Item.TooltipContext context, TooltipDisplay display, Consumer<Component> builder, TooltipFlag flag
+	) {
+		// 高级 tooltip 模式：未按 Shift 时由 TooltipShiftGateMixin 隐藏并追加提示行
+		if (TooltipShiftState.isSuppressing()) {
+			return;
+		}
+		builder.accept(Component.translatable("tooltip.quirky.rope").withStyle(ChatFormatting.GRAY));
 	}
 
 	@Override
