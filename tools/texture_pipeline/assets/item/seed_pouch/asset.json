@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "assetId": "quirky:item/seed_pouch",
+  "assetClass": "item_texture",
+  "output": {
+    "path": "src/main/resources/assets/quirky/textures/item/seed_pouch.png",
+    "width": 16,
+    "height": 16,
+    "colorMode": "rgba"
+  },
+  "styleProfile": "quirky_vanilla_item",
+  "brief": {
+    "subject": "A woven horizontal seed pouch with layered burlap seams and an olive-green seed band",
+    "gameplayMeaning": "Stores and plants seeds; should look crafted, compact, and distinct from a bundle",
+    "visualPriority": [
+      "match vanilla 16x16 pixel language",
+      "read clearly at inventory size",
+      "use an irregular silhouette and directional lighting"
+    ]
+  },
+  "mustHave": [
+    "woven horizontal pouch",
+    "warm burlap highlights",
+    "olive seed band"
+  ],
+  "mustNotHave": [
+    "smooth antialiasing",
+    "partial alpha",
+    "flat geometric placeholder shapes"
+  ],
+  "qualityGates": {
+    "maximumPaletteSize": 13,
+    "allowPartialAlpha": false,
+    "requireVisualAudit": true,
+    "requireHumanApproval": true
+  }
+}

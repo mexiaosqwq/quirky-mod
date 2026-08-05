@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "assetId": "quirky:item/ender_pouch",
+  "assetClass": "item_texture",
+  "output": {
+    "path": "src/main/resources/assets/quirky/textures/item/ender_pouch.png",
+    "width": 16,
+    "height": 16,
+    "colorMode": "rgba"
+  },
+  "styleProfile": "quirky_vanilla_item",
+  "brief": {
+    "subject": "A crafted horizontal pouch of deep purple textile crossed by a glowing ender-teal band",
+    "gameplayMeaning": "Portable Ender Chest access; clearly related to the seed pouch but unmistakably ender-themed",
+    "visualPriority": [
+      "match vanilla 16x16 pixel language",
+      "read clearly at inventory size",
+      "use an irregular silhouette and directional lighting"
+    ]
+  },
+  "mustHave": [
+    "layered purple cloth",
+    "teal ender band",
+    "distinct highlights and seams"
+  ],
+  "mustNotHave": [
+    "smooth antialiasing",
+    "partial alpha",
+    "flat geometric placeholder shapes"
+  ],
+  "qualityGates": {
+    "maximumPaletteSize": 13,
+    "allowPartialAlpha": false,
+    "requireVisualAudit": true,
+    "requireHumanApproval": true
+  }
+}

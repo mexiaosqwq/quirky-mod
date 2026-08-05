@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "assetId": "quirky:item/quiver",
+  "assetClass": "item_texture",
+  "output": {
+    "path": "src/main/resources/assets/quirky/textures/item/quiver.png",
+    "width": 16,
+    "height": 16,
+    "colorMode": "rgba"
+  },
+  "styleProfile": "quirky_vanilla_item",
+  "brief": {
+    "subject": "A diagonal leather arrow case with a shoulder strap and two aligned pale fletchings",
+    "gameplayMeaning": "Stores arrows and fireworks; must read at once as a worn leather quiver",
+    "visualPriority": [
+      "match vanilla 16x16 pixel language",
+      "read clearly at inventory size",
+      "use an irregular silhouette and directional lighting"
+    ]
+  },
+  "mustHave": [
+    "diagonal tapered leather case",
+    "shoulder strap",
+    "aligned arrow shafts and fletchings"
+  ],
+  "mustNotHave": [
+    "smooth antialiasing",
+    "partial alpha",
+    "flat geometric placeholder shapes"
+  ],
+  "qualityGates": {
+    "maximumPaletteSize": 12,
+    "allowPartialAlpha": false,
+    "requireVisualAudit": true,
+    "requireHumanApproval": true
+  }
+}
