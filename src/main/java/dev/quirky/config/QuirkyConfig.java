@@ -72,77 +72,77 @@ public class QuirkyConfig implements ConfigData {
 
 	// ==== 保留图腾（物品组，含服务端与客户端渲染参数）====
 
-	@ConfigEntry.Category("items")
+	@ConfigEntry.Category("totem")
 	@ConfigEntry.BoundedDiscrete(min = 1, max = 2)
 	@ConfigEntry.Gui.Tooltip
 	public int spawnHeightOffset = 1;
 
-	@ConfigEntry.Category("items")
+	@ConfigEntry.Category("totem")
 	@ConfigEntry.BoundedDiscrete(min = 1, max = 10)
 	@ConfigEntry.Gui.Tooltip
 	public int hitsToRetrieve = 3;
 
-	@ConfigEntry.Category("items")
+	@ConfigEntry.Category("totem")
 	@ConfigEntry.Gui.Tooltip
 	public float hitSoundVolume = 1.0F;
 
-	@ConfigEntry.Category("items")
+	@ConfigEntry.Category("totem")
 	@ConfigEntry.Gui.Tooltip
 	public float hitSoundPitch = 1.0F;
 
-	@ConfigEntry.Category("items")
+	@ConfigEntry.Category("totem")
 	@ConfigEntry.Gui.Tooltip
 	public float retrieveSoundVolume = 0.5F;
 
-	@ConfigEntry.Category("items")
+	@ConfigEntry.Category("totem")
 	@ConfigEntry.BoundedDiscrete(min = 1, max = 100)
 	@ConfigEntry.Gui.Tooltip
 	public int enchantParticleChance = 4;
 
-	@ConfigEntry.Category("items")
+	@ConfigEntry.Category("totem")
 	@ConfigEntry.BoundedDiscrete(min = 1, max = 100)
 	@ConfigEntry.Gui.Tooltip
 	public int endRodParticleChance = 12;
 
-	@ConfigEntry.Category("items")
+	@ConfigEntry.Category("totem")
 	@ConfigEntry.Gui.Tooltip
 	public float endRodParticleXzSpread = 0.35F;
 
-	@ConfigEntry.Category("items")
+	@ConfigEntry.Category("totem")
 	@ConfigEntry.Gui.Tooltip
 	public float endRodParticleYSpread = 0.3F;
 
-	@ConfigEntry.Category("items")
+	@ConfigEntry.Category("totem")
 	@ConfigEntry.Gui.Tooltip
 	public float particleXzSpread = 0.45F;
 
-	@ConfigEntry.Category("items")
+	@ConfigEntry.Category("totem")
 	@ConfigEntry.Gui.Tooltip
 	public float particleYSpread = 0.55F;
 
-	@ConfigEntry.Category("items")
+	@ConfigEntry.Category("totem")
 	@ConfigEntry.Gui.Tooltip
 	public float modelScale = 1.8F;
 
-	@ConfigEntry.Category("items")
+	@ConfigEntry.Category("totem")
 	@ConfigEntry.Gui.Tooltip
 	public float bobAmplitude = 0.25F;
 
-	@ConfigEntry.Category("items")
+	@ConfigEntry.Category("totem")
 	@ConfigEntry.BoundedDiscrete(min = 4, max = 60)
 	@ConfigEntry.Gui.Tooltip
 	public int bobPeriod = 12;
 
-	@ConfigEntry.Category("items")
+	@ConfigEntry.Category("totem")
 	@ConfigEntry.BoundedDiscrete(min = 4, max = 60)
 	@ConfigEntry.Gui.Tooltip
 	public int spinPeriod = 8;
 
-	@ConfigEntry.Category("items")
+	@ConfigEntry.Category("totem")
 	@ConfigEntry.Gui.Tooltip
 	public float swayAmplitude = 0.08F;
 
-	@ConfigEntry.Category("items")
+	@ConfigEntry.Category("totem")
 	@ConfigEntry.BoundedDiscrete(min = 4, max = 60)
 	@ConfigEntry.Gui.Tooltip
 	public int swayPeriod = 20;

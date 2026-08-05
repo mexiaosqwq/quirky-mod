@@ -117,6 +117,7 @@
   "entity.quirky.totem_of_holding": "保留图腾",
   "tooltip.quirky.quiver.usage": "左键装入弹药 · 右键取出一组 · 弓弩自动抽取",
   "text.autoconfig.quirky.category.items": "物品",
+  "text.autoconfig.quirky.category.totem": "保留图腾",
   "text.autoconfig.quirky.category.mechanics": "机制",
   "text.autoconfig.quirky.category.client": "客户端"
 }

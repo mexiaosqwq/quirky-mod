@@ -117,6 +117,7 @@
   "entity.quirky.totem_of_holding": "Totem of Holding",
   "tooltip.quirky.quiver.usage": "Left-click ammo to load · Right-click to take out · Bows auto-draw from quiver",
   "text.autoconfig.quirky.category.items": "Items",
+  "text.autoconfig.quirky.category.totem": "Totem of Holding",
   "text.autoconfig.quirky.category.mechanics": "Mechanics",
   "text.autoconfig.quirky.category.client": "Client"
 }
