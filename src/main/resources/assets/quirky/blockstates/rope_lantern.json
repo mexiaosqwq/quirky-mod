@@ -1,15 +1,99 @@
 {
   "variants": {
-    "top=true,waterlogged=false": {
-      "model": "quirky:block/rope_lantern"
-    },
-    "top=false,waterlogged=false": {
+    "facing=north,top=false,wall=false,waterlogged=false": {
       "model": "quirky:block/rope_lantern_link"
     },
-    "top=true,waterlogged=true": {
+    "facing=east,top=false,wall=false,waterlogged=false": {
+      "model": "quirky:block/rope_lantern_link"
+    },
+    "facing=south,top=false,wall=false,waterlogged=false": {
+      "model": "quirky:block/rope_lantern_link"
+    },
+    "facing=west,top=false,wall=false,waterlogged=false": {
+      "model": "quirky:block/rope_lantern_link"
+    },
+    "facing=north,top=false,wall=false,waterlogged=true": {
+      "model": "quirky:block/rope_lantern_link"
+    },
+    "facing=east,top=false,wall=false,waterlogged=true": {
+      "model": "quirky:block/rope_lantern_link"
+    },
+    "facing=south,top=false,wall=false,waterlogged=true": {
+      "model": "quirky:block/rope_lantern_link"
+    },
+    "facing=west,top=false,wall=false,waterlogged=true": {
+      "model": "quirky:block/rope_lantern_link"
+    },
+    "facing=north,top=true,wall=false,waterlogged=false": {
       "model": "quirky:block/rope_lantern"
     },
-    "top=false,waterlogged=true": {
+    "facing=east,top=true,wall=false,waterlogged=false": {
+      "model": "quirky:block/rope_lantern"
+    },
+    "facing=south,top=true,wall=false,waterlogged=false": {
+      "model": "quirky:block/rope_lantern"
+    },
+    "facing=west,top=true,wall=false,waterlogged=false": {
+      "model": "quirky:block/rope_lantern"
+    },
+    "facing=north,top=true,wall=false,waterlogged=true": {
+      "model": "quirky:block/rope_lantern"
+    },
+    "facing=east,top=true,wall=false,waterlogged=true": {
+      "model": "quirky:block/rope_lantern"
+    },
+    "facing=south,top=true,wall=false,waterlogged=true": {
+      "model": "quirky:block/rope_lantern"
+    },
+    "facing=west,top=true,wall=false,waterlogged=true": {
+      "model": "quirky:block/rope_lantern"
+    },
+    "facing=north,top=false,wall=true,waterlogged=false": {
+      "model": "quirky:block/rope_lantern_link"
+    },
+    "facing=east,top=false,wall=true,waterlogged=false": {
+      "model": "quirky:block/rope_lantern_link"
+    },
+    "facing=south,top=false,wall=true,waterlogged=false": {
+      "model": "quirky:block/rope_lantern_link"
+    },
+    "facing=west,top=false,wall=true,waterlogged=false": {
+      "model": "quirky:block/rope_lantern_link"
+    },
+    "facing=north,top=false,wall=true,waterlogged=true": {
+      "model": "quirky:block/rope_lantern_link"
+    },
+    "facing=east,top=false,wall=true,waterlogged=true": {
+      "model": "quirky:block/rope_lantern_link"
+    },
+    "facing=south,top=false,wall=true,waterlogged=true": {
+      "model": "quirky:block/rope_lantern_link"
+    },
+    "facing=west,top=false,wall=true,waterlogged=true": {
+      "model": "quirky:block/rope_lantern_link"
+    },
+    "facing=north,top=true,wall=true,waterlogged=false": {
+      "model": "quirky:block/rope_lantern_link"
+    },
+    "facing=east,top=true,wall=true,waterlogged=false": {
+      "model": "quirky:block/rope_lantern_link"
+    },
+    "facing=south,top=true,wall=true,waterlogged=false": {
+      "model": "quirky:block/rope_lantern_link"
+    },
+    "facing=west,top=true,wall=true,waterlogged=false": {
+      "model": "quirky:block/rope_lantern_link"
+    },
+    "facing=north,top=true,wall=true,waterlogged=true": {
+      "model": "quirky:block/rope_lantern_link"
+    },
+    "facing=east,top=true,wall=true,waterlogged=true": {
+      "model": "quirky:block/rope_lantern_link"
+    },
+    "facing=south,top=true,wall=true,waterlogged=true": {
+      "model": "quirky:block/rope_lantern_link"
+    },
+    "facing=west,top=true,wall=true,waterlogged=true": {
       "model": "quirky:block/rope_lantern_link"
     }
   }

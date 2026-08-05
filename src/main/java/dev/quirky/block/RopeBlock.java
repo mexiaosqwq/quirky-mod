@@ -26,6 +26,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.level.redstone.Orientation;
@@ -48,21 +49,42 @@ public class RopeBlock extends Block implements SimpleWaterloggedBlock {
 	public static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
 	/** 本段上方是否无绳段（自己是悬挂顶端）：true → 顶部绳结变体；false → 连续绳身变体（与上方绳段连接）。 */
 	public static final BooleanProperty TOP = BooleanProperty.create("top");
+	/** 贴墙段（泰拉瑞亚式）：true = 绳贴在方块侧面，{@link #FACING} 为墙所在方向；false = 悬挂段。 */
+	public static final BooleanProperty WALL = BooleanProperty.create("wall");
+	/** 贴墙段的墙方向（WALL=true 时有效）。26.2 无 DirectionProperty，统一为 EnumProperty。 */
+	public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
 	/** 2px 细柱轮廓：无碰撞但可被玩家射线选中（交互/延伸）。 */
 	private static final VoxelShape OUTLINE = Block.box(7.0, 0.0, 7.0, 9.0, 16.0, 9.0);
+	/** 贴墙段轮廓：柱靠墙侧（FACING 对应方向），与模型一致。 */
+	private static final VoxelShape OUTLINE_NORTH = OUTLINE;
+	private static final VoxelShape OUTLINE_EAST = Block.box(13.0, 0.0, 7.0, 15.0, 16.0, 9.0);
+	private static final VoxelShape OUTLINE_SOUTH = Block.box(7.0, 0.0, 13.0, 9.0, 16.0, 15.0);
+	private static final VoxelShape OUTLINE_WEST = Block.box(5.0, 0.0, 7.0, 7.0, 16.0, 9.0);
 
 	public RopeBlock(Properties properties) {
 		super(properties);
-		this.registerDefaultState(this.stateDefinition.any().setValue(WATERLOGGED, false).setValue(TOP, true));
+		this.registerDefaultState(this.stateDefinition.any()
+			.setValue(WATERLOGGED, false)
+			.setValue(TOP, true)
+			.setValue(WALL, false)
+			.setValue(FACING, Direction.NORTH));
 	}
 
 	@Override
 	protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-		builder.add(WATERLOGGED, TOP);
+		builder.add(WATERLOGGED, TOP, WALL, FACING);
 	}
 
 	@Override
 	protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+		if (state.getValue(WALL)) {
+			return switch (state.getValue(FACING)) {
+				case EAST -> OUTLINE_EAST;
+				case SOUTH -> OUTLINE_SOUTH;
+				case WEST -> OUTLINE_WEST;
+				default -> OUTLINE_NORTH;
+			};
+		}
 		return OUTLINE;
 	}
 
@@ -89,18 +111,47 @@ public class RopeBlock extends Block implements SimpleWaterloggedBlock {
 	}
 
 	/**
-	 * 坠落防摔（主动实现，非 tag 白嫖）：垂直下落且非潜行的实体贴住绳段——
-	 * 重置摔落距离并把垂直速度钳到 -0.15（缓滑下落）；潜行 = 不抓绳直接穿过。
+	 * 坠落防摔 + 轻吸附（主动实现，非 tag 白嫖）：垂直下落且非潜行的实体贴住绳段——
+	 * 重置摔落距离、垂直速度钳到 -0.15（缓滑下落），并把水平速度向绳柱轴心收敛
+	 * （吸附感：玩家不会飘离细绳；玩家主动远离时收敛衰减 ×0.3，保证能挣脱；
+	 * 鞘翅滑翔不受影响）。潜行 = 松手直接穿过。
 	 */
 	@Override
 	protected void entityInside(
 		BlockState state, Level level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier, boolean isPrecise
 	) {
-		if (entity instanceof LivingEntity && entity.getDeltaMovement().y() < 0.0 && !entity.isShiftKeyDown()) {
-			entity.resetFallDistance();
-			Vec3 movement = entity.getDeltaMovement();
-			entity.setDeltaMovement(movement.x, -0.15, movement.z);
+		if (entity instanceof LivingEntity living
+			&& living.getDeltaMovement().y() < 0.0
+			&& !living.isShiftKeyDown()
+			&& !living.isFallFlying()) {
+			living.resetFallDistance();
+			Vec3 movement = living.getDeltaMovement();
+			Vec3 center = ropeAxisCenter(state, pos);
+			double pullX = (center.x - living.getX()) * 0.25;
+			double pullZ = (center.z - living.getZ()) * 0.25;
+			if (movement.x * pullX < 0.0) {
+				pullX *= 0.3;
+			}
+			if (movement.z * pullZ < 0.0) {
+				pullZ *= 0.3;
+			}
+			living.setDeltaMovement(movement.x + pullX, -0.15, movement.z + pullZ);
 		}
+	}
+
+	/** 绳柱轴心（世界坐标）：悬挂段 = 方块中心；贴墙段 = 靠墙侧柱中心（与模型/轮廓一致）。 */
+	private static Vec3 ropeAxisCenter(BlockState state, BlockPos pos) {
+		double x = pos.getX() + 0.5;
+		double z = pos.getZ() + 0.5;
+		if (state.getValue(WALL)) {
+			switch (state.getValue(FACING)) {
+				case EAST -> x = pos.getX() + 0.875;
+				case SOUTH -> z = pos.getZ() + 0.875;
+				case WEST -> x = pos.getX() + 0.125;
+				default -> z = pos.getZ() + 0.5;
+			}
+		}
+		return new Vec3(x, pos.getY() + 0.5, z);
 	}
 
 	/**
@@ -117,7 +168,7 @@ public class RopeBlock extends Block implements SimpleWaterloggedBlock {
 		InteractionHand hand,
 		BlockHitResult hitResult
 	) {
-		if (state.is(ModBlocks.ROPE) && itemStack.is(Items.LANTERN)) {
+		if (state.is(ModBlocks.ROPE) && itemStack.is(Items.LANTERN) && !state.getValue(WALL)) {
 			if (level.isClientSide()) {
 				return InteractionResult.SUCCESS;
 			}
@@ -157,11 +208,12 @@ public class RopeBlock extends Block implements SimpleWaterloggedBlock {
 
 	/**
 	 * 刷新 top 状态：上方是否绳段决定本段渲染成顶部绳结变体还是连续绳身变体。
-	 * 仅在状态变化时 setBlock（flags=2，不触发 tick），变化会经邻居通知收敛，无递归风险。
+	 * 贴墙段恒无结（跳过）；仅在状态变化时 setBlock（flags=2，不触发 tick），
+	 * 变化会经邻居通知收敛，无递归风险。
 	 */
 	private static void refreshTop(Level level, BlockPos pos) {
 		BlockState state = level.getBlockState(pos);
-		if (!RopeSupportLogic.isRope(state)) {
+		if (!RopeSupportLogic.isRope(state) || state.getValue(WALL)) {
 			return;
 		}
 		boolean top = !RopeSupportLogic.isRope(level.getBlockState(pos.above()));

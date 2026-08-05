@@ -42,6 +42,28 @@ class RopeSupportLogicTest {
 		assertFalse(RopeSupportLogic.isSupported(false, false, false));
 	}
 
+	// ==== 贴墙段支撑判定（背后墙）====
+
+	@Test
+	void solidWallBehindSupportsWallRope() {
+		assertTrue(RopeSupportLogic.isBacked(false, false, false));
+	}
+
+	@Test
+	void airBehindDoesNotSupportWallRope() {
+		assertFalse(RopeSupportLogic.isBacked(true, false, false));
+	}
+
+	@Test
+	void fluidBehindDoesNotSupportWallRope() {
+		assertFalse(RopeSupportLogic.isBacked(false, true, false));
+	}
+
+	@Test
+	void ropeBehindDoesNotSupportWallRope() {
+		assertFalse(RopeSupportLogic.isBacked(false, false, true));
+	}
+
 	// ==== 连锁掉落段计算 ====
 
 	@Test

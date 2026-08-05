@@ -6,6 +6,7 @@ import dev.quirky.config.QuirkyConfigHolder;
 import dev.quirky.rope.RopeSupportLogic;
 import dev.quirky.tooltips.TooltipShiftState;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ItemParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
@@ -26,6 +27,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.ChatFormatting;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -77,7 +79,25 @@ public class RopeItem extends BlockItem {
 			if (level.isClientSide()) {
 				return InteractionResult.SUCCESS;
 			}
-			this.placeSegment(level, below, stack, player, 1.0F);
+			// 贴墙绳段向下延伸：继承墙方向（背后墙仍在 → 贴墙延续；墙断/挂灯段 → 悬挂）
+			Direction wallFacing = clickedState.getValue(RopeBlock.WALL) ? clickedState.getValue(RopeBlock.FACING) : null;
+			this.placeSegment(level, below, stack, player, 1.0F, wallFacing);
+			return InteractionResult.SUCCESS;
+		}
+
+		if (context.getClickedFace().getAxis().isHorizontal()) {
+			// 泰拉瑞亚式贴墙：点击方块侧面 → 绳贴在该侧（墙 = 点击的方块本身）
+			BlockPos wallPos = clicked.relative(context.getClickedFace());
+			if (wallPos.getY() < level.getMinY() || wallPos.getY() > level.getMaxY()) {
+				return InteractionResult.FAIL;
+			}
+			if (!RopeSupportLogic.isPlaceable(level.getBlockState(wallPos))) {
+				return InteractionResult.FAIL;
+			}
+			if (level.isClientSide()) {
+				return InteractionResult.SUCCESS;
+			}
+			this.placeSegment(level, wallPos, stack, player, 1.0F, context.getClickedFace().getOpposite());
 			return InteractionResult.SUCCESS;
 		}
 
@@ -94,7 +114,7 @@ public class RopeItem extends BlockItem {
 		if (level.isClientSide()) {
 			return InteractionResult.SUCCESS;
 		}
-		this.placeSegment(level, target, stack, player, 1.0F);
+		this.placeSegment(level, target, stack, player, 1.0F, null);
 		return InteractionResult.SUCCESS;
 	}
 
@@ -127,21 +147,31 @@ public class RopeItem extends BlockItem {
 			return InteractionResult.SUCCESS;
 		}
 		// 立即铺完；音高随延伸次数递降形成"唰——"的下滑感（1 tick 间隔简化为连续放置）
+		BlockState bottomState = level.getBlockState(bottom);
+		Direction wallFacing = bottomState.getValue(RopeBlock.WALL) ? bottomState.getValue(RopeBlock.FACING) : null;
 		for (int i = 0; i < count; i++) {
 			float pitch = 1.0F - i * 0.03F;
-			this.placeSegment(level, bottom.below().offset(0, -i, 0), stack, player, pitch);
+			this.placeSegment(level, bottom.below().offset(0, -i, 0), stack, player, pitch, wallFacing);
 		}
 		return InteractionResult.SUCCESS;
 	}
 
-	/** 放置一个绳段（使用手持物品对应的方块），含水状态随目标流体；播放放置音 + 纤维粒子。 */
-	private void placeSegment(Level level, BlockPos pos, ItemStack stack, Player player, float pitch) {
+	/**
+	 * 放置一个绳段（使用手持物品对应的方块），含水状态随目标流体；播放放置音 + 纤维粒子。
+	 *
+	 * @param wallFacing 请求的贴墙方向（墙所在方向）：背后确有支撑墙 → 贴墙段（无结）；
+	 *                   墙已断/为 null → 悬挂段（顶部段带结，连续段随上方绳连接）
+	 */
+	private void placeSegment(Level level, BlockPos pos, ItemStack stack, Player player, float pitch, @Nullable Direction wallFacing) {
 		BlockState target = level.getBlockState(pos);
 		boolean waterlogged = target.getFluidState().is(Fluids.WATER);
 		boolean top = !RopeSupportLogic.isRope(level.getBlockState(pos.above()));
+		Direction wall = wallFacing != null && RopeSupportLogic.isBackedAt(level, pos, wallFacing) ? wallFacing : null;
 		BlockState ropeState = this.getBlock().defaultBlockState()
 			.setValue(RopeBlock.WATERLOGGED, waterlogged)
-			.setValue(RopeBlock.TOP, top);
+			.setValue(RopeBlock.TOP, wall != null ? false : top)
+			.setValue(RopeBlock.WALL, wall != null)
+			.setValue(RopeBlock.FACING, wall != null ? wall : Direction.NORTH);
 		level.setBlock(pos, ropeState, 3);
 		level.playSound(null, pos, SoundEvents.WOOL_PLACE, SoundSource.BLOCKS, 0.6F, pitch);
 		if (level instanceof ServerLevel serverLevel) {

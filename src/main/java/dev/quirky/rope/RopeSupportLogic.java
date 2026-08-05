@@ -2,7 +2,9 @@ package dev.quirky.rope;
 
 import dev.quirky.ModBlocks;
 import dev.quirky.ModItems;
+import dev.quirky.block.RopeBlock;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ItemParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
@@ -91,10 +93,29 @@ public final class RopeSupportLogic {
 		return state.isAir() || state.is(Blocks.WATER);
 	}
 
+	/**
+	 * 贴墙段支撑判定（纯函数）：背后方块非空气、无流体、非绳段即可支撑。
+	 * 每段独立依赖背后墙；连锁掉落由 {@link #fallingSegments} 从失支撑段起统一处理。
+	 */
+	public static boolean isBacked(boolean behindIsAir, boolean behindHasFluid, boolean behindIsRope) {
+		return !behindIsAir && !behindHasFluid && !behindIsRope;
+	}
+
+	/** 贴墙段支撑判定（生产）：读取背后方块状态组装纯函数输入。 */
+	public static boolean isBackedAt(Level level, BlockPos pos, Direction facing) {
+		BlockState behind = level.getBlockState(pos.relative(facing));
+		return isBacked(behind.isAir(), !behind.getFluidState().isEmpty(), isRope(behind));
+	}
+
 	// ==== 生产环境辅助 ====
 
 	/** 判断某位置是否被上方方块支撑（组装 isSupported 的三个输入）。 */
 	public static boolean isSupportedAt(Level level, BlockPos pos) {
+		BlockState state = level.getBlockState(pos);
+		if (state.getValue(RopeBlock.WALL)) {
+			// 贴墙段：支撑 = 背后墙（泰拉瑞亚式；墙破 → 该段起连锁掉落）
+			return isBackedAt(level, pos, state.getValue(RopeBlock.FACING));
+		}
 		BlockState above = level.getBlockState(pos.above());
 		return isSupported(
 			above.isSolid(),
