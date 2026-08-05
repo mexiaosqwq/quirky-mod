@@ -14,7 +14,6 @@ import org.jspecify.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
@@ -27,13 +26,19 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  *       （深灰斜体），并清理 ThreadLocal。</li>
  * </ul>
  * 各 tooltip 来源（物品 {@code appendHoverText}）经 {@link TooltipShiftState#isSuppressing()}
- * 决定是否添加内容；时钟行在 {@link ClockTooltipMixin} 内独立判定，不依赖注入顺序。
+ * 决定是否添加内容。
+ *
+ * <p>注：getTooltipLines 返回非 void，HEAD/RETURN 注入的 handler 必须全部使用
+ * {@link CallbackInfoReturnable}（用 CallbackInfo 会触发
+ * "CallbackInfoReturnable is required!" 的运行时注入失败，直接导致 ItemStack 类
+ * mixin 转换失败、游戏 Bootstrap 崩溃——2026-08-05 实测崩溃日志）。
  */
 @Mixin(ItemStack.class)
 public abstract class TooltipShiftGateMixin {
 	@Inject(method = "getTooltipLines", at = @At("HEAD"))
 	private void quirky$enterShiftState(
-		Item.TooltipContext context, @Nullable Player player, TooltipFlag flag, CallbackInfo ci
+		Item.TooltipContext context, @Nullable Player player, TooltipFlag flag,
+		CallbackInfoReturnable<List<Component>> cir
 	) {
 		if (player == null) {
 			TooltipShiftState.enter(false);
