@@ -51,7 +51,11 @@ public class ClientQuiverTooltipComponent implements ClientTooltipComponent {
 
 	@Override
 	public int getHeight(Font font) {
-		return gridHeight() + MARGIN_Y + PROGRESSBAR_HEIGHT + MARGIN_Y;
+		return gridHeight() + (isEmpty() ? font.lineHeight : 0) + MARGIN_Y + PROGRESSBAR_HEIGHT + MARGIN_Y;
+	}
+
+	private boolean isEmpty() {
+		return usedGroups == 0;
 	}
 
 	private int gridHeight() {
@@ -59,7 +63,7 @@ public class ClientQuiverTooltipComponent implements ClientTooltipComponent {
 	}
 
 	private int gridRows() {
-		return Math.max(1, (usedGroups + COLS - 1) / COLS);
+		return isEmpty() ? 0 : (usedGroups + COLS - 1) / COLS;
 	}
 
 	@Override
@@ -71,8 +75,8 @@ public class ClientQuiverTooltipComponent implements ClientTooltipComponent {
 			graphics.text(font, Component.translatable("tooltip.quirky.quiver.empty"),
 				left + 2, y + MARGIN_Y, 0xFF808080);
 		}
-		Fraction weight = Fraction.getFraction(usedGroups, capacity);
-		extractProgressbar(font, left, y + gridHeight() + MARGIN_Y, graphics, weight);
+		int barY = y + gridHeight() + (isEmpty() ? font.lineHeight : 0) + MARGIN_Y;
+		extractProgressbar(font, left, barY, graphics, Fraction.getFraction(usedGroups, capacity));
 	}
 
 	private void extractGrid(Font font, int x, int y, GuiGraphicsExtractor graphics) {
