@@ -4,8 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import dev.quirky.TestBootstrap;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import org.junit.jupiter.api.BeforeAll;
@@ -148,5 +152,36 @@ class RopeSupportLogicTest {
 	void solidBlockIsNotPlaceable() {
 		assertFalse(RopeSupportLogic.isPlaceable(Blocks.STONE.defaultBlockState()));
 		assertFalse(RopeSupportLogic.isPlaceable(Blocks.OAK_SLAB.defaultBlockState()));
+	}
+
+	// ==== isSupportedAt 生产路径：非绳方块不得崩溃（2026-08-05 修复回归）====
+
+	@Test
+	void airBlockBelowSolidAboveIsSupportedWithoutCrash() {
+		// 回归：点击实心方块时 target=其下方空气，曾因对空气 getValue(WALL) 抛 IllegalArgumentException
+		Level level = mock(Level.class);
+		BlockPos pos = new BlockPos(10, 64, 10);
+		when(level.getBlockState(pos)).thenReturn(Blocks.AIR.defaultBlockState());
+		when(level.getBlockState(pos.above())).thenReturn(Blocks.STONE.defaultBlockState());
+		assertTrue(RopeSupportLogic.isSupportedAt(level, pos));
+	}
+
+	@Test
+	void airAboveAirIsNotSupportedWithoutCrash() {
+		Level level = mock(Level.class);
+		BlockPos pos = new BlockPos(10, 64, 10);
+		when(level.getBlockState(pos)).thenReturn(Blocks.AIR.defaultBlockState());
+		when(level.getBlockState(pos.above())).thenReturn(Blocks.AIR.defaultBlockState());
+		assertFalse(RopeSupportLogic.isSupportedAt(level, pos));
+	}
+
+	@Test
+	void stoneBlockItselfDoesNotCrashIsSupportedAt() {
+		// 悬空石头（上方空气）：不崩溃，按上方支撑判定返回 false
+		Level level = mock(Level.class);
+		BlockPos pos = new BlockPos(10, 64, 10);
+		when(level.getBlockState(pos)).thenReturn(Blocks.STONE.defaultBlockState());
+		when(level.getBlockState(pos.above())).thenReturn(Blocks.AIR.defaultBlockState());
+		assertFalse(RopeSupportLogic.isSupportedAt(level, pos));
 	}
 }

@@ -112,10 +112,12 @@ public final class RopeSupportLogic {
 	/** 判断某位置是否被上方方块支撑（组装 isSupported 的三个输入）。 */
 	public static boolean isSupportedAt(Level level, BlockPos pos) {
 		BlockState state = level.getBlockState(pos);
-		if (state.getValue(RopeBlock.WALL)) {
+		if (RopeSupportLogic.isRope(state) && state.getValue(RopeBlock.WALL)) {
 			// 贴墙段：支撑 = 背后墙（泰拉瑞亚式；墙破 → 该段起连锁掉落）
 			return isBackedAt(level, pos, state.getValue(RopeBlock.FACING));
 		}
+		// 悬挂绳段或非绳位置（放置判定）：由正上方支撑。
+		// 注意：只有绳段才具备 WALL/FACING 属性，非绳方块直接读会 IllegalArgumentException。
 		BlockState above = level.getBlockState(pos.above());
 		return isSupported(
 			above.isSolid(),
