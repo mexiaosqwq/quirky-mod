@@ -356,9 +356,18 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 			return; // 打碎 → 穿透继续飞
 		}
 
-		// 未碎 → 直接化为掉落物（不再反弹乱飞，根治绕圈刨方块）
+		// 未碎 → 在撞击点化为掉落物（不再反弹乱飞，根治绕圈刨方块）
 		level.playSound(null, this.getX(), this.getY(), this.getZ(), state.getSoundType().getHitSound(), SoundSource.BLOCKS, 0.8F, 1.0F);
-		this.dropAllAndDiscard(level);
+		Vec3 hitPos = hit.getLocation();
+		Entity owner = this.getOwner();
+		boolean creative = owner instanceof Player p && p.hasInfiniteMaterials();
+		if (!creative) {
+			level.addFreshEntity(new ItemEntity(level, hitPos.x, hitPos.y, hitPos.z, this.getItem()));
+		}
+		for (ItemStack stack : this.collected) {
+			level.addFreshEntity(new ItemEntity(level, hitPos.x, hitPos.y, hitPos.z, stack));
+		}
+		this.discard();
 	}
 
 	/** 打碎判定与执行；返回是否打碎（打碎后回旋镖穿透继续飞）。 */
