@@ -66,7 +66,10 @@ public abstract class PlayerQuiverAmmoMixin implements QuiverAmmoSource {
 		// 箭袋优先：玩家主动装进箭袋 = 意图使用该弹药，弩/弓优先用箭袋（含烟花火箭），
 		// 原版按背包槽位找散装弹药，看不到箭袋内部（2026-08-05 用户反馈：箭袋第一格烟花火箭但弩用散装箭）。
 		// 手持弹药仍最优先（原版 getHeldProjectile 先跑，返回值非空时这里只查不覆盖）。
-		Predicate<ItemStack> supported = weapon.getAllSupportedProjectiles();
+		// 用 getSupportedHeldProjectiles 匹配：弩支持手持烟花火箭（ARROW_OR_FIREWORK），
+		// 而 getAllSupportedProjectiles 只认箭（ARROW_ONLY，原版自动装填仅箭）——
+		// 否则箭袋里的烟花火箭永远匹配不上（2026-08-05 实测）。弓两者都是箭，不受影响。
+		Predicate<ItemStack> supported = weapon.getSupportedHeldProjectiles();
 		for (int slot = 0; slot < self.getInventory().getContainerSize(); slot++) {
 			ItemStack stack = self.getInventory().getItem(slot);
 			if (!stack.is(ModItems.QUIVER)) {
