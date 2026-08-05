@@ -306,7 +306,11 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 				if (blockHit.getType() != HitResult.Type.MISS) {
 					newPos = blockHit.getLocation();
 					this.handleBlockHit(serverLevel, blockHit);
-					// handleBlockHit 可能反射速度（未碎反弹）或保持原速（打碎穿透），以实体最新速度为继续飞行的速度
+					// 撞墙掉落(discard)后不再继续本帧 setPos/拾取等操作
+					if (this.isRemoved()) {
+						return;
+					}
+					// 打碎穿透：保持原速继续飞（handleBlockHit 内已处理），以实体最新速度为继续飞行的速度
 					vel = this.getDeltaMovement();
 				}
 			}
@@ -357,8 +361,8 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		}
 
 		// 未碎 → 在撞击点化为掉落物（不再反弹乱飞，根治绕圈刨方块）
-		level.playSound(null, this.getX(), this.getY(), this.getZ(), state.getSoundType().getHitSound(), SoundSource.BLOCKS, 0.8F, 1.0F);
-		Vec3 hitPos = hit.getLocation();
+		Vec3 hitPos = hit.getLocation().add(hit.getDirection().getUnitVec3().scale(0.2)); // 沿法线外移 0.2 格防卡方块
+		level.playSound(null, hitPos.x, hitPos.y, hitPos.z, state.getSoundType().getHitSound(), SoundSource.BLOCKS, 0.8F, 1.0F);
 		Entity owner = this.getOwner();
 		boolean creative = owner instanceof Player p && p.hasInfiniteMaterials();
 		if (!creative) {
