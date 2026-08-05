@@ -163,18 +163,23 @@ public class RopeItem extends BlockItem {
 	 * 放置一个绳段（使用手持物品对应的方块），含水状态随目标流体；播放放置音 + 纤维粒子。
 	 *
 	 * @param wallFacing 请求的贴墙方向（墙所在方向）：背后确有支撑墙 → 贴墙段（无结）；
-	 *                   墙已断/为 null → 悬挂段（顶部段带结，连续段随上方绳连接）
+	 *                   墙已断/为 null → 悬挂段（顶部段带结，连续段随上方绳连接）。
+	 *                   悬挂段若上方是贴墙段（墙到头退化），柱/结继承墙方向贴墙垂下。
 	 */
 	private void placeSegment(Level level, BlockPos pos, ItemStack stack, Player player, float pitch, @Nullable Direction wallFacing) {
 		BlockState target = level.getBlockState(pos);
 		boolean waterlogged = target.getFluidState().is(Fluids.WATER);
-		boolean top = !RopeSupportLogic.isRope(level.getBlockState(pos.above()));
+		BlockState aboveState = level.getBlockState(pos.above());
+		boolean top = !RopeSupportLogic.isRope(aboveState);
+		boolean aboveWall = RopeSupportLogic.isRope(aboveState) && aboveState.getValue(RopeBlock.WALL);
 		Direction wall = wallFacing != null && RopeSupportLogic.isBackedAt(level, pos, wallFacing) ? wallFacing : null;
+		Direction facing = wall != null ? wall : (aboveWall ? aboveState.getValue(RopeBlock.FACING) : Direction.NORTH);
 		BlockState ropeState = this.getBlock().defaultBlockState()
 			.setValue(RopeBlock.WATERLOGGED, waterlogged)
 			.setValue(RopeBlock.TOP, top)
 			.setValue(RopeBlock.WALL, wall != null)
-			.setValue(RopeBlock.FACING, wall != null ? wall : Direction.NORTH);
+			.setValue(RopeBlock.ABOVE_WALL, aboveWall)
+			.setValue(RopeBlock.FACING, facing);
 		level.setBlock(pos, ropeState, 3);
 		level.playSound(null, pos, SoundEvents.WOOL_PLACE, SoundSource.BLOCKS, 0.6F, pitch);
 		if (level instanceof ServerLevel serverLevel) {

@@ -51,6 +51,8 @@ public class RopeBlock extends Block implements SimpleWaterloggedBlock {
 	public static final BooleanProperty TOP = BooleanProperty.create("top");
 	/** 贴墙段（泰拉瑞亚式）：true = 绳贴在方块侧面，{@link #FACING} 为墙所在方向；false = 悬挂段。 */
 	public static final BooleanProperty WALL = BooleanProperty.create("wall");
+	/** 悬挂顶段上方是否为贴墙段：true → 柱/结贴墙垂下（跟随上方贴墙段的墙方向，衔接不断裂）。 */
+	public static final BooleanProperty ABOVE_WALL = BooleanProperty.create("above_wall");
 	/** 贴墙段的墙方向（WALL=true 时有效）。26.2 无 DirectionProperty，统一为 EnumProperty。 */
 	public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
 	/** 2px 细柱轮廓：无碰撞但可被玩家射线选中（交互/延伸）。 */
@@ -67,12 +69,13 @@ public class RopeBlock extends Block implements SimpleWaterloggedBlock {
 			.setValue(WATERLOGGED, false)
 			.setValue(TOP, true)
 			.setValue(WALL, false)
+			.setValue(ABOVE_WALL, false)
 			.setValue(FACING, Direction.NORTH));
 	}
 
 	@Override
 	protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-		builder.add(WATERLOGGED, TOP, WALL, FACING);
+		builder.add(WATERLOGGED, TOP, WALL, ABOVE_WALL, FACING);
 	}
 
 	@Override
@@ -148,7 +151,10 @@ public class RopeBlock extends Block implements SimpleWaterloggedBlock {
 			}
 			boolean waterlogged = state.getValue(WATERLOGGED);
 			boolean top = !RopeSupportLogic.isRope(level.getBlockState(pos.above()));
-			level.setBlock(pos, ModBlocks.ROPE_LANTERN.defaultBlockState().setValue(WATERLOGGED, waterlogged).setValue(TOP, top), 3);
+			level.setBlock(pos, ModBlocks.ROPE_LANTERN.defaultBlockState()
+				.setValue(WATERLOGGED, waterlogged)
+				.setValue(TOP, top)
+				.setValue(ABOVE_WALL, state.getValue(ABOVE_WALL)), 3);
 			if (!player.hasInfiniteMaterials()) {
 				itemStack.consume(1, player);
 			}
@@ -181,8 +187,9 @@ public class RopeBlock extends Block implements SimpleWaterloggedBlock {
 	}
 
 	/**
-	 * 刷新 top 状态：上方是否绳段决定本段渲染成顶部绳结变体还是连续绳身变体。
-	 * 贴墙段同样遵循（顶段带结，与悬挂段视觉一致）；仅在状态变化时 setBlock（flags=2，不触发 tick），
+	 * 刷新 top/above_wall 状态：上方是否绳段决定本段渲染成顶部绳结变体还是连续绳身变体；
+	 * 上方是否为贴墙段决定悬挂顶段贴墙垂下（衔接贴墙绳不断裂）。
+	 * 贴墙段同样遵循；仅在状态变化时 setBlock（flags=2，不触发 tick），
 	 * 变化会经邻居通知收敛，无递归风险。
 	 */
 	private static void refreshTop(Level level, BlockPos pos) {
@@ -190,9 +197,11 @@ public class RopeBlock extends Block implements SimpleWaterloggedBlock {
 		if (!RopeSupportLogic.isRope(state)) {
 			return;
 		}
-		boolean top = !RopeSupportLogic.isRope(level.getBlockState(pos.above()));
-		if (state.getValue(TOP) != top) {
-			level.setBlock(pos, state.setValue(TOP, top), 2);
+		BlockState above = level.getBlockState(pos.above());
+		boolean top = !RopeSupportLogic.isRope(above);
+		boolean aboveWall = RopeSupportLogic.isRope(above) && above.getValue(WALL);
+		if (state.getValue(TOP) != top || state.getValue(ABOVE_WALL) != aboveWall) {
+			level.setBlock(pos, state.setValue(TOP, top).setValue(ABOVE_WALL, aboveWall), 2);
 		}
 	}
 
