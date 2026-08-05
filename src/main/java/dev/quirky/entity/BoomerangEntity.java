@@ -103,6 +103,8 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	private double peakDistance;
 	private int maxRange = 12;
 	private double throwSpeed = BASE_THROW_SPEED;
+	/** 投掷时的初始垂直速度分量（由仰角决定），首帧 tick 记录，用于出程保留仰角弧高。 */
+	private double initialVelY;
 	private int throwSlot = -1;
 	/** 连续模型已废弃距离阈值；保留字段仅供旧存档 NBT 兼容读取。 */
 	private double traveledDistance;
@@ -252,7 +254,12 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 			vel = this.getLookAngle().scale(this.throwSpeed);
 		}
 
-		// 连续进动弧线：每帧 precess(偏转) → converge(朝投掷者收敛) → modulateSpeed(远端减速) → heightVelocity(高度起伏)
+		// 首帧记录初始垂直分量（仰角），供 verticalVelocity 出程保留仰角弧高
+		if (this.lifetimeTicks == 1) {
+			this.initialVelY = vel.y;
+		}
+
+		// 连续进动弧线：每帧 precess(偏转) → converge(朝投掷者收敛) → modulateSpeed(远端减速) → verticalVelocity(仰角+高度起伏)
 		Vec3 ownerPos = owner != null ? owner.position().add(0.0, owner.getEyeHeight() * 0.5, 0.0) : pos;
 		double progress = Math.min(1.0, (double) this.lifetimeTicks / (double) ESTIMATED_FLIGHT_TICKS);
 		double dist = pos.subtract(ownerPos).horizontalDistance();
@@ -276,7 +283,7 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 			vel = BoomerangPhysics.converge(vel, pos, ownerPos, CONVERGE_STRENGTH * trigger);
 		}
 		vel = BoomerangPhysics.modulateSpeed(vel, this.throwSpeed, dist, this.maxRange, MIN_SPEED_SCALE);
-		vel = new Vec3(vel.x, BoomerangPhysics.heightVelocity(progress, HEIGHT_AMPLITUDE, ESTIMATED_FLIGHT_TICKS), vel.z);
+		vel = new Vec3(vel.x, BoomerangPhysics.verticalVelocity(trigger, this.initialVelY, progress, HEIGHT_AMPLITUDE, ESTIMATED_FLIGHT_TICKS), vel.z);
 
 		Vec3 newPos = BoomerangPhysics.step(pos, vel, 1.0);
 

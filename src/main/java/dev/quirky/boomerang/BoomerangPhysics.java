@@ -115,4 +115,16 @@ public final class BoomerangPhysics {
 		}
 		return amplitude * Math.PI * Math.cos(Math.PI * progress) / totalTicks;
 	}
+
+	/**
+	 * 垂直速度：出程(trigger→0)保留初始仰角的垂直分量 {@code initialVelY}，返程(trigger→1)过渡到高度起伏 {@link #heightVelocity}。
+	 * 平视投掷 initialVelY≈0 → 弧高小；仰投 initialVelY>0 → 弧高大。blend 用 trigger 平滑过渡无硬切换。
+	 *
+	 * @param trigger      距离/返程触发值 [0,1]（出程 0、返程 1）
+	 * @param initialVelY  投掷时的初始垂直速度分量（由仰角决定）
+	 */
+	public static double verticalVelocity(double trigger, double initialVelY, double progress, double amplitude, int totalTicks) {
+		double height = heightVelocity(progress, amplitude, totalTicks);
+		return (1.0 - trigger) * initialVelY + trigger * height;
+	}
 }
