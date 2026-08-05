@@ -14,7 +14,8 @@
     "GuiDeathScreenDelayMixin",
     "DeathCamSkipMixin",
     "LocalPlayerAIStepMixin",
-    "TooltipShiftGateMixin"
+    "TooltipShiftGateMixin",
+    "BoomerangHandRenderMixin"
   ],
   "injectors": {
     "defaultRequire": 1

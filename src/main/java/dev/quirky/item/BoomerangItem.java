@@ -22,8 +22,10 @@ import net.minecraft.world.level.entity.EntityTypeTest;
  * 耐久 250，每次完整飞行消耗 1 点（由实体返航时结算）。
  */
 public class BoomerangItem extends Item {
-	/** 满蓄 tick（1 秒）。 */
+	/** 满蓄 tick（1 秒）；仅用于 powerForTime 计算力度，不限制持续按住时长。 */
 	private static final int FULL_CHARGE_TICKS = 20;
+	/** use 持续时长：给足上限让玩家按住到满蓄后保持紧绷，不会到期自动结束（原版弓/三叉戟同款 72000）。 */
+	private static final int USE_DURATION_TICKS = 72000;
 	/** 最低力度（轻点仍能投出）。 */
 	private static final float MIN_POWER = 0.4F;
 	/** 最高力度（满蓄）。 */
@@ -49,12 +51,14 @@ public class BoomerangItem extends Item {
 
 	@Override
 	public int getUseDuration(ItemStack stack, LivingEntity user) {
-		return FULL_CHARGE_TICKS;
+		return USE_DURATION_TICKS;
 	}
 
 	@Override
 	public ItemUseAnimation getUseAnimation(ItemStack stack) {
-		return ItemUseAnimation.TRIDENT;
+		// NONE：不走原版 TRIDENT 长杆姿势（套在 V 型扁片上抽象），改由客户端 mixin
+		// (BoomerangHandRenderMixin) 自定义第一人称蓄力握持姿势。
+		return ItemUseAnimation.NONE;
 	}
 
 	@Override
@@ -82,7 +86,7 @@ public class BoomerangItem extends Item {
 
 		BoomerangEntity boomerang = new BoomerangEntity(serverLevel, player, stack, throwSlot, clockwise, power, consumed);
 		float throwSpeed = (float) (0.7 * power);
-		boomerang.setPos(player.getX(), player.getEyeY() - 0.1, player.getZ());
+		boomerang.setPos(player.getX(), player.getEyeY(), player.getZ());
 		boomerang.shootFromRotation(player, player.getXRot(), player.getYRot(), 0.0F, throwSpeed, 0.0F);
 		serverLevel.addFreshEntity(boomerang);
 		// 音高随力度：满蓄更低沉（0.7），轻点更清脆（1.1）
