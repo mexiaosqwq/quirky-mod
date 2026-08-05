@@ -62,6 +62,8 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	private static final double MIN_SPEED_SCALE = 0.3;
 	/** 远端抬升幅度（格；可调）。 */
 	private static final double HEIGHT_AMPLITUDE = 0.4;
+	/** 返程垂直收敛强度（每帧朝投掷者 y 拉的比例；可调）。防回旋镖飞高后下不来空中绕圈。 */
+	private static final double VERTICAL_CONVERGE = 0.1;
 	/** 飞行进度归一化基准 tick（对齐实际回手时长，让高度起伏完整 0→峰→0；可调）。 */
 	private static final int ESTIMATED_FLIGHT_TICKS = 30;
 	/** 回手判定水平距离 2.0 格（平方；可调）。略放大让接住更宽容。 */
@@ -328,7 +330,7 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		} else {
 			vel = BoomerangPhysics.modulateSpeed(vel, this.getThrowSpeed(), dist, this.getMaxRange(), MIN_SPEED_SCALE);
 		}
-		vel = new Vec3(vel.x, BoomerangPhysics.verticalVelocity(trigger, this.initialVelY, progress, HEIGHT_AMPLITUDE, ESTIMATED_FLIGHT_TICKS), vel.z);
+		vel = new Vec3(vel.x, BoomerangPhysics.verticalVelocity(trigger, this.initialVelY, ownerPos.y - pos.y, VERTICAL_CONVERGE, progress, HEIGHT_AMPLITUDE, ESTIMATED_FLIGHT_TICKS), vel.z);
 
 		Vec3 newPos = BoomerangPhysics.step(pos, vel, 1.0);
 

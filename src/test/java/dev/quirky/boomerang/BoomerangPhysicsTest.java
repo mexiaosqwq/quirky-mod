@@ -185,33 +185,50 @@ class BoomerangPhysicsTest {
 
 	@Test
 	void verticalVelocityKeepsInitialPitchOnOutbound() {
-		// 出程 trigger=0：垂直速度 = 初始仰角分量
-		double v = BoomerangPhysics.verticalVelocity(0.0, 0.3, 0.0, 0.4, 50);
+		// 出程 trigger=0：垂直速度 = 初始仰角分量（yDiff 收敛不参与出程）
+		double v = BoomerangPhysics.verticalVelocity(0.0, 0.3, 5.0, 0.1, 0.0, 0.4, 50);
 		assertEquals(0.3, v, 1e-9, "outbound keeps initial pitch velocity");
 	}
 
 	@Test
-	void verticalVelocityUsesHeightOnReturn() {
-		// 返程 trigger=1：垂直速度 = heightVelocity（仰角分量被覆盖）
-		double expected = BoomerangPhysics.heightVelocity(0.5, 0.4, 50);
-		double v = BoomerangPhysics.verticalVelocity(1.0, 0.3, 0.5, 0.4, 50);
-		assertEquals(expected, v, 1e-9, "return uses heightVelocity");
+	void verticalVelocityUsesHeightPlusConvergeOnReturn() {
+		// 返程 trigger=1：垂直速度 = heightVelocity + yDiff*converge（仰角分量被覆盖）
+		double height = BoomerangPhysics.heightVelocity(0.5, 0.4, 50);
+		double v = BoomerangPhysics.verticalVelocity(1.0, 0.3, -3.0, 0.1, 0.5, 0.4, 50);
+		assertEquals(height + (-3.0) * 0.1, v, 1e-9, "return uses heightVelocity + vertical converge");
 	}
 
 	@Test
 	void verticalVelocityBlendsMidFlight() {
-		// 中间 trigger=0.5：初始分量与起伏各占一半
+		// 中间 trigger=0.5：初始分量与返程分量（height+converge）各占一半
 		double initial = 0.3;
 		double height = BoomerangPhysics.heightVelocity(0.5, 0.4, 50);
-		double v = BoomerangPhysics.verticalVelocity(0.5, initial, 0.5, 0.4, 50);
-		assertEquals(0.5 * initial + 0.5 * height, v, 1e-9);
+		double returnVert = height + 2.0 * 0.1;
+		double v = BoomerangPhysics.verticalVelocity(0.5, initial, 2.0, 0.1, 0.5, 0.4, 50);
+		assertEquals(0.5 * initial + 0.5 * returnVert, v, 1e-9);
 	}
 
 	@Test
 	void verticalVelocityFlatThrowHasLowArc() {
 		// 平投 initialVelY=0：出程垂直速度为 0（弧高小）
-		double v = BoomerangPhysics.verticalVelocity(0.0, 0.0, 0.0, 0.4, 50);
+		double v = BoomerangPhysics.verticalVelocity(0.0, 0.0, 0.0, 0.1, 0.0, 0.4, 50);
 		assertEquals(0.0, v, 1e-9);
+	}
+
+	@Test
+	void verticalVelocityReturnDescendsWhenOwnerBelow() {
+		// 返程玩家在下方（yDiff<0）：垂直速度应含负向收敛（下降），防空中绕圈
+		double v = BoomerangPhysics.verticalVelocity(1.0, 0.5, -4.0, 0.1, 0.5, 0.4, 50);
+		double height = BoomerangPhysics.heightVelocity(0.5, 0.4, 50);
+		assertTrue(v < height, "owner below → vertical velocity reduced (descending converge), v=" + v);
+	}
+
+	@Test
+	void verticalVelocityReturnAscendsWhenOwnerAbove() {
+		// 返程玩家在上方（yDiff>0）：垂直速度应含正向收敛（上升）
+		double v = BoomerangPhysics.verticalVelocity(1.0, 0.0, 4.0, 0.1, 0.5, 0.4, 50);
+		double height = BoomerangPhysics.heightVelocity(0.5, 0.4, 50);
+		assertTrue(v > height, "owner above → vertical velocity increased (ascending converge), v=" + v);
 	}
 
 	// ==== smoothstep 工具 ====

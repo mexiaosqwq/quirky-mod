@@ -132,14 +132,18 @@ public final class BoomerangPhysics {
 	}
 
 	/**
-	 * 垂直速度：出程(trigger→0)保留初始仰角的垂直分量 {@code initialVelY}，返程(trigger→1)过渡到高度起伏 {@link #heightVelocity}。
+	 * 垂直速度：出程(trigger→0)保留初始仰角的垂直分量 {@code initialVelY}，
+	 * 返程(trigger→1)过渡到高度起伏 {@link #heightVelocity} **并叠加朝投掷者 y 的收敛**（防回旋镖飞高后下不来、空中绕圈）。
 	 * 平视投掷 initialVelY≈0 → 弧高小；仰投 initialVelY>0 → 弧高大。blend 用 trigger 平滑过渡无硬切换。
 	 *
-	 * @param trigger      距离/返程触发值 [0,1]（出程 0、返程 1）
-	 * @param initialVelY  投掷时的初始垂直速度分量（由仰角决定）
+	 * @param trigger          距离/返程触发值 [0,1]（出程 0、返程 1）
+	 * @param initialVelY      投掷时的初始垂直速度分量（由仰角决定）
+	 * @param yDiff            投掷者 y - 回旋镖 y（正=玩家在上方需上升，负=玩家在下方需下降）
+	 * @param verticalConverge 垂直收敛强度（每帧朝玩家 y 拉的比例；可调）
 	 */
-	public static double verticalVelocity(double trigger, double initialVelY, double progress, double amplitude, int totalTicks) {
+	public static double verticalVelocity(double trigger, double initialVelY, double yDiff, double verticalConverge, double progress, double amplitude, int totalTicks) {
 		double height = heightVelocity(progress, amplitude, totalTicks);
-		return (1.0 - trigger) * initialVelY + trigger * height;
+		double returnVertical = height + yDiff * verticalConverge;
+		return (1.0 - trigger) * initialVelY + trigger * returnVertical;
 	}
 }
