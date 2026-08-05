@@ -19,12 +19,12 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * 自动抽箭（getProjectile RETURN）：原版找不到散装弹药（返回 EMPTY）时，
+ * 自动抽箭（getProjectile RETURN）：弩/弓优先用箭袋弹药（玩家主动装入 = 意图使用），
  * 遍历背包箭袋找第一个含匹配弹药的箭袋，返回该组副本并记录来源到 tracker，
  * 供 {@link ProjectileWeaponItemAmmoMixin} 在 useAmmo 时从箭袋组件扣减。
  *
- * <p>散装优先（原版逻辑先跑），箭袋作备用。多个箭袋按背包槽位顺序，靠前的先用；
- * 耗尽后下次 getProjectile 自动跳到下一个箭袋（每次重新解析）。</p>
+ * <p>优先级：手持弹药 > 箭袋弹药 > 散装弹药 > 创造兜底。
+ * 多个箭袋按背包槽位顺序，靠前的先用；耗尽后下次 getProjectile 自动跳到下一个箭袋（每次重新解析）。</p>
  *
  * <p>注入点：getProjectile 所有 RETURN。首个 return（非 ProjectileWeaponItem → EMPTY）
  * 因 heldWeapon 非武器也会进入，但 instanceof 守卫跳过。其余非空返回值守卫跳过。</p>
@@ -58,21 +58,15 @@ public abstract class PlayerQuiverAmmoMixin implements QuiverAmmoSource {
 		// 每次调用先清旧记录（上次射击残留）
 		this.quirky$clearQuiverAmmo();
 		ItemStack returnValue = cir.getReturnValue();
-		// 散装优先：原版已找到非空弹药则不碰箭袋
-		if (!returnValue.isEmpty()) {
-			return;
-		}
 		// 仅对弹射武器处理（第一个 return EMPTY 是非武器场景，跳过）
 		if (!(heldWeapon.getItem() instanceof ProjectileWeaponItem weapon)) {
 			return;
 		}
 		Player self = (Player) (Object) this;
-		// 创造模式原版会返回 ARROW，不会进到这里；这里兜底也跳过无限材料
-		if (self.hasInfiniteMaterials()) {
-			return;
-		}
+		// 箭袋优先：玩家主动装进箭袋 = 意图使用该弹药，弩/弓优先用箭袋（含烟花火箭），
+		// 原版按背包槽位找散装弹药，看不到箭袋内部（2026-08-05 用户反馈：箭袋第一格烟花火箭但弩用散装箭）。
+		// 手持弹药仍最优先（原版 getHeldProjectile 先跑，返回值非空时这里只查不覆盖）。
 		Predicate<ItemStack> supported = weapon.getAllSupportedProjectiles();
-		// 遍历背包槽位，找第一个含匹配弹药的箭袋
 		for (int slot = 0; slot < self.getInventory().getContainerSize(); slot++) {
 			ItemStack stack = self.getInventory().getItem(slot);
 			if (!stack.is(ModItems.QUIVER)) {
@@ -83,10 +77,26 @@ public abstract class PlayerQuiverAmmoMixin implements QuiverAmmoSource {
 			if (!match.found()) {
 				continue;
 			}
-			// 命中：返回该组副本，记录来源（箭袋槽位 + 组索引）
+			// 手持弹药 > 箭袋弹药 > 散装弹药：非手持时用箭袋弹药替换原版结果
+			if (!returnValue.isEmpty()) {
+				// 原版已找到弹药：仅当它不是手持弹药（玩家当前手持）时才用箭袋替换
+				if (isHeldAmmo(self, returnValue)) {
+					return;
+				}
+			}
 			this.quirky$setQuiverAmmo(match.stack(), slot, match.groupIndex());
 			cir.setReturnValue(match.stack());
 			return;
 		}
+		// 箭袋无匹配：原版结果（散装/创造兜底）保持不变
+	}
+
+	/** 返回值是否为玩家手持的弹药（主手/副手槽位中的同一物品）。 */
+	@Unique
+	private static boolean isHeldAmmo(Player self, ItemStack ammo) {
+		if (ammo.isEmpty()) {
+			return false;
+		}
+		return self.getMainHandItem().is(ammo.getItem()) || self.getOffhandItem().is(ammo.getItem());
 	}
 }
