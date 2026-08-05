@@ -56,15 +56,17 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	/** 进动偏转速率（弧度/tick；可调）。仅在远端（dist 接近 maxRange）通过 smoothstep 触发，出程近似直线可命中敌人。 */
 	private static final double PRECESSION_RATE = 0.25;
 	/** 朝投掷者收敛强度（每帧水平方向 blend 比例；可调）。同样按距离触发，返程强收敛快速回手。 */
-	private static final double CONVERGE_STRENGTH = 0.20;
+	private static final double CONVERGE_STRENGTH = 0.35;
 	/** 远端最低速度倍率（可调）。 */
 	private static final double MIN_SPEED_SCALE = 0.55;
 	/** 远端抬升幅度（格；可调）。 */
 	private static final double HEIGHT_AMPLITUDE = 0.4;
 	/** 飞行进度归一化基准 tick（对齐实际回手时长，让高度起伏完整 0→峰→0；可调）。 */
 	private static final int ESTIMATED_FLIGHT_TICKS = 30;
-	/** 回手判定距离 1.8 格（平方；可调）。 */
+	/** 回手判定水平距离 1.8 格（平方；可调）。 */
 	private static final double CATCH_DISTANCE_SQ = 3.24;
+	/** 回手判定垂直容差 1.5 格（跳跃/下落时仍能接住；可调）。 */
+	private static final double CATCH_VERTICAL_TOLERANCE = 1.5;
 	/** 命中生物固定伤害（武器化后不再走配置；对齐近战属性 4）。 */
 	private static final float HIT_DAMAGE = 4.0F;
 	/** 10 秒兜底自毁上限。 */
@@ -157,7 +159,8 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		output.putBoolean(TAG_RETURNING, this.returning);
 		output.putInt(TAG_MAX_RANGE, this.maxRange);
 		output.putInt(TAG_THROW_SLOT, this.throwSlot);
-		output.putDouble(TAG_TRAVELED, this.traveledDistance);
+		// traveledDistance 已废弃（连续模型不再用距离阈值）；保留读取兼容旧存档但不写入
+		// peakDistance / returning 由返程逻辑运行时维护，存档保留
 		output.putDouble(TAG_PEAK_DISTANCE, this.peakDistance);
 		output.putBoolean("Clockwise", this.isClockwise());
 		output.store("Item", ItemStack.CODEC, this.getItem());
@@ -174,9 +177,9 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	protected void readAdditionalSaveData(ValueInput input) {
 		super.readAdditionalSaveData(input);
 		this.returning = input.getBooleanOr(TAG_RETURNING, false);
-		this.maxRange = input.getIntOr(TAG_MAX_RANGE, 16);
+		this.maxRange = input.getIntOr(TAG_MAX_RANGE, 12);
 		this.throwSlot = input.getIntOr(TAG_THROW_SLOT, -1);
-		this.traveledDistance = input.getDoubleOr(TAG_TRAVELED, 0.0);
+		// traveledDistance 旧存档兼容读取，不再使用
 		this.peakDistance = input.getDoubleOr(TAG_PEAK_DISTANCE, 0.0);
 		this.setClockwise(input.getBooleanOr("Clockwise", true));
 		this.collected.clear();
@@ -251,8 +254,9 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		double progress = Math.min(1.0, (double) this.lifetimeTicks / (double) ESTIMATED_FLIGHT_TICKS);
 		double dist = pos.subtract(ownerPos).horizontalDistance();
 
-		// 回手判定（水平距离，不受高度起伏影响；投出后 3 tick 起判避免刚离手即接住）——仅服务端
-		if (server && this.lifetimeTicks > 3 && pos.subtract(ownerPos).horizontalDistanceSqr() <= CATCH_DISTANCE_SQ) {
+		// 回手判定：水平距离 ≤ 1.8 且 垂直差 ≤ 1.5（跳跃/下落仍能接住）；投出后 3 tick 起判——仅服务端
+		if (server && this.lifetimeTicks > 3 && pos.subtract(ownerPos).horizontalDistanceSqr() <= CATCH_DISTANCE_SQ
+			&& Math.abs(pos.y - ownerPos.y) <= CATCH_VERTICAL_TOLERANCE) {
 			this.retrieveFor((ServerLevel) level, owner);
 			return;
 		}
@@ -337,7 +341,8 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 			return; // 打碎 → 穿透继续飞
 		}
 
-		// 未碎 → 沿法线反射速度（连续模型无出程/返程切换，反射后继续弧线飞行）
+		// 未碎 → 进入返程（spec：撞到方块后掉头）+ 沿法线反射速度
+		this.returning = true;
 		Vec3 vel = this.getDeltaMovement();
 		Vec3 normal = hit.getDirection().getUnitVec3();
 		this.setDeltaMovement(vel.subtract(normal.scale(2.0 * vel.dot(normal))));
