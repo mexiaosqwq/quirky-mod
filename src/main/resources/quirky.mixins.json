@@ -10,6 +10,7 @@
     "CampfireBlockEntityStateMixin",
     "CampfireBlockMixin",
     "ContainerTooltipMixin",
+    "CrossbowItemAmmoMixin",
     "DoubleDoorMixin",
     "EnderChestContainerMixin",
     "FishingHookBaitMixin",
