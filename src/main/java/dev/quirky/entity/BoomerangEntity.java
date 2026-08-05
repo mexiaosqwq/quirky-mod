@@ -71,8 +71,8 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	private static final float HIT_DAMAGE = 4.0F;
 	/** 10 秒兜底自毁上限。 */
 	private static final int MAX_LIFETIME_TICKS = 200;
-	/** 初始速度（格/tick；可调）。 */
-	private static final double THROW_SPEED = 0.7;
+	/** 初始速度基准（格/tick；可调）。实例化时按蓄力 power 缩放。 */
+	private static final double BASE_THROW_SPEED = 0.7;
 
 	private static final String TAG_RETURNING = "Returning";
 	private static final String TAG_HITS = "HitEntities";
@@ -102,6 +102,7 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	/** 出程飞行峰值距离，用于检测开始返程（dist 开始减小）。 */
 	private double peakDistance;
 	private int maxRange = 12;
+	private double throwSpeed = BASE_THROW_SPEED;
 	private int throwSlot = -1;
 	/** 连续模型已废弃距离阈值；保留字段仅供旧存档 NBT 兼容读取。 */
 	private double traveledDistance;
@@ -111,12 +112,14 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		super(type, level);
 	}
 
-	public BoomerangEntity(ServerLevel level, Player owner, ItemStack item, int throwSlot, boolean clockwise) {
+	public BoomerangEntity(ServerLevel level, Player owner, ItemStack item, int throwSlot, boolean clockwise, float power) {
 		super(ModEntities.BOOMERANG, level);
 		this.setItem(item);
 		this.throwSlot = throwSlot;
 		this.setClockwise(clockwise);
-		this.maxRange = QuirkyConfigHolder.get().boomerangRange;
+		// 蓄力缩放：力度 0.4~1.5 → 初速 0.28~1.05、射程 5~18 格（钳制）
+		this.throwSpeed = BASE_THROW_SPEED * power;
+		this.maxRange = Math.max(5, Math.min(20, (int) (QuirkyConfigHolder.get().boomerangRange * power)));
 		this.setOwner(owner);
 	}
 
@@ -246,7 +249,7 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		Vec3 pos = this.position();
 		Vec3 vel = this.getDeltaMovement();
 		if (vel.lengthSqr() < 1e-6) {
-			vel = this.getLookAngle().scale(THROW_SPEED);
+			vel = this.getLookAngle().scale(this.throwSpeed);
 		}
 
 		// 连续进动弧线：每帧 precess(偏转) → converge(朝投掷者收敛) → modulateSpeed(远端减速) → heightVelocity(高度起伏)
@@ -272,7 +275,7 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		if (owner != null) {
 			vel = BoomerangPhysics.converge(vel, pos, ownerPos, CONVERGE_STRENGTH * trigger);
 		}
-		vel = BoomerangPhysics.modulateSpeed(vel, THROW_SPEED, dist, this.maxRange, MIN_SPEED_SCALE);
+		vel = BoomerangPhysics.modulateSpeed(vel, this.throwSpeed, dist, this.maxRange, MIN_SPEED_SCALE);
 		vel = new Vec3(vel.x, BoomerangPhysics.heightVelocity(progress, HEIGHT_AMPLITUDE, ESTIMATED_FLIGHT_TICKS), vel.z);
 
 		Vec3 newPos = BoomerangPhysics.step(pos, vel, 1.0);
