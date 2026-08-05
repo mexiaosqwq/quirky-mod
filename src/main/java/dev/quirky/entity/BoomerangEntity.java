@@ -85,6 +85,10 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	private static final EntityDataAccessor<ItemStack> DATA_ITEM_STACK = SynchedEntityData.defineId(
 		BoomerangEntity.class, EntityDataSerializers.ITEM_STACK
 	);
+	/** 进动方向同步：true=右手回旋(主手)，false=左手回旋(副手)。客户端预测物理需读取。 */
+	private static final EntityDataAccessor<Boolean> DATA_CLOCKWISE = SynchedEntityData.defineId(
+		BoomerangEntity.class, EntityDataSerializers.BOOLEAN
+	);
 
 	private final List<ItemStack> collected = new ArrayList<>();
 	private final Set<UUID> hitEntities = new HashSet<>();
@@ -95,8 +99,6 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	/** 连续模型已废弃距离阈值；保留字段仅供旧存档 NBT 兼容读取。 */
 	private double traveledDistance;
 	private int lifetimeTicks;
-	/** 进动方向：true=右手回旋(俯视顺时针,主手投掷)，false=左手回旋(副手投掷)。 */
-	private boolean clockwise = true;
 
 	public BoomerangEntity(EntityType<? extends BoomerangEntity> type, Level level) {
 		super(type, level);
@@ -106,7 +108,7 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		super(ModEntities.BOOMERANG, level);
 		this.setItem(item);
 		this.throwSlot = throwSlot;
-		this.clockwise = clockwise;
+		this.setClockwise(clockwise);
 		this.maxRange = QuirkyConfigHolder.get().boomerangRange;
 		this.setOwner(owner);
 	}
@@ -127,9 +129,19 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		return owner != null && owner.getUUID().equals(player.getUUID());
 	}
 
+	/** 进动方向（true=右手回旋/主手，false=左手回旋/副手）。客户端预测物理读取此值。 */
+	public boolean isClockwise() {
+		return this.getEntityData().get(DATA_CLOCKWISE);
+	}
+
+	public void setClockwise(boolean clockwise) {
+		this.getEntityData().set(DATA_CLOCKWISE, clockwise);
+	}
+
 	@Override
 	protected void defineSynchedData(net.minecraft.network.syncher.SynchedEntityData.Builder builder) {
 		builder.define(DATA_ITEM_STACK, ItemStack.EMPTY);
+		builder.define(DATA_CLOCKWISE, true);
 	}
 
 	// ==== NBT ====
@@ -141,7 +153,7 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		output.putInt(TAG_MAX_RANGE, this.maxRange);
 		output.putInt(TAG_THROW_SLOT, this.throwSlot);
 		output.putDouble(TAG_TRAVELED, this.traveledDistance);
-		output.putBoolean("Clockwise", this.clockwise);
+		output.putBoolean("Clockwise", this.isClockwise());
 		output.store("Item", ItemStack.CODEC, this.getItem());
 		output.store(TAG_COLLECTED, ItemStack.OPTIONAL_CODEC.listOf(), this.collected);
 		ValueOutput.ValueOutputList list = output.childrenList(TAG_HITS);
@@ -159,7 +171,7 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		this.maxRange = input.getIntOr(TAG_MAX_RANGE, 16);
 		this.throwSlot = input.getIntOr(TAG_THROW_SLOT, -1);
 		this.traveledDistance = input.getDoubleOr(TAG_TRAVELED, 0.0);
-		this.clockwise = input.getBooleanOr("Clockwise", true);
+		this.setClockwise(input.getBooleanOr("Clockwise", true));
 		this.collected.clear();
 		this.collected.addAll(input.read(TAG_COLLECTED, ItemStack.OPTIONAL_CODEC.listOf()).orElse(List.of()));
 		input.read("Item", ItemStack.CODEC).ifPresent(this::setItem);
@@ -191,20 +203,34 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	@Override
 	public void tick() {
 		super.tick();
-		if (this.level().isClientSide()) {
-			return;
-		}
-		ServerLevel level = (ServerLevel) this.level();
 		this.lifetimeTicks++;
-		Entity owner = this.getOwner();
-		// 兜底：10 秒上限 / 坠入虚空（不掉落）/ 投掷者死亡·离线·跨维度（就地掉落）
-		if (this.lifetimeTicks > MAX_LIFETIME_TICKS || this.getY() < level.getMinY() - 32.0) {
-			this.dropAllAndDiscard(level);
+		if (this.level().isClientSide()) {
+			// 客户端预测：本地跑物理算位置，避免依赖服务端低频同步包造成卡顿跳跃。
+			// 命中/接住/拾取等权威判定仅服务端执行，客户端只算运动。
+			this.tickMovement(false);
 			return;
 		}
-		if (owner == null || !owner.isAlive() || owner.level() != level) {
-			this.dropAllAndDiscard(level);
-			return;
+		this.tickMovement(true);
+	}
+
+	/**
+	 * 每帧运动计算（两端共用）：precess → converge → modulateSpeed → heightVelocity → step。
+	 * {@code server} 为 true 时额外执行命中/拾取/接住等权威判定与拖尾粒子。
+	 */
+	private void tickMovement(boolean server) {
+		Level level = this.level();
+		Entity owner = this.getOwner();
+		if (server) {
+			ServerLevel serverLevel = (ServerLevel) level;
+			// 兜底：10 秒上限 / 坠入虚空（不掉落）/ 投掷者死亡·离线·跨维度（就地掉落）
+			if (this.lifetimeTicks > MAX_LIFETIME_TICKS || this.getY() < level.getMinY() - 32.0) {
+				this.dropAllAndDiscard(serverLevel);
+				return;
+			}
+			if (owner == null || !owner.isAlive() || owner.level() != level) {
+				this.dropAllAndDiscard(serverLevel);
+				return;
+			}
 		}
 
 		Vec3 pos = this.position();
@@ -213,52 +239,57 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 			vel = this.getLookAngle().scale(THROW_SPEED);
 		}
 
-		// 连续进动弧线：每帧 precess(右手偏转) → converge(朝投掷者收敛) → modulateSpeed(远端减速) → heightVelocity(高度起伏)
-		Vec3 ownerPos = owner.position().add(0.0, owner.getEyeHeight() * 0.5, 0.0);
+		// 连续进动弧线：每帧 precess(偏转) → converge(朝投掷者收敛) → modulateSpeed(远端减速) → heightVelocity(高度起伏)
+		Vec3 ownerPos = owner != null ? owner.position().add(0.0, owner.getEyeHeight() * 0.5, 0.0) : pos;
 		double progress = Math.min(1.0, (double) this.lifetimeTicks / (double) ESTIMATED_FLIGHT_TICKS);
 		double dist = pos.subtract(ownerPos).horizontalDistance();
 
-		// 回手判定（水平距离，不受高度起伏影响；投出后 3 tick 起判避免刚离手即接住）
-		if (this.lifetimeTicks > 3 && pos.subtract(ownerPos).horizontalDistanceSqr() <= CATCH_DISTANCE_SQ) {
-			this.retrieveFor(level, owner);
+		// 回手判定（水平距离，不受高度起伏影响；投出后 3 tick 起判避免刚离手即接住）——仅服务端
+		if (server && this.lifetimeTicks > 3 && pos.subtract(ownerPos).horizontalDistanceSqr() <= CATCH_DISTANCE_SQ) {
+			this.retrieveFor((ServerLevel) level, owner);
 			return;
 		}
 
-		vel = BoomerangPhysics.precess(vel, PRECESSION_RATE, this.clockwise);
-		vel = BoomerangPhysics.converge(vel, pos, ownerPos, CONVERGE_STRENGTH);
+		vel = BoomerangPhysics.precess(vel, PRECESSION_RATE, this.isClockwise());
+		if (owner != null) {
+			vel = BoomerangPhysics.converge(vel, pos, ownerPos, CONVERGE_STRENGTH);
+		}
 		vel = BoomerangPhysics.modulateSpeed(vel, THROW_SPEED, dist, this.maxRange, MIN_SPEED_SCALE);
 		vel = new Vec3(vel.x, BoomerangPhysics.heightVelocity(progress, HEIGHT_AMPLITUDE, ESTIMATED_FLIGHT_TICKS), vel.z);
 
 		Vec3 newPos = BoomerangPhysics.step(pos, vel, 1.0);
 
-		// 实体命中（比方块优先，贴合原版弹射物流程）
-		EntityHitResult entityHit = ProjectileUtil.getEntityHitResult(
-			level, this, pos, newPos, this.getBoundingBox().expandTowards(vel).inflate(1.0), this::canHitEntity
-		);
-		if (entityHit != null && entityHit.getEntity() instanceof LivingEntity target) {
-			this.hitLiving(target);
-			newPos = entityHit.getLocation();
-		} else {
-			BlockHitResult blockHit = level.clipIncludingBorder(new ClipContext(pos, newPos, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this));
-			if (blockHit.getType() != HitResult.Type.MISS) {
-				newPos = blockHit.getLocation();
-				this.handleBlockHit(level, blockHit);
-				// handleBlockHit 可能反射速度（未碎反弹）或保持原速（打碎穿透），以实体最新速度为继续飞行的速度
-				vel = this.getDeltaMovement();
+		if (server) {
+			ServerLevel serverLevel = (ServerLevel) level;
+			// 实体命中（比方块优先，贴合原版弹射物流程）
+			EntityHitResult entityHit = ProjectileUtil.getEntityHitResult(
+				serverLevel, this, pos, newPos, this.getBoundingBox().expandTowards(vel).inflate(1.0), this::canHitEntity
+			);
+			if (entityHit != null && entityHit.getEntity() instanceof LivingEntity target) {
+				this.hitLiving(target);
+				newPos = entityHit.getLocation();
+			} else {
+				BlockHitResult blockHit = serverLevel.clipIncludingBorder(new ClipContext(pos, newPos, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this));
+				if (blockHit.getType() != HitResult.Type.MISS) {
+					newPos = blockHit.getLocation();
+					this.handleBlockHit(serverLevel, blockHit);
+					// handleBlockHit 可能反射速度（未碎反弹）或保持原速（打碎穿透），以实体最新速度为继续飞行的速度
+					vel = this.getDeltaMovement();
+				}
 			}
-		}
 
-		// 拾取地面物品（0.5 格内吸附）
-		for (ItemEntity itemEntity : level.getEntities(
-			EntityTypeTest.forClass(ItemEntity.class), this.getBoundingBox().expandTowards(vel).inflate(0.5), Entity::isAlive
-		)) {
-			this.absorb(itemEntity);
+			// 拾取地面物品（0.5 格内吸附）
+			for (ItemEntity itemEntity : serverLevel.getEntities(
+				EntityTypeTest.forClass(ItemEntity.class), this.getBoundingBox().expandTowards(vel).inflate(0.5), Entity::isAlive
+			)) {
+				this.absorb(itemEntity);
+			}
 		}
 
 		this.setPos(newPos);
 		// 飞行拖尾粒子：每 2 tick 在当前位置发 1 个端粒，稀疏运动痕迹（服务端 sendParticles；Level.addParticle 是空实现）
-		if ((this.lifetimeTicks & 1) == 0) {
-			level.sendParticles(ParticleTypes.END_ROD, this.getX(), this.getY(), this.getZ(), 1, 0.08, 0.08, 0.08, 0.0);
+		if (server && (this.lifetimeTicks & 1) == 0) {
+			((ServerLevel) level).sendParticles(ParticleTypes.END_ROD, this.getX(), this.getY(), this.getZ(), 1, 0.08, 0.08, 0.08, 0.0);
 		}
 		this.setDeltaMovement(vel);
 		this.updateRotationFromVelocity();
