@@ -111,10 +111,8 @@ public class RopeBlock extends Block implements SimpleWaterloggedBlock {
 	}
 
 	/**
-	 * 坠落防摔 + 轻吸附（主动实现，非 tag 白嫖）：垂直下落且非潜行的实体贴住绳段——
-	 * 重置摔落距离、垂直速度钳到 -0.15（缓滑下落），并把水平速度向绳柱轴心收敛
-	 * （吸附感：玩家不会飘离细绳；玩家主动远离时收敛衰减 ×0.3，保证能挣脱；
-	 * 鞘翅滑翔不受影响）。潜行 = 松手直接穿过。
+	 * 坠落防摔：垂直下落且非潜行的实体贴住绳段——重置摔落距离、垂直速度钳到 -0.15（缓滑下落）。
+	 * 潜行 = 松手直接穿过。
 	 */
 	@Override
 	protected void entityInside(
@@ -126,32 +124,8 @@ public class RopeBlock extends Block implements SimpleWaterloggedBlock {
 			&& !living.isFallFlying()) {
 			living.resetFallDistance();
 			Vec3 movement = living.getDeltaMovement();
-			Vec3 center = ropeAxisCenter(state, pos);
-			double pullX = (center.x - living.getX()) * 0.25;
-			double pullZ = (center.z - living.getZ()) * 0.25;
-			if (movement.x * pullX < 0.0) {
-				pullX *= 0.3;
-			}
-			if (movement.z * pullZ < 0.0) {
-				pullZ *= 0.3;
-			}
-			living.setDeltaMovement(movement.x + pullX, -0.15, movement.z + pullZ);
+			living.setDeltaMovement(movement.x, -0.15, movement.z);
 		}
-	}
-
-	/** 绳柱轴心（世界坐标）：悬挂段 = 方块中心；贴墙段 = 靠墙侧柱中心（与模型/轮廓一致）。 */
-	private static Vec3 ropeAxisCenter(BlockState state, BlockPos pos) {
-		double x = pos.getX() + 0.5;
-		double z = pos.getZ() + 0.5;
-		if (state.getValue(WALL)) {
-			switch (state.getValue(FACING)) {
-				case EAST -> x = pos.getX() + 0.875;
-				case SOUTH -> z = pos.getZ() + 0.875;
-				case WEST -> x = pos.getX() + 0.125;
-				default -> z = pos.getZ() + 0.5;
-			}
-		}
-		return new Vec3(x, pos.getY() + 0.5, z);
 	}
 
 	/**
