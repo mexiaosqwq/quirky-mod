@@ -3,8 +3,6 @@ package dev.quirky.client.tooltips;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.List;
-
 import dev.quirky.ModItems;
 import dev.quirky.TestBootstrap;
 import dev.quirky.config.QuirkyConfig;
@@ -12,7 +10,6 @@ import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.level.saveddata.maps.MapId;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,10 +18,10 @@ import org.junit.jupiter.api.Test;
 /**
  * 高级 tooltip 模式的受控物品判定：
  * <ul>
- *   <li>hasGatedContent：时钟/地图/箭袋/播种袋/鱼饵球/绳 为受控；食物与属性物品不受控。</li>
- *   <li>潜影盒判定依赖 tag 数据（单测环境无 tag，恒 false；生产行为由游戏内验证）。</li>
+ *   <li>受控（藏描述性长文字）：箭袋用法行、播种袋、鱼饵球、绳。</li>
+ *   <li>不受控（信息类始终显示）：时钟行、地图预览、箭袋内容网格、潜影盒网格、
+ *       食物与属性提示、普通物品。</li>
  *   <li>shouldSuppress：无客户端实例（单测/服务端）恒 false。</li>
- *   <li>配置开关关闭后 hasGatedContent 恒 false。</li>
  * </ul>
  */
 class TooltipShiftHelperTest {
@@ -51,19 +48,8 @@ class TooltipShiftHelperTest {
 	}
 
 	@Test
-	void clock_isGated() {
-		assertTrue(TooltipShiftHelper.hasGatedContent(new ItemStack(Items.CLOCK)));
-	}
-
-	@Test
-	void filledMap_isGated() {
-		ItemStack map = new ItemStack(Items.FILLED_MAP);
-		map.set(DataComponents.MAP_ID, new MapId(1));
-		assertTrue(TooltipShiftHelper.hasGatedContent(map));
-	}
-
-	@Test
 	void quiver_isGated() {
+		// 箭袋：用法长文字受控；内容网格本身始终显示
 		assertTrue(TooltipShiftHelper.hasGatedContent(new ItemStack(ModItems.QUIVER)));
 	}
 
@@ -84,8 +70,27 @@ class TooltipShiftHelperTest {
 	}
 
 	@Test
+	void clock_isNotGated() {
+		// 时钟行是短信息，始终显示
+		assertFalse(TooltipShiftHelper.hasGatedContent(new ItemStack(Items.CLOCK)));
+	}
+
+	@Test
+	void filledMap_isNotGated() {
+		// 地图预览是信息类组件，始终显示
+		ItemStack map = new ItemStack(Items.FILLED_MAP);
+		map.set(DataComponents.MAP_ID, new MapId(1));
+		assertFalse(TooltipShiftHelper.hasGatedContent(map));
+	}
+
+	@Test
+	void shulkerBox_isNotGated() {
+		// 潜影盒内容网格是信息类组件，始终显示（单测无 tag 数据恒 false，语义一致）
+		assertFalse(TooltipShiftHelper.hasGatedContent(new ItemStack(Items.SHULKER_BOX)));
+	}
+
+	@Test
 	void foodAndAttributeItems_areNotGated() {
-		// 食物与属性 tooltip 保持默认显示，不受高级模式控制
 		assertFalse(TooltipShiftHelper.hasGatedContent(new ItemStack(Items.APPLE)));
 		assertFalse(TooltipShiftHelper.hasGatedContent(new ItemStack(Items.DIAMOND_SWORD)));
 	}
@@ -96,15 +101,9 @@ class TooltipShiftHelperTest {
 	}
 
 	@Test
-	void emptyShulker_isNotGated() {
-		// 单测无 tag 数据恒 false；空盒在生产环境同样不提示（无内容预览）
-		assertFalse(TooltipShiftHelper.hasGatedContent(new ItemStack(Items.SHULKER_BOX)));
-	}
-
-	@Test
 	void noClientInstance_neverSuppresses() {
 		// 单测/服务端无 Minecraft 实例 → shouldSuppress 恒 false
-		assertFalse(TooltipShiftHelper.shouldSuppress(new ItemStack(Items.CLOCK)));
 		assertFalse(TooltipShiftHelper.shouldSuppress(new ItemStack(ModItems.ROPE)));
+		assertFalse(TooltipShiftHelper.shouldSuppress(new ItemStack(Items.CLOCK)));
 	}
 }
