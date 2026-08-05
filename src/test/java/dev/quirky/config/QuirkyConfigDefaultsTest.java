@@ -13,10 +13,7 @@ class QuirkyConfigDefaultsTest {
 		assertEquals(4, c.quiverCapacity);
 		assertEquals(32, c.ropeMaxExtendPerUse);
 		assertEquals(12, c.boomerangRange);
-		assertEquals(2, c.boomerangDamage);
 		assertEquals(0.05F, c.boomerangBreakChance);
-		assertEquals(0.5F, c.parrotEggHatchChance);
-		assertEquals(0.03F, c.parrotEggTwinChance);
 		assertEquals(1, c.seedPouchRadius);
 		assertEquals(90, c.fishBaitDurationSeconds);
 		assertEquals(4, c.fishBaitRadius);

@@ -29,21 +29,8 @@ public class QuirkyConfig implements ConfigData {
 	public int boomerangRange = 12;
 
 	@ConfigEntry.Category("items")
-	@ConfigEntry.BoundedDiscrete(min = 0, max = 4)
-	@ConfigEntry.Gui.Tooltip
-	public int boomerangDamage = 2;
-
-	@ConfigEntry.Category("items")
 	@ConfigEntry.Gui.Tooltip
 	public float boomerangBreakChance = 0.05F;
-
-	@ConfigEntry.Category("items")
-	@ConfigEntry.Gui.Tooltip
-	public float parrotEggHatchChance = 0.5F;
-
-	@ConfigEntry.Category("items")
-	@ConfigEntry.Gui.Tooltip
-	public float parrotEggTwinChance = 0.03F;
 
 	@ConfigEntry.Category("items")
 	@ConfigEntry.BoundedDiscrete(min = 0, max = 2)

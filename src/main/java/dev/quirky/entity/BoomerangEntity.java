@@ -3,7 +3,6 @@ package dev.quirky.entity;
 import dev.quirky.ModEntities;
 import dev.quirky.boomerang.BoomerangBlockLogic;
 import dev.quirky.boomerang.BoomerangPhysics;
-import dev.quirky.config.QuirkyConfig;
 import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -54,6 +53,8 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	private static final double RETURN_TURN_RATE = 0.35;
 	/** 回手判定距离 1.5 格（平方）。 */
 	private static final double CATCH_DISTANCE_SQ = 2.25;
+	/** 命中生物固定伤害（武器化后不再走配置；对齐近战属性 4）。 */
+	private static final float HIT_DAMAGE = 4.0F;
 	/** 10 秒兜底自毁上限。 */
 	private static final int MAX_LIFETIME_TICKS = 200;
 	/** 出程速度（格/tick）。 */
@@ -229,13 +230,10 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 
 	private void hitLiving(LivingEntity target) {
 		ServerLevel level = (ServerLevel) this.level();
-		QuirkyConfig config = QuirkyConfigHolder.get();
 		DamageSource source = level.damageSources().thrown(this, this.getOwner());
-		if (config.boomerangDamage > 0) {
-			target.hurtServer(level, source, config.boomerangDamage);
-		}
+		target.hurtServer(level, source, HIT_DAMAGE);
 		Vec3 vel = this.getDeltaMovement();
-		target.knockback(0.3, vel.x, vel.z, source, config.boomerangDamage);
+		target.knockback(0.3, vel.x, vel.z, source, HIT_DAMAGE);
 		this.hitEntities.add(target.getUUID());
 		level.playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.5F, 1.0F);
 	}
