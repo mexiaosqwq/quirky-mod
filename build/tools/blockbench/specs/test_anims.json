@@ -1,1 +1,0 @@
-{"animations":[{"name":"walk","loop":true,"length":2,"bones":{"leg_l":[{"time":0,"rotation":[0,0,30]},{"time":1,"rotation":[0,0,-30]},{"time":2,"rotation":[0,0,30]}]}}]}
