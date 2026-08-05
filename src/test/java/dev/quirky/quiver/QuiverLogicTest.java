@@ -281,6 +281,43 @@ class QuiverLogicTest {
 	}
 
 	@Test
+	void findAmmoPrefersFireworksInFirstSlotForCrossbow() {
+		// 弩 supported（ARROW_OR_FIREWORK，2026-08-05 修复）：箭袋第一格烟花火箭 → 返回烟花火箭
+		ItemContainerContents contents = ItemContainerContents.fromItems(List.of(
+			new ItemStack(Items.FIREWORK_ROCKET, 8),
+			new ItemStack(Items.ARROW, 64)
+		));
+		Predicate<ItemStack> crossbowAmmo = stack ->
+			stack.is(Items.ARROW) || stack.is(Items.SPECTRAL_ARROW) || stack.is(Items.TIPPED_ARROW) || stack.is(Items.FIREWORK_ROCKET);
+		QuiverLogic.AmmoMatch match = QuiverLogic.findAmmo(contents, crossbowAmmo);
+		assertTrue(match.found());
+		assertTrue(match.stack().is(Items.FIREWORK_ROCKET));
+		assertEquals(0, match.groupIndex());
+	}
+
+	@Test
+	void findAmmoSkippedEmptyGroupFallsThroughToNext() {
+		// 第一组已消耗空（EMPTY 槽）→ 弩 fallthrough 到第二组箭
+		ItemContainerContents contents = ItemContainerContents.fromItems(List.of(
+			ItemStack.EMPTY,
+			new ItemStack(Items.ARROW, 64)
+		));
+		QuiverLogic.AmmoMatch match = QuiverLogic.findAmmo(contents, AMMO);
+		assertTrue(match.found());
+		assertTrue(match.stack().is(Items.ARROW));
+		assertEquals(1, match.groupIndex());
+	}
+
+	@Test
+	void decrementGroupConsumesFireworks() {
+		ItemContainerContents contents = ItemContainerContents.fromItems(List.of(new ItemStack(Items.FIREWORK_ROCKET, 8)));
+		ItemContainerContents after = QuiverLogic.decrementGroup(contents, 0, 1);
+		List<ItemStack> stored = after.allItemsCopyStream().toList();
+		assertEquals(7, stored.get(0).getCount());
+		assertTrue(stored.get(0).is(Items.FIREWORK_ROCKET));
+	}
+
+	@Test
 	void decrementGroupReducesCountKeepsGroup() {
 		ItemContainerContents contents = ItemContainerContents.fromItems(List.of(new ItemStack(Items.ARROW, 10)));
 		ItemContainerContents after = QuiverLogic.decrementGroup(contents, 0, 3);
