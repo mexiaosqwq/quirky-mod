@@ -37,7 +37,8 @@ public class BoomerangItem extends Item {
 
 		BoomerangEntity boomerang = new BoomerangEntity(serverLevel, player, stack, throwSlot);
 		boomerang.setPos(player.getX(), player.getEyeY() - 0.1, player.getZ());
-		boomerang.shootFromRotation(player, player.getXRot(), player.getYRot(), 0.0F, 1.0F, 0.0F);
+		// force = 初始速度 0.7 格/tick，对齐 BoomerangEntity.THROW_SPEED（从容弧线手感）
+		boomerang.shootFromRotation(player, player.getXRot(), player.getYRot(), 0.0F, 0.7F, 0.0F);
 		serverLevel.addFreshEntity(boomerang);
 		serverLevel.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ARROW_SHOOT, SoundSource.PLAYERS, 1.0F, 0.8F);
 		if (!player.hasInfiniteMaterials()) {

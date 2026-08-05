@@ -44,24 +44,34 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * 回旋镖飞行实体：自实现 tick 物理（无重力直线 + 出程右偏弧线，返程向投掷者转向）。
+ * 回旋镖飞行实体：自实现 tick 物理采用连续进动弧线模型——每帧 precess(右手偏转) →
+ * converge(朝投掷者收敛) → modulateSpeed(远端减速) → heightVelocity(高度起伏)，全程连续无硬切换，
+ * 返程由进动(速度持续偏转自然转过约 180° 指回投掷者)与收敛共同产生。
  * 飞行中拾取地面物品（记入 NBT 列表），触碰生物造成轻伤+击退（每生物每次飞行只判定一次），
  * 撞方块小概率打碎（秒破类必碎，免疫 tag / 冒险模式不打碎），并远程激活钟/按钮等方块。
  * 投掷者 UUID 由 {@link Projectile#getOwner()}（EntityReference）查找，防内存悬挂。
  */
 public class BoomerangEntity extends Projectile implements ItemSupplier {
-	/** 出程右偏弧度/格。 */
-	private static final double ARC_RADIANS = 0.03;
-	/** 返程单步最大转向（弧度/tick，约 20°/tick）。 */
-	private static final double RETURN_TURN_RATE = 0.35;
-	/** 回手判定距离 1.5 格（平方）。 */
-	private static final double CATCH_DISTANCE_SQ = 2.25;
+	/** 进动偏转速率（弧度/tick，≈4.6°/tick；可调）。飞约 39 tick 转过 180° 自然回指投掷者。 */
+	private static final double PRECESSION_RATE = 0.08;
+	/** 朝投掷者收敛强度（每帧水平方向 blend 比例；可调）。 */
+	private static final double CONVERGE_STRENGTH = 0.05;
+	/** 远端最低速度倍率（可调）。 */
+	private static final double MIN_SPEED_SCALE = 0.55;
+	/** 远端抬升幅度（格；可调）。 */
+	private static final double HEIGHT_AMPLITUDE = 0.4;
+	/** 飞行进度归一化基准 tick（≈3s；可调）。 */
+	private static final int ESTIMATED_FLIGHT_TICKS = 60;
+	/** 回手判定距离 1.8 格（平方；可调）。 */
+	private static final double CATCH_DISTANCE_SQ = 3.24;
+	/** 右手回旋镖：进动顺时针（俯视）= 投掷者右手边。 */
+	private static final boolean CLOCKWISE = true;
 	/** 命中生物固定伤害（武器化后不再走配置；对齐近战属性 4）。 */
 	private static final float HIT_DAMAGE = 4.0F;
 	/** 10 秒兜底自毁上限。 */
 	private static final int MAX_LIFETIME_TICKS = 200;
-	/** 出程速度（格/tick）。 */
-	private static final double THROW_SPEED = 1.0;
+	/** 初始速度（格/tick；可调）。 */
+	private static final double THROW_SPEED = 0.7;
 
 	private static final String TAG_RETURNING = "Returning";
 	private static final String TAG_HITS = "HitEntities";
@@ -79,9 +89,11 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 
 	private final List<ItemStack> collected = new ArrayList<>();
 	private final Set<UUID> hitEntities = new HashSet<>();
+	/** 连续模型已废弃出程/返程切换；保留字段仅供旧存档 NBT 兼容读取。 */
 	private boolean returning;
-	private int maxRange = 12;
+	private int maxRange = 16;
 	private int throwSlot = -1;
+	/** 连续模型已废弃距离阈值；保留字段仅供旧存档 NBT 兼容读取。 */
 	private double traveledDistance;
 	private int lifetimeTicks;
 
@@ -197,20 +209,21 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 			vel = this.getLookAngle().scale(THROW_SPEED);
 		}
 
-		if (!this.returning) {
-			this.traveledDistance += vel.length();
-			vel = BoomerangPhysics.applyArc(vel, ARC_RADIANS);
-			if (this.traveledDistance >= this.maxRange) {
-				this.returning = true;
-			}
-		} else {
-			Vec3 target = owner.position().add(0.0, owner.getEyeHeight() * 0.5, 0.0);
-			if (pos.distanceToSqr(target) <= CATCH_DISTANCE_SQ) {
-				this.retrieveFor(level, owner);
-				return;
-			}
-			vel = BoomerangPhysics.returnVector(pos, target, vel, RETURN_TURN_RATE);
+		// 连续进动弧线：每帧 precess(右手偏转) → converge(朝投掷者收敛) → modulateSpeed(远端减速) → heightVelocity(高度起伏)
+		Vec3 ownerPos = owner.position().add(0.0, owner.getEyeHeight() * 0.5, 0.0);
+		double progress = Math.min(1.0, (double) this.lifetimeTicks / (double) ESTIMATED_FLIGHT_TICKS);
+		double dist = pos.subtract(ownerPos).horizontalDistance();
+
+		// 回手判定（水平距离，不受高度起伏影响；投出后 3 tick 起判避免刚离手即接住）
+		if (this.lifetimeTicks > 3 && pos.subtract(ownerPos).horizontalDistanceSqr() <= CATCH_DISTANCE_SQ) {
+			this.retrieveFor(level, owner);
+			return;
 		}
+
+		vel = BoomerangPhysics.precess(vel, PRECESSION_RATE, CLOCKWISE);
+		vel = BoomerangPhysics.converge(vel, pos, ownerPos, CONVERGE_STRENGTH);
+		vel = BoomerangPhysics.modulateSpeed(vel, THROW_SPEED, dist, this.maxRange, MIN_SPEED_SCALE);
+		vel = new Vec3(vel.x, BoomerangPhysics.heightVelocity(progress, HEIGHT_AMPLITUDE, ESTIMATED_FLIGHT_TICKS), vel.z);
 
 		Vec3 newPos = BoomerangPhysics.step(pos, vel, 1.0);
 
@@ -271,10 +284,7 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 			return; // 打碎 → 穿透继续飞
 		}
 
-		// 未碎 → 反弹：进入返程（若仍在出程）+ 沿法线反射速度
-		if (!this.returning) {
-			this.returning = true;
-		}
+		// 未碎 → 沿法线反射速度（连续模型无出程/返程切换，反射后继续弧线飞行）
 		Vec3 vel = this.getDeltaMovement();
 		Vec3 normal = hit.getDirection().getUnitVec3();
 		this.setDeltaMovement(vel.subtract(normal.scale(2.0 * vel.dot(normal))));

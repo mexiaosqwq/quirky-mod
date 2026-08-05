@@ -78,7 +78,7 @@
   "text.autoconfig.quirky.option.ropeMaxExtendPerUse": "单次最大延伸段数",
   "text.autoconfig.quirky.option.ropeMaxExtendPerUse.@Tooltip": "潜行右键绳段时一次最多铺设的绳段数。",
   "text.autoconfig.quirky.option.boomerangRange": "回旋镖最大射程",
-  "text.autoconfig.quirky.option.boomerangRange.@Tooltip": "回旋镖开始折返前的最大飞行距离（格）。",
+  "text.autoconfig.quirky.option.boomerangRange.@Tooltip": "回旋镖飞行作用距离（远端减速参考，格；实际弧线飞行约此距离）。",
   "text.autoconfig.quirky.option.boomerangBreakChance": "回旋镖碎块概率",
   "text.autoconfig.quirky.option.boomerangBreakChance.@Tooltip": "实心方块被撞击打碎的概率（0-1）；对秒破方块不生效。",
   "item.quirky.rope": "绳",

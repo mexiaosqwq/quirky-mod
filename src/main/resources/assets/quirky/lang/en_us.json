@@ -90,7 +90,7 @@
   "text.autoconfig.quirky.option.ropeMaxExtendPerUse": "Rope Max Extend per Use",
   "text.autoconfig.quirky.option.ropeMaxExtendPerUse.@Tooltip": "Maximum rope segments placed at once when sneak-right-clicking a rope.",
   "text.autoconfig.quirky.option.boomerangRange": "Boomerang Range",
-  "text.autoconfig.quirky.option.boomerangRange.@Tooltip": "Maximum flight distance in blocks before the boomerang turns back.",
+  "text.autoconfig.quirky.option.boomerangRange.@Tooltip": "Boomerang flight range (far-end slowdown reference, in blocks; arc travels roughly this far).",
   "text.autoconfig.quirky.option.boomerangBreakChance": "Boomerang Break Chance",
   "text.autoconfig.quirky.option.boomerangBreakChance.@Tooltip": "Chance (0-1) that a solid block is shattered on impact; ignored for instant-break blocks.",
   "item.quirky.rope": "Rope",

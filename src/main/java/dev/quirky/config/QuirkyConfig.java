@@ -26,7 +26,7 @@ public class QuirkyConfig implements ConfigData {
 	@ConfigEntry.Category("items")
 	@ConfigEntry.BoundedDiscrete(min = 4, max = 24)
 	@ConfigEntry.Gui.Tooltip
-	public int boomerangRange = 12;
+	public int boomerangRange = 16;
 
 	@ConfigEntry.Category("items")
 	@ConfigEntry.Gui.Tooltip
