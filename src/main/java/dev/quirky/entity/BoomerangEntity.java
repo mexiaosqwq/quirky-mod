@@ -63,8 +63,8 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	private static final double HEIGHT_AMPLITUDE = 0.4;
 	/** 飞行进度归一化基准 tick（对齐实际回手时长，让高度起伏完整 0→峰→0；可调）。 */
 	private static final int ESTIMATED_FLIGHT_TICKS = 30;
-	/** 回手判定水平距离 1.8 格（平方；可调）。 */
-	private static final double CATCH_DISTANCE_SQ = 3.24;
+	/** 回手判定水平距离 2.0 格（平方；可调）。略放大让接住更宽容。 */
+	private static final double CATCH_DISTANCE_SQ = 4.0;
 	/** 回手判定垂直容差 1.5 格（跳跃/下落时仍能接住；可调）。 */
 	private static final double CATCH_VERTICAL_TOLERANCE = 1.5;
 	/** 命中生物固定伤害（武器化后不再走配置；对齐近战属性 4）。 */
@@ -282,7 +282,12 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		if (owner != null) {
 			vel = BoomerangPhysics.converge(vel, pos, ownerPos, CONVERGE_STRENGTH * trigger);
 		}
-		vel = BoomerangPhysics.modulateSpeed(vel, this.throwSpeed, dist, this.maxRange, MIN_SPEED_SCALE);
+		// 速度调制：出程近快远慢，返程近慢远快（反向）——返程接近玩家减速，防高速穿过漏检接住
+		if (this.returning) {
+			vel = BoomerangPhysics.returnSpeed(vel, this.throwSpeed, dist, this.maxRange, MIN_SPEED_SCALE);
+		} else {
+			vel = BoomerangPhysics.modulateSpeed(vel, this.throwSpeed, dist, this.maxRange, MIN_SPEED_SCALE);
+		}
 		vel = new Vec3(vel.x, BoomerangPhysics.verticalVelocity(trigger, this.initialVelY, progress, HEIGHT_AMPLITUDE, ESTIMATED_FLIGHT_TICKS), vel.z);
 
 		Vec3 newPos = BoomerangPhysics.step(pos, vel, 1.0);
@@ -347,7 +352,10 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		}
 
 		// 打碎判定：秒破类必碎 / 免疫与冒险不打碎 / 其余默认 5% 摇骰
-		if (this.breakBlock(level, pos, state)) {
+		// 返程接近玩家（dist<3）时禁用打碎，避免回旋镖在玩家附近绕圈接住时刨地/刨方块
+		Entity owner = this.getOwner();
+		Vec3 ownerPos = owner != null ? owner.position().add(0.0, owner.getEyeHeight() * 0.5, 0.0) : this.position();
+		if (!(this.returning && this.position().subtract(ownerPos).horizontalDistance() < 3.0) && this.breakBlock(level, pos, state)) {
 			return; // 打碎 → 穿透继续飞
 		}
 

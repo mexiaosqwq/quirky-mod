@@ -152,6 +152,35 @@ class BoomerangPhysicsTest {
 		assertEquals(-0.4 * Math.PI / 50.0, v, 1e-9);
 	}
 
+	// ==== returnSpeed（返程反向减速）====
+
+	@Test
+	void returnSpeedSlowsWhenClose() {
+		// 返程接近玩家(dist=0)：减速到 minScale
+		Vec3 vel = new Vec3(0.7, 0.0, 0.0);
+		Vec3 r = BoomerangPhysics.returnSpeed(vel, 0.7, 0.0, 12.0, 0.55);
+		assertEquals(0.7 * 0.55, r.length(), 1e-9, "close → minScale");
+	}
+
+	@Test
+	void returnSpeedFullWhenFar() {
+		// 返程远处(dist=maxRange)：全速往回赶
+		Vec3 vel = new Vec3(0.7, 0.0, 0.0);
+		Vec3 r = BoomerangPhysics.returnSpeed(vel, 0.7, 12.0, 12.0, 0.55);
+		assertEquals(0.7, r.length(), 1e-9, "far → full speed");
+	}
+
+	@Test
+	void returnSpeedIsMirrorOfModulate() {
+		// 返程曲线应与出程相反：同一 dist，returnSpeed 的 scale + modulateSpeed 的 scale = 1 + minScale
+		Vec3 vel = new Vec3(0.7, 0.0, 0.0);
+		double dist = 6.0;
+		double outSpeed = BoomerangPhysics.modulateSpeed(vel, 0.7, dist, 12.0, 0.55).length();
+		double retSpeed = BoomerangPhysics.returnSpeed(vel, 0.7, dist, 12.0, 0.55).length();
+		// out: scale=0.55+0.45*(1-0.5)=0.775; ret: scale=0.55+0.45*0.5=0.775 —— 中点相同（镜像交点）
+		assertEquals(outSpeed, retSpeed, 1e-9, "mid-range is the mirror crossing point");
+	}
+
 	// ==== verticalVelocity（仰角→弧高 blend）====
 
 	@Test

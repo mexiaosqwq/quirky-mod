@@ -86,13 +86,26 @@ public final class BoomerangPhysics {
 	}
 
 	/**
-	 * 速度调制：每帧把速度大小设为 {@code baseSpeed * scale}（scale 由距离决定），方向不变。
-	 * 近端全速，远端 {@code minScale}；{@code dist >= maxRange} 时钳制到 {@code minScale}。
-	 * 基于 {@code baseSpeed} 而非当前速度，避免逐帧累积衰减。
+	 * 速度调制（出程）：近处全速、远端减速。基于 {@code baseSpeed} 不累积衰减。
 	 */
 	public static Vec3 modulateSpeed(Vec3 vel, double baseSpeed, double dist, double maxRange, double minScale) {
 		double t = maxRange < 1e-9 ? 0.0 : Math.max(0.0, Math.min(1.0, dist / maxRange));
 		double scale = minScale + (1.0 - minScale) * (1.0 - t);
+		double targetSpeed = baseSpeed * scale;
+		double curLen = vel.length();
+		if (curLen < 1e-9) {
+			return vel;
+		}
+		return vel.scale(targetSpeed / curLen);
+	}
+
+	/**
+	 * 速度调制（返程）：近处减速、远处全速——与出程相反。接近投掷者时低速漂移，避免高速穿过漏检接住判定；
+	 * 远处全速赶紧往回赶。基于 {@code baseSpeed} 不累积衰减。
+	 */
+	public static Vec3 returnSpeed(Vec3 vel, double baseSpeed, double dist, double maxRange, double minScale) {
+		double t = maxRange < 1e-9 ? 0.0 : Math.max(0.0, Math.min(1.0, dist / maxRange));
+		double scale = minScale + (1.0 - minScale) * t;
 		double targetSpeed = baseSpeed * scale;
 		double curLen = vel.length();
 		if (curLen < 1e-9) {
