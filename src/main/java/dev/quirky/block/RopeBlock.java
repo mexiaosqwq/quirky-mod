@@ -208,12 +208,12 @@ public class RopeBlock extends Block implements SimpleWaterloggedBlock {
 
 	/**
 	 * 刷新 top 状态：上方是否绳段决定本段渲染成顶部绳结变体还是连续绳身变体。
-	 * 贴墙段恒无结（跳过）；仅在状态变化时 setBlock（flags=2，不触发 tick），
+	 * 贴墙段同样遵循（顶段带结，与悬挂段视觉一致）；仅在状态变化时 setBlock（flags=2，不触发 tick），
 	 * 变化会经邻居通知收敛，无递归风险。
 	 */
 	private static void refreshTop(Level level, BlockPos pos) {
 		BlockState state = level.getBlockState(pos);
-		if (!RopeSupportLogic.isRope(state) || state.getValue(WALL)) {
+		if (!RopeSupportLogic.isRope(state)) {
 			return;
 		}
 		boolean top = !RopeSupportLogic.isRope(level.getBlockState(pos.above()));

@@ -169,7 +169,7 @@ public class RopeItem extends BlockItem {
 		Direction wall = wallFacing != null && RopeSupportLogic.isBackedAt(level, pos, wallFacing) ? wallFacing : null;
 		BlockState ropeState = this.getBlock().defaultBlockState()
 			.setValue(RopeBlock.WATERLOGGED, waterlogged)
-			.setValue(RopeBlock.TOP, wall != null ? false : top)
+			.setValue(RopeBlock.TOP, top)
 			.setValue(RopeBlock.WALL, wall != null)
 			.setValue(RopeBlock.FACING, wall != null ? wall : Direction.NORTH);
 		level.setBlock(pos, ropeState, 3);
