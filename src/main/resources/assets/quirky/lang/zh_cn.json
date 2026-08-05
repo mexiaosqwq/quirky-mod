@@ -16,7 +16,7 @@
   "message.quirky.totem_spawned": "你的保留图腾生成于 %s (%s, %s, %s)，距你的出生点 %s 格",
   "message.quirky.totem_spawned_cross": "你的保留图腾生成于 %s (%s, %s, %s)，与你的出生点不在同一维度",
   "tooltip.quirky.clock": "第 %s 天 · %s",
-  "tooltip.quirky.rope": "右键方块侧面沿墙铺设（泰拉瑞亚式）；右键固体方块/栅栏/墙下悬挂，右键绳段向下延伸，潜行右键批量铺设；绳可攀爬，下潜时会吸附绳身缓慢滑落（潜行松手）；手持灯笼右键可挂上灯笼",
+  "tooltip.quirky.rope": "右键方块侧面贴墙或下方悬挂，右键绳段向下延伸，潜行批量铺设；\n可攀爬，滑落不摔伤（潜行松手）；手持灯笼右键挂灯",
   "tooltip.quirky.shift_details": "按住 Shift 查看详情",
   "tooltip.quirky.seed_pouch": "右键播种 3×3；物品栏内光标点击放/取种子",
   "tooltip.quirky.fish_bait": "扔到水面上形成诱鱼区，区内的浮漂咬钩更快",

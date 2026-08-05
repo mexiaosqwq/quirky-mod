@@ -47,7 +47,7 @@ public class RopeItem extends BlockItem {
 		super(block, properties);
 	}
 
-	/** 用途说明（高级 tooltip 模式受控）：右键悬挂/延伸，潜行右键批量铺设，手持灯笼右键挂灯。 */
+	/** 用途说明（高级 tooltip 模式受控）：右键放置/延伸/批量，攀爬防摔，灯笼挂灯。 */
 	@Override
 	public void appendHoverText(
 		ItemStack stack, Item.TooltipContext context, TooltipDisplay display, Consumer<Component> builder, TooltipFlag flag
@@ -56,7 +56,10 @@ public class RopeItem extends BlockItem {
 		if (TooltipShiftState.isSuppressing()) {
 			return;
 		}
-		builder.accept(Component.translatable("tooltip.quirky.rope").withStyle(ChatFormatting.GRAY));
+		// lang 文本以 \n 分行，逐行渲染（避免超长单行堆叠）
+		for (String line : Component.translatable("tooltip.quirky.rope").getString().split("\n")) {
+			builder.accept(Component.literal(line).withStyle(ChatFormatting.GRAY));
+		}
 	}
 
 	@Override
