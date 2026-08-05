@@ -182,7 +182,7 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	protected void readAdditionalSaveData(ValueInput input) {
 		super.readAdditionalSaveData(input);
 		this.returning = input.getBooleanOr(TAG_RETURNING, false);
-		this.maxRange = input.getIntOr(TAG_MAX_RANGE, 12);
+		this.maxRange = Math.max(5, Math.min(20, input.getIntOr(TAG_MAX_RANGE, 12)));
 		this.throwSlot = input.getIntOr(TAG_THROW_SLOT, -1);
 		// traveledDistance 旧存档兼容读取，不再使用
 		this.peakDistance = input.getDoubleOr(TAG_PEAK_DISTANCE, 0.0);
@@ -400,18 +400,16 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ITEM_PICKUP, SoundSource.PLAYERS, 0.5F, 1.0F);
 	}
 
-	/** 回到投掷者：消耗 1 点耐久（归零则直接损坏消失），归还物品与拾取物。 */
+	/** 回到投掷者：消耗 1 点耐久（归零则损坏消失），归还数量与拾取物。
+	 * 耐久扣在玩家背包里的真实堆叠上（可堆叠物品共享耐久），数量用 grow(1) 归还——
+	 * 不归还实体副本，避免"原堆叠(满耐久)+副本(扣过耐久)"两个不同耐久的物品无法堆叠占两格。 */
 	private void retrieveFor(ServerLevel level, Entity owner) {
-		boolean broken = this.applyFlightDurability(level, owner);
 		if (owner instanceof Player player) {
 			boolean creative = player.hasInfiniteMaterials();
-			// 回旋镖本体：仅生存模式归还（投掷时消耗了 1 个）；创造模式手里未消耗，不归还以免复制
-			if (!broken && !creative) {
-				if (this.returnToInventory(player)) {
-					player.playSound(SoundEvents.ARMOR_EQUIP_GENERIC.value(), 0.5F, 1.0F);
-				} else {
-					level.addFreshEntity(new ItemEntity(level, player.getX(), player.getY(), player.getZ(), this.getItem()));
-				}
+			// 耐久：扣回玩家背包里的真实堆叠（创造模式不扣）；数量用 grow(1) 归还
+			boolean returned = this.returnStackToPlayer(player, creative);
+			if (returned) {
+				player.playSound(SoundEvents.ARMOR_EQUIP_GENERIC.value(), 0.5F, 1.0F);
 			}
 			// 拾取物：放入背包，部分放入的剩余就地掉落（不吞物品）
 			for (ItemStack stack : this.collected) {
@@ -429,24 +427,63 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		this.discard();
 	}
 
-	/** 每次完整飞行消耗 1 点耐久；归零时物品 shrink 消失并播放 ITEM_BREAK，返回是否已损坏。 */
-	private boolean applyFlightDurability(ServerLevel level, Entity owner) {
-		if (this.getItem().isDamageableItem() && !this.getItem().isBroken()) {
-			this.getItem().hurtAndBreak(1, level, owner instanceof ServerPlayer player ? player : null, broken -> {
-				level.playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ITEM_BREAK, SoundSource.PLAYERS, 0.8F, 1.0F);
-			});
-		}
-		return this.getItem().isEmpty();
-	}
-
-	/** 优先回填原手持槽，其次背包空位。 */
-	private boolean returnToInventory(Player player) {
+	/**
+	 * 归还物品：耐久扣在玩家背包里的真实堆叠（可堆叠共享耐久），数量 grow(1) 归还，
+	 * 不归还实体副本（避免"原堆叠满耐久 + 副本扣过耐久"无法堆叠占两格）。
+	 * 创造模式：投掷不 consume，物品数量本就未变 → 不 grow 不扣耐久（防复制）。
+	 * 单飞镖场景（背包无堆叠可扣）：扣副本耐久后直接放回手中。
+	 * 耐久归零损坏：物品消失（不归还）。
+	 * 返回 true = 物品已处理（回手/损坏/创造）；false = 兜底就地掉落。
+	 */
+	private boolean returnStackToPlayer(Player player, boolean creative) {
 		Inventory inventory = player.getInventory();
-		if (this.throwSlot >= 0 && this.throwSlot < inventory.getContainerSize() && inventory.getItem(this.throwSlot).isEmpty()) {
-			inventory.setItem(this.throwSlot, this.getItem());
+		ItemStack flying = this.getItem();
+		if (creative) {
+			return true; // 投掷未消耗，数量已正确
+		}
+		// 找同种可堆叠堆叠（优先原手持槽位）
+		ItemStack target = null;
+		if (this.throwSlot >= 0 && this.throwSlot < inventory.getContainerSize()) {
+			ItemStack slot = inventory.getItem(this.throwSlot);
+			if (ItemStack.isSameItem(slot, flying) && slot.getCount() < slot.getMaxStackSize()) {
+				target = slot;
+			}
+		}
+		if (target == null) {
+			for (int i = 0; i < inventory.getContainerSize(); i++) {
+				ItemStack slot = inventory.getItem(i);
+				if (ItemStack.isSameItem(slot, flying) && slot.getCount() < slot.getMaxStackSize()) {
+					target = slot;
+					break;
+				}
+			}
+		}
+		if (target != null) {
+			// 扣真实堆叠耐久；归零损坏 shrink(1) 移除一个，此时不 grow（数量守恒）
+			target.hurtAndBreak(1, (ServerLevel) this.level(), player instanceof ServerPlayer sp ? sp : null, broken -> {
+				this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ITEM_BREAK, SoundSource.PLAYERS, 0.8F, 1.0F);
+			});
+			if (!target.isEmpty()) {
+				target.grow(1);
+			}
 			return true;
 		}
-		return inventory.add(this.getItem());
+		// 单飞镖：背包无堆叠 → 扣副本耐久后放回手中（损坏则消失）
+		if (flying.isDamageableItem() && !flying.isBroken()) {
+			flying.hurtAndBreak(1, (ServerLevel) this.level(), player instanceof ServerPlayer sp ? sp : null, broken -> {
+				this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ITEM_BREAK, SoundSource.PLAYERS, 0.8F, 1.0F);
+			});
+		}
+		if (!flying.isEmpty()) {
+			// 优先原手持槽，其次背包空位；放不下则就地掉落
+			if (!(this.throwSlot >= 0 && this.throwSlot < inventory.getContainerSize() && inventory.getItem(this.throwSlot).isEmpty())) {
+				inventory.add(flying);
+			}
+			if (!flying.isEmpty()) {
+				this.level().addFreshEntity(new ItemEntity((ServerLevel) this.level(), player.getX(), player.getY(), player.getZ(), flying));
+			}
+		}
+		return true;
 	}
 
 	/** 兜底掉落（10 秒上限/投掷者不可用）：坠入虚空不掉落，其余就地掉落。 */

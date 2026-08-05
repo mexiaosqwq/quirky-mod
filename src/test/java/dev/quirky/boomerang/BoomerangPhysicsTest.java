@@ -270,7 +270,7 @@ class BoomerangPhysicsTest {
 			double trigger = Math.max(BoomerangPhysics.smoothstep(dist / maxRange), returning ? 1.0 : 0.0);
 			vel = BoomerangPhysics.precess(vel, rate * trigger, clockwise);
 			vel = BoomerangPhysics.converge(vel, pos, ownerPos, strength * trigger);
-			vel = BoomerangPhysics.modulateSpeed(vel, 0.7, dist, maxRange, minScale);
+			vel = returning ? BoomerangPhysics.returnSpeed(vel, 0.7, dist, maxRange, minScale) : BoomerangPhysics.modulateSpeed(vel, 0.7, dist, maxRange, minScale);
 			vel = new Vec3(vel.x, BoomerangPhysics.heightVelocity(progress, amp, total), vel.z);
 			pos = BoomerangPhysics.step(pos, vel, 1.0);
 		}
@@ -312,7 +312,7 @@ class BoomerangPhysicsTest {
 			double trigger = Math.max(BoomerangPhysics.smoothstep(dist / maxRange), returning ? 1.0 : 0.0);
 			vel = BoomerangPhysics.precess(vel, rate * trigger, false);
 			vel = BoomerangPhysics.converge(vel, pos, ownerPos, strength * trigger);
-			vel = BoomerangPhysics.modulateSpeed(vel, 0.7, dist, maxRange, minScale);
+			vel = returning ? BoomerangPhysics.returnSpeed(vel, 0.7, dist, maxRange, minScale) : BoomerangPhysics.modulateSpeed(vel, 0.7, dist, maxRange, minScale);
 			vel = new Vec3(vel.x, BoomerangPhysics.heightVelocity(progress, amp, total), vel.z);
 			pos = BoomerangPhysics.step(pos, vel, 1.0);
 		}
@@ -348,7 +348,7 @@ class BoomerangPhysicsTest {
 			double trigger = Math.max(BoomerangPhysics.smoothstep(dist / maxRange), returning ? 1.0 : 0.0);
 			vel = BoomerangPhysics.precess(vel, rate * trigger, true);
 			vel = BoomerangPhysics.converge(vel, pos, ownerPos, strength * trigger);
-			vel = BoomerangPhysics.modulateSpeed(vel, 0.7, dist, maxRange, minScale);
+			vel = returning ? BoomerangPhysics.returnSpeed(vel, 0.7, dist, maxRange, minScale) : BoomerangPhysics.modulateSpeed(vel, 0.7, dist, maxRange, minScale);
 			pos = BoomerangPhysics.step(pos, vel, 1.0);
 			ownerPos = ownerPos.add(ownerMove);  // 玩家移动
 		}
