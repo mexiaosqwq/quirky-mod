@@ -45,8 +45,9 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * 回旋镖飞行实体：自实现 tick 物理——每帧 precess(右手偏转) → converge(朝投掷者收敛) →
- * 速度调制(出程近快远慢 / 返程近慢远快) → verticalVelocity(仰角+高度起伏)。
+ * 回旋镖飞行实体：自实现 tick 物理，出程/返程分支。出程 precess(弧线) → converge(水平收敛) →
+ * 速度调制(近快远慢) → 保留投掷仰角(不锁高度)；返程 precess(弧线) → converge3D(垂直水平同步收敛) →
+ * returnSpeed(近慢远快)。
  * 出程按距离 smoothstep 触发，到达峰值距离或撞墙后进入返程（returning 硬切换 + returnSpeed 反向减速），
  * 可靠回手。飞行中拾取地面物品（记入 NBT 列表），触碰生物造成轻伤+击退（每生物每次飞行只判定一次），
  * 撞方块小概率打碎（秒破类必碎，免疫 tag / 冒险模式不打碎）——未打碎则化为掉落物。
@@ -60,16 +61,16 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	private static final double CONVERGE_STRENGTH = 0.35;
 	/** 远端最低速度倍率（可调）。0.3 让远端明显减速。 */
 	private static final double MIN_SPEED_SCALE = 0.3;
-	/** 远端抬升幅度（格；可调）。 */
-	private static final double HEIGHT_AMPLITUDE = 0.4;
-	/** 返程垂直收敛强度（每帧朝投掷者 y 拉的比例；可调）。防回旋镖飞高后下不来空中绕圈。 */
-	private static final double VERTICAL_CONVERGE = 0.1;
-	/** 飞行进度归一化基准 tick（对齐实际回手时长，让高度起伏完整 0→峰→0；可调）。 */
-	private static final int ESTIMATED_FLIGHT_TICKS = 30;
+	/** 空气阻力衰减（每帧 vel*=AIR_DRAG，模拟回旋镖越飞越慢；可调）。0.99 让 20 tick 后速度保留 82%。 */
+	private static final double AIR_DRAG = 0.99;
+	/** 返程 trigger 平滑升速（每帧增量；可调）。从 returning 触发时的 smoothstep 值单调升到 1.0，防 trigger 硬跳变导致垂直 vel 突变。 */
+	private static final double RETURN_RAMP_RATE = 0.15;
 	/** 回手判定水平距离 2.0 格（平方；可调）。略放大让接住更宽容。 */
 	private static final double CATCH_DISTANCE_SQ = 4.0;
 	/** 回手判定垂直容差 1.5 格（跳跃/下落时仍能接住；可调）。 */
 	private static final double CATCH_VERTICAL_TOLERANCE = 1.5;
+	/** 返程牵引半径(可调)：玩家离投掷点超过此距离，回旋镖不再追，飞回投掷点掉落——避免无限跟随移动的玩家。 */
+	private static final double LEASH_RADIUS = 8.0;
 	/** 命中生物固定伤害（武器化后不再走配置；对齐近战属性 4）。 */
 	private static final float HIT_DAMAGE = 4.0F;
 	/** 10 秒兜底自毁上限。 */
@@ -113,13 +114,17 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	private boolean returning;
 	/** 出程飞行峰值距离，用于检测开始返程（dist 开始减小）。 */
 	private double peakDistance;
+	/** 返程 trigger 平滑值：returning 触发后每帧 +RETURN_RAMP_RATE 升到 1.0（垂直过渡用，防弹簧权重突变）。 */
+	private double returnRamp;
+	/** 投掷时的初始垂直速度分量（首帧 tick 记录 vel.y；spawn 包必带 velocity，两端首帧快照一致），用于出程保留投掷方向。 */
+	private double initialVelY;
+	/** 投掷点(home)：首帧记录 position()。返程牵引锚点——玩家在 LEASH_RADIUS 内则追踪接住，跑远则飞回此处掉落。两端首帧各自记录(spawn 位置一致)，无需同步。 */
+	private Vec3 homePos;
 	private int maxRange = 12;
 	private double throwSpeed = BASE_THROW_SPEED;
 	/** 投掷时是否已从玩家背包消耗物品（生存模式投掷=已消耗；创造=未消耗）。
 	 * 用投掷时快照判定归还/掉落，防飞行中切换游戏模式导致物品删除/复制。 */
 	private boolean consumed;
-	/** 投掷时的初始垂直速度分量（由仰角决定），首帧 tick 记录，用于出程保留仰角弧高。 */
-	private double initialVelY;
 	private int throwSlot = -1;
 	/** 连续模型已废弃距离阈值；保留字段仅供旧存档 NBT 兼容读取。 */
 	private double traveledDistance;
@@ -271,7 +276,7 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	}
 
 	/**
-	 * 每帧运动计算（两端共用）：precess → converge → modulateSpeed → heightVelocity → step。
+	 * 每帧运动计算（两端共用）：precess → converge → modulateSpeed → springVertical → step。
 	 * {@code server} 为 true 时额外执行命中/拾取/接住等权威判定与拖尾粒子。
 	 */
 	private void tickMovement(boolean server) {
@@ -296,41 +301,67 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 			vel = this.getLookAngle().scale(this.getThrowSpeed());
 		}
 
-		// 首帧记录初始垂直分量（仰角），供 verticalVelocity 出程保留仰角弧高
+		// 首帧记录投掷垂直分量 + 投掷点(home)：spawn 包必带 velocity/位置，两端首帧快照一致（客户端预测用真实仰角与 home，不平飞不丢 sync）。
 		if (this.lifetimeTicks == 1) {
 			this.initialVelY = vel.y;
+			this.homePos = pos;
 		}
 
-		// 连续进动弧线：每帧 precess(偏转) → converge(朝投掷者收敛) → modulateSpeed(远端减速) → verticalVelocity(仰角+高度起伏)
+		// 连续进动弧线：出程(precess 弧线 + converge 水平 + modulateSpeed + 保留仰角) / 返程(precess 弧线 + converge3D 同步收敛 + returnSpeed) → AIR_DRAG(空气阻力衰减)
 		Vec3 ownerPos = owner != null ? owner.position().add(0.0, owner.getEyeHeight() * 0.5, 0.0) : pos;
-		double progress = Math.min(1.0, (double) this.lifetimeTicks / (double) ESTIMATED_FLIGHT_TICKS);
-		double dist = pos.subtract(ownerPos).horizontalDistance();
+		// 3D 距离(非水平)：竖直/大仰角上抛水平位移≈0，水平距离永不触发返程；用 3D 距离让任意投掷方向都能到阈返程
+		double dist = pos.subtract(ownerPos).length();
 
-		// 回手判定：水平距离 ≤ 1.8 且 垂直差 ≤ 1.5（跳跃/下落仍能接住）；投出后 3 tick 起判——仅服务端
-		if (server && this.lifetimeTicks > 3 && pos.subtract(ownerPos).horizontalDistanceSqr() <= CATCH_DISTANCE_SQ
+		// 放弃判定：玩家跑出牵引半径且回旋镖已飞回投掷点附近 → 掉落物放弃，不无限追移动的玩家——仅服务端
+		if (server && this.returning && owner != null && this.homePos != null
+			&& ownerPos.distanceTo(this.homePos) > LEASH_RADIUS && pos.distanceTo(this.homePos) < 2.5) {
+			this.dropAllAndDiscard((ServerLevel) level);
+			return;
+		}
+
+		// 回手判定：仅返程触发（出程飞向远方不应接住，否则轻蓄力飞不出接住圈就被回收）；水平 ≤2.0 且 垂直差 ≤1.5——仅服务端
+		if (server && this.returning && this.lifetimeTicks > 3 && pos.subtract(ownerPos).horizontalDistanceSqr() <= CATCH_DISTANCE_SQ
 			&& Math.abs(pos.y - ownerPos.y) <= CATCH_VERTICAL_TOLERANCE) {
 			this.retrieveFor((ServerLevel) level, owner);
 			return;
 		}
 
-		// 距离触发 + 返程状态：出程 smoothstep(dist/maxRange) 近直线可命中；返程 returning 永久满触发强收敛。
-		// 修复纯距离触发返程失效（回旋镖到玩家附近 dist 小→trigger→0→不收敛→绕圈接不住）
+		// 距离触发 + 返程状态：出程 smoothstep(dist/maxRange) 近直线可命中；返程 returnRamp 从 0 平滑升到 1（垂直过渡用）。
+		// 注意：returnRamp 从 0 开始而非触发时的 smoothstep——否则返程首帧弹簧大权重导致 vel.y 突变。水平 trigger 仍用 max(smoothstep, returnRamp)。
 		if (!this.returning && (dist >= this.getMaxRange() * 0.7 || (this.lifetimeTicks > 5 && dist < this.peakDistance - 0.3))) {
 			this.returning = true;
 		}
 		this.peakDistance = Math.max(this.peakDistance, dist);
-		double trigger = Math.max(BoomerangPhysics.smoothstep(this.getMaxRange() > 0 ? dist / this.getMaxRange() : 1.0), this.returning ? 1.0 : 0.0);
-		vel = BoomerangPhysics.precess(vel, PRECESSION_RATE * trigger, this.isClockwise());
-		if (owner != null) {
-			vel = BoomerangPhysics.converge(vel, pos, ownerPos, CONVERGE_STRENGTH * trigger);
-		}
-		// 速度调制：出程近快远慢，返程近慢远快（反向）——返程接近玩家减速，防高速穿过漏检接住
 		if (this.returning) {
-			vel = BoomerangPhysics.returnSpeed(vel, this.getThrowSpeed(), dist, this.getMaxRange(), MIN_SPEED_SCALE);
-		} else {
-			vel = BoomerangPhysics.modulateSpeed(vel, this.getThrowSpeed(), dist, this.getMaxRange(), MIN_SPEED_SCALE);
+			this.returnRamp = Math.min(1.0, this.returnRamp + RETURN_RAMP_RATE);
 		}
-		vel = new Vec3(vel.x, BoomerangPhysics.verticalVelocity(trigger, this.initialVelY, ownerPos.y - pos.y, VERTICAL_CONVERGE, progress, HEIGHT_AMPLITUDE, ESTIMATED_FLIGHT_TICKS), vel.z);
+		double trigger = BoomerangPhysics.smoothstep(this.getMaxRange() > 0 ? dist / this.getMaxRange() : 1.0);
+		// 出程/返程分支：出程保留仰角(initialVelY)，返程用 3D 同步收敛(垂直水平同向量，防「先垂直下再水平回」)
+		if (!this.returning) {
+			// 出程：弧线偏转 + 水平收敛(保持 vel.y) + 近快远慢 + 保留投掷仰角
+			vel = BoomerangPhysics.precess(vel, PRECESSION_RATE * trigger, this.isClockwise());
+			if (owner != null) {
+				vel = BoomerangPhysics.converge(vel, pos, ownerPos, CONVERGE_STRENGTH * trigger);
+			}
+			vel = BoomerangPhysics.modulateSpeed(vel, this.getThrowSpeed(), dist, this.getMaxRange(), MIN_SPEED_SCALE);
+			vel = new Vec3(vel.x, BoomerangPhysics.springVertical(vel.y, 0.0, this.initialVelY, ownerPos.y - pos.y, 1.0), vel.z);
+		} else {
+			// 返程：牵引锚点——玩家在投掷点 LEASH_RADIUS 内则追踪接住；跑远则飞回投掷点(不无限追)
+			// returnRamp 从 0 平滑升到 1：首帧 strength=0 不改方向(无突变)，逐渐接管为朝目标的 3D 弧线
+			Vec3 returnAim = ownerPos;
+			if (owner != null && this.homePos != null && ownerPos.distanceTo(this.homePos) > LEASH_RADIUS) {
+				returnAim = this.homePos;
+			}
+			double returnDist = pos.distanceTo(returnAim);
+			vel = BoomerangPhysics.precess(vel, PRECESSION_RATE * this.returnRamp, this.isClockwise());
+			if (owner != null) {
+				vel = BoomerangPhysics.converge3D(vel, pos, returnAim, CONVERGE_STRENGTH * this.returnRamp);
+			}
+			vel = BoomerangPhysics.returnSpeed(vel, this.getThrowSpeed(), returnDist, this.getMaxRange(), MIN_SPEED_SCALE);
+		}
+
+		// 空气阻力：每帧速度衰减（越飞越慢，模拟回旋镖空气阻力；出程返程都衰减）
+		vel = vel.scale(AIR_DRAG);
 
 		Vec3 newPos = BoomerangPhysics.step(pos, vel, 1.0);
 
