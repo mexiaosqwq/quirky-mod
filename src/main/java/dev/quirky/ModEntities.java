@@ -58,7 +58,7 @@ public final class ModEntities {
 		.noLootTable()
 		.sized(0.4F, 0.4F)
 		.clientTrackingRange(4)
-		.updateInterval(20)
+		.updateInterval(1)
 		.build(BOOMERANG_ID);
 
 	private ModEntities() {

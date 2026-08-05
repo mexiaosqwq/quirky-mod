@@ -38,7 +38,7 @@ public class BoomerangItem extends Item {
 		if (level.isClientSide()) {
 			return InteractionResult.CONSUME;
 		}
-		// 已有活跃回旋镖时拒绝（蓄力前即检查，避免白蓄）
+		// 已有活跃回旋镖时拒绝（蓄力前即检查，避免白蓄）；releaseUsing 会再查一次
 		ServerLevel serverLevel = (ServerLevel) level;
 		if (!serverLevel.getEntities(EntityTypeTest.forClass(BoomerangEntity.class), e -> e.isOwnedBy(player)).isEmpty()) {
 			return InteractionResult.FAIL;

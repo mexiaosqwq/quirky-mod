@@ -5,17 +5,19 @@ import net.minecraft.world.phys.Vec3;
 /**
  * 回旋镖飞行物理的纯数学函数(单测覆盖)。
  *
- * <p>连续进动弧线模型:每帧依次
- * <pre>precess → converge → modulateSpeed → heightVelocity</pre>
- * 位置由 {@link #step} 线性积分。全程连续无硬切换——返程由进动(速度持续偏转,自然转过约 180° 指回投掷者)
- * 与收敛(朝投掷者当前位置 blend)共同产生,而非距离阈值触发。
+ * <p>运动模型：每帧依次
+ * <pre>precess → converge → 速度调制 → verticalVelocity</pre>
+ * 位置由 {@link #step} 线性积分。出程按距离 smoothstep 触发（近处近似直线可命中敌人），
+ * 到达峰值距离或撞墙后进入返程（{@code returning}），返程用 {@link #returnSpeed} 反向减速曲线
+ * （近处慢漂、远处快赶）保证可靠接住。
  *
  * <ul>
- *   <li>{@link #precess} 速度水平分量绕 Y 轴持续偏转,方向由 {@code clockwise} 决定
+ *   <li>{@link #precess} 速度水平分量绕 Y 轴持续偏转，方向由 {@code clockwise} 决定
  *       (true = 投掷者右手边,俯视顺时针)。</li>
- *   <li>{@link #converge} 水平方向朝投掷者 blend,保证弧线终点收敛到(可能移动的)投掷者;保持速度大小与垂直分量。</li>
- *   <li>{@link #modulateSpeed} 远端减速、近端全速,产生"出程减速→返程回升"的手感。</li>
- *   <li>{@link #heightVelocity} 远端抬升的高度起伏速度(正弦位置偏移的导数),通过 vel.y 实现自然积分。</li>
+ *   <li>{@link #converge} 水平方向朝投掷者 blend，保证弧线终点收敛到(可能移动的)投掷者；保持速度大小与垂直分量。</li>
+ *   <li>{@link #modulateSpeed}（出程）近快远慢；{@link #returnSpeed}（返程）近慢远快，防高速穿过漏检接住。</li>
+ *   <li>{@link #heightVelocity} 远端抬升的高度起伏速度（正弦位置偏移的导数），通过 vel.y 实现自然积分。</li>
+ *   <li>{@link #verticalVelocity} 出程保留初始仰角垂直分量，返程过渡到高度起伏。</li>
  * </ul>
  */
 public final class BoomerangPhysics {
