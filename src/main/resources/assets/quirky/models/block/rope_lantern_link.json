@@ -3,7 +3,6 @@
   "textures": {
     "particle": "quirky:block/rope_lantern",
     "rope": "quirky:block/rope",
-    "knot": "quirky:block/rope_knot",
     "lantern": "quirky:block/rope_lantern"
   },
   "elements": [
@@ -22,27 +21,14 @@
     },
     {
       "from": [7, 8, 7],
-      "to": [9, 12, 9],
+      "to": [9, 16, 9],
       "shade": false,
       "faces": {
         "down": {"uv": [0, 0, 2, 2], "texture": "#rope"},
-        "north": {"uv": [0, 0, 2, 4], "texture": "#rope"},
-        "south": {"uv": [0, 0, 2, 4], "texture": "#rope"},
-        "west": {"uv": [0, 0, 2, 4], "texture": "#rope"},
-        "east": {"uv": [0, 0, 2, 4], "texture": "#rope"}
-      }
-    },
-    {
-      "from": [5, 12, 5],
-      "to": [11, 16, 11],
-      "shade": false,
-      "faces": {
-        "down": {"uv": [5, 10, 11, 11], "texture": "#knot"},
-        "up": {"uv": [5, 5, 11, 11], "texture": "#knot"},
-        "north": {"uv": [5, 5, 11, 9], "texture": "#knot"},
-        "south": {"uv": [5, 5, 11, 9], "texture": "#knot"},
-        "west": {"uv": [5, 5, 11, 9], "texture": "#knot"},
-        "east": {"uv": [5, 5, 11, 9], "texture": "#knot"}
+        "north": {"uv": [0, 0, 2, 8], "texture": "#rope"},
+        "south": {"uv": [0, 0, 2, 8], "texture": "#rope"},
+        "west": {"uv": [0, 0, 2, 8], "texture": "#rope"},
+        "east": {"uv": [0, 0, 2, 8], "texture": "#rope"}
       }
     }
   ]

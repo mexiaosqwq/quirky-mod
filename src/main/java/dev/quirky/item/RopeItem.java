@@ -138,8 +138,10 @@ public class RopeItem extends BlockItem {
 	private void placeSegment(Level level, BlockPos pos, ItemStack stack, Player player, float pitch) {
 		BlockState target = level.getBlockState(pos);
 		boolean waterlogged = target.getFluidState().is(Fluids.WATER);
+		boolean top = !RopeSupportLogic.isRope(level.getBlockState(pos.above()));
 		BlockState ropeState = this.getBlock().defaultBlockState()
-			.setValue(RopeBlock.WATERLOGGED, waterlogged);
+			.setValue(RopeBlock.WATERLOGGED, waterlogged)
+			.setValue(RopeBlock.TOP, top);
 		level.setBlock(pos, ropeState, 3);
 		level.playSound(null, pos, SoundEvents.WOOL_PLACE, SoundSource.BLOCKS, 0.6F, pitch);
 		if (level instanceof ServerLevel serverLevel) {

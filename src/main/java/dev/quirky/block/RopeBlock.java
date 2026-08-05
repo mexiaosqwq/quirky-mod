@@ -46,17 +46,19 @@ import java.util.List;
  */
 public class RopeBlock extends Block implements SimpleWaterloggedBlock {
 	public static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
+	/** 本段上方是否无绳段（自己是悬挂顶端）：true → 顶部绳结变体；false → 连续绳身变体（与上方绳段连接）。 */
+	public static final BooleanProperty TOP = BooleanProperty.create("top");
 	/** 2px 细柱轮廓：无碰撞但可被玩家射线选中（交互/延伸）。 */
 	private static final VoxelShape OUTLINE = Block.box(7.0, 0.0, 7.0, 9.0, 16.0, 9.0);
 
 	public RopeBlock(Properties properties) {
 		super(properties);
-		this.registerDefaultState(this.stateDefinition.any().setValue(WATERLOGGED, false));
+		this.registerDefaultState(this.stateDefinition.any().setValue(WATERLOGGED, false).setValue(TOP, true));
 	}
 
 	@Override
 	protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-		builder.add(WATERLOGGED);
+		builder.add(WATERLOGGED, TOP);
 	}
 
 	@Override
@@ -120,7 +122,8 @@ public class RopeBlock extends Block implements SimpleWaterloggedBlock {
 				return InteractionResult.SUCCESS;
 			}
 			boolean waterlogged = state.getValue(WATERLOGGED);
-			level.setBlock(pos, ModBlocks.ROPE_LANTERN.defaultBlockState().setValue(WATERLOGGED, waterlogged), 3);
+			boolean top = !RopeSupportLogic.isRope(level.getBlockState(pos.above()));
+			level.setBlock(pos, ModBlocks.ROPE_LANTERN.defaultBlockState().setValue(WATERLOGGED, waterlogged).setValue(TOP, top), 3);
 			if (!player.hasInfiniteMaterials()) {
 				itemStack.consume(1, player);
 			}
@@ -141,13 +144,29 @@ public class RopeBlock extends Block implements SimpleWaterloggedBlock {
 		RopeSupportLogic.checkSupport(level, pos);
 	}
 
-	/** 邻居变化（支撑被破坏/活塞推走）→ 立即校验支撑，连锁掉落。 */
+	/** 邻居变化（支撑被破坏/活塞推走）→ 立即校验支撑，连锁掉落；并刷新自身 top 状态。 */
 	@Override
 	protected void neighborChanged(
 		BlockState state, Level level, BlockPos pos, Block neighborBlock, @Nullable Orientation orientation, boolean movedByPiston
 	) {
 		if (!level.isClientSide()) {
 			RopeSupportLogic.checkSupport(level, pos);
+			refreshTop(level, pos);
+		}
+	}
+
+	/**
+	 * 刷新 top 状态：上方是否绳段决定本段渲染成顶部绳结变体还是连续绳身变体。
+	 * 仅在状态变化时 setBlock（flags=2，不触发 tick），变化会经邻居通知收敛，无递归风险。
+	 */
+	private static void refreshTop(Level level, BlockPos pos) {
+		BlockState state = level.getBlockState(pos);
+		if (!RopeSupportLogic.isRope(state)) {
+			return;
+		}
+		boolean top = !RopeSupportLogic.isRope(level.getBlockState(pos.above()));
+		if (state.getValue(TOP) != top) {
+			level.setBlock(pos, state.setValue(TOP, top), 2);
 		}
 	}
 

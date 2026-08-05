@@ -1,10 +1,16 @@
 {
   "variants": {
-    "waterlogged=false": {
+    "top=true,waterlogged=false": {
       "model": "quirky:block/rope"
     },
-    "waterlogged=true": {
+    "top=false,waterlogged=false": {
+      "model": "quirky:block/rope_link"
+    },
+    "top=true,waterlogged=true": {
       "model": "quirky:block/rope"
+    },
+    "top=false,waterlogged=true": {
+      "model": "quirky:block/rope_link"
     }
   }
 }
