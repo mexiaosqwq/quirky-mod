@@ -206,5 +206,10 @@ public class SeedPouchItem extends BundleItem {
 			return;
 		}
 		builder.accept(Component.translatable("tooltip.quirky.seed_pouch").withStyle(ChatFormatting.GRAY));
+		// 与箭袋一致：空袋标"空"
+		BundleContents contents = stack.getOrDefault(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY);
+		if (contents.isEmpty()) {
+			builder.accept(Component.translatable("tooltip.quirky.n").withStyle(ChatFormatting.GRAY));
+		}
 	}
 }
