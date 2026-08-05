@@ -45,11 +45,12 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * 回旋镖飞行实体：自实现 tick 物理采用连续进动弧线模型——每帧 precess(右手偏转) →
- * converge(朝投掷者收敛) → modulateSpeed(远端减速) → heightVelocity(高度起伏)，全程连续无硬切换，
- * 返程由进动(速度持续偏转自然转过约 180° 指回投掷者)与收敛共同产生。
- * 飞行中拾取地面物品（记入 NBT 列表），触碰生物造成轻伤+击退（每生物每次飞行只判定一次），
- * 撞方块小概率打碎（秒破类必碎，免疫 tag / 冒险模式不打碎），并远程激活钟/按钮等方块。
+ * 回旋镖飞行实体：自实现 tick 物理——每帧 precess(右手偏转) → converge(朝投掷者收敛) →
+ * 速度调制(出程近快远慢 / 返程近慢远快) → verticalVelocity(仰角+高度起伏)。
+ * 出程按距离 smoothstep 触发，到达峰值距离或撞墙后进入返程（returning 硬切换 + returnSpeed 反向减速），
+ * 可靠回手。飞行中拾取地面物品（记入 NBT 列表），触碰生物造成轻伤+击退（每生物每次飞行只判定一次），
+ * 撞方块小概率打碎（秒破类必碎，免疫 tag / 冒险模式不打碎）——未打碎则化为掉落物。
+ * 耐久扣回玩家背包真实堆叠（consumed 快照判定归还/掉落，防切换游戏模式导致删除/复制）。
  * 投掷者 UUID 由 {@link Projectile#getOwner()}（EntityReference）查找，防内存悬挂。
  */
 public class BoomerangEntity extends Projectile implements ItemSupplier {
@@ -94,15 +95,27 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	private static final EntityDataAccessor<Boolean> DATA_CLOCKWISE = SynchedEntityData.defineId(
 		BoomerangEntity.class, EntityDataSerializers.BOOLEAN
 	);
+	/** 初始速度同步：客户端预测物理需用真实初速（蓄力后 ≠ 默认 0.7），否则预测步长偏离服务端。 */
+	private static final EntityDataAccessor<Float> DATA_THROW_SPEED = SynchedEntityData.defineId(
+		BoomerangEntity.class, EntityDataSerializers.FLOAT
+	);
+	/** 射程同步：客户端预测的 smoothstep 触发依赖真实 maxRange（蓄力后 ≠ 默认 12）。 */
+	private static final EntityDataAccessor<Integer> DATA_MAX_RANGE = SynchedEntityData.defineId(
+		BoomerangEntity.class, EntityDataSerializers.INT
+	);
 
 	private final List<ItemStack> collected = new ArrayList<>();
 	private final Set<UUID> hitEntities = new HashSet<>();
-	/** 连续模型已废弃出程/返程切换；保留字段仅供旧存档 NBT 兼容读取。 */
+	/** 连续模型已废弃出程/返程切换；保留字段仅供旧存档 NBT 兼容读取。
+	 * 注：returning 仍活跃使用（撞墙后/峰值后硬切换返程 + returnSpeed 反向减速），字段注释仅指旧阈值模型。 */
 	private boolean returning;
 	/** 出程飞行峰值距离，用于检测开始返程（dist 开始减小）。 */
 	private double peakDistance;
 	private int maxRange = 12;
 	private double throwSpeed = BASE_THROW_SPEED;
+	/** 投掷时是否已从玩家背包消耗物品（生存模式投掷=已消耗；创造=未消耗）。
+	 * 用投掷时快照判定归还/掉落，防飞行中切换游戏模式导致物品删除/复制。 */
+	private boolean consumed;
 	/** 投掷时的初始垂直速度分量（由仰角决定），首帧 tick 记录，用于出程保留仰角弧高。 */
 	private double initialVelY;
 	private int throwSlot = -1;
@@ -114,7 +127,7 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		super(type, level);
 	}
 
-	public BoomerangEntity(ServerLevel level, Player owner, ItemStack item, int throwSlot, boolean clockwise, float power) {
+	public BoomerangEntity(ServerLevel level, Player owner, ItemStack item, int throwSlot, boolean clockwise, float power, boolean consumed) {
 		super(ModEntities.BOOMERANG, level);
 		this.setItem(item);
 		this.throwSlot = throwSlot;
@@ -122,6 +135,9 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		// 蓄力缩放：力度 0.4~1.5 → 初速 0.28~1.05、射程 5~18 格（钳制）
 		this.throwSpeed = BASE_THROW_SPEED * power;
 		this.maxRange = Math.max(5, Math.min(20, (int) (QuirkyConfigHolder.get().boomerangRange * power)));
+		this.setThrowSpeed(this.throwSpeed);
+		this.setMaxRange(this.maxRange);
+		this.consumed = consumed;
 		this.setOwner(owner);
 	}
 
@@ -150,10 +166,30 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		this.getEntityData().set(DATA_CLOCKWISE, clockwise);
 	}
 
+	/** 初始速度（entityData 同步到客户端预测）。 */
+	public double getThrowSpeed() {
+		return this.getEntityData().get(DATA_THROW_SPEED);
+	}
+
+	public void setThrowSpeed(double throwSpeed) {
+		this.getEntityData().set(DATA_THROW_SPEED, (float) throwSpeed);
+	}
+
+	/** 射程（entityData 同步到客户端预测）。 */
+	public int getMaxRange() {
+		return this.getEntityData().get(DATA_MAX_RANGE);
+	}
+
+	public void setMaxRange(int maxRange) {
+		this.getEntityData().set(DATA_MAX_RANGE, maxRange);
+	}
+
 	@Override
 	protected void defineSynchedData(net.minecraft.network.syncher.SynchedEntityData.Builder builder) {
 		builder.define(DATA_ITEM_STACK, ItemStack.EMPTY);
 		builder.define(DATA_CLOCKWISE, true);
+		builder.define(DATA_THROW_SPEED, (float) BASE_THROW_SPEED);
+		builder.define(DATA_MAX_RANGE, 12);
 	}
 
 	// ==== NBT ====
@@ -162,7 +198,8 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	protected void addAdditionalSaveData(ValueOutput output) {
 		super.addAdditionalSaveData(output);
 		output.putBoolean(TAG_RETURNING, this.returning);
-		output.putInt(TAG_MAX_RANGE, this.maxRange);
+		output.putBoolean("Consumed", this.consumed);
+		output.putInt(TAG_MAX_RANGE, this.getMaxRange());
 		output.putInt(TAG_THROW_SLOT, this.throwSlot);
 		// traveledDistance 已废弃（连续模型不再用距离阈值）；保留读取兼容旧存档但不写入
 		// peakDistance / returning 由返程逻辑运行时维护，存档保留
@@ -182,7 +219,10 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	protected void readAdditionalSaveData(ValueInput input) {
 		super.readAdditionalSaveData(input);
 		this.returning = input.getBooleanOr(TAG_RETURNING, false);
+		this.consumed = input.getBooleanOr("Consumed", false);
 		this.maxRange = Math.max(5, Math.min(20, input.getIntOr(TAG_MAX_RANGE, 12)));
+		this.setMaxRange(this.maxRange);
+		this.setThrowSpeed(this.throwSpeed);
 		this.throwSlot = input.getIntOr(TAG_THROW_SLOT, -1);
 		// traveledDistance 旧存档兼容读取，不再使用
 		this.peakDistance = input.getDoubleOr(TAG_PEAK_DISTANCE, 0.0);
@@ -251,7 +291,7 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		Vec3 pos = this.position();
 		Vec3 vel = this.getDeltaMovement();
 		if (vel.lengthSqr() < 1e-6) {
-			vel = this.getLookAngle().scale(this.throwSpeed);
+			vel = this.getLookAngle().scale(this.getThrowSpeed());
 		}
 
 		// 首帧记录初始垂直分量（仰角），供 verticalVelocity 出程保留仰角弧高
@@ -273,20 +313,20 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 
 		// 距离触发 + 返程状态：出程 smoothstep(dist/maxRange) 近直线可命中；返程 returning 永久满触发强收敛。
 		// 修复纯距离触发返程失效（回旋镖到玩家附近 dist 小→trigger→0→不收敛→绕圈接不住）
-		if (!this.returning && (dist >= this.maxRange * 0.7 || (this.lifetimeTicks > 5 && dist < this.peakDistance - 0.3))) {
+		if (!this.returning && (dist >= this.getMaxRange() * 0.7 || (this.lifetimeTicks > 5 && dist < this.peakDistance - 0.3))) {
 			this.returning = true;
 		}
 		this.peakDistance = Math.max(this.peakDistance, dist);
-		double trigger = Math.max(BoomerangPhysics.smoothstep(this.maxRange > 0 ? dist / this.maxRange : 1.0), this.returning ? 1.0 : 0.0);
+		double trigger = Math.max(BoomerangPhysics.smoothstep(this.getMaxRange() > 0 ? dist / this.getMaxRange() : 1.0), this.returning ? 1.0 : 0.0);
 		vel = BoomerangPhysics.precess(vel, PRECESSION_RATE * trigger, this.isClockwise());
 		if (owner != null) {
 			vel = BoomerangPhysics.converge(vel, pos, ownerPos, CONVERGE_STRENGTH * trigger);
 		}
 		// 速度调制：出程近快远慢，返程近慢远快（反向）——返程接近玩家减速，防高速穿过漏检接住
 		if (this.returning) {
-			vel = BoomerangPhysics.returnSpeed(vel, this.throwSpeed, dist, this.maxRange, MIN_SPEED_SCALE);
+			vel = BoomerangPhysics.returnSpeed(vel, this.getThrowSpeed(), dist, this.getMaxRange(), MIN_SPEED_SCALE);
 		} else {
-			vel = BoomerangPhysics.modulateSpeed(vel, this.throwSpeed, dist, this.maxRange, MIN_SPEED_SCALE);
+			vel = BoomerangPhysics.modulateSpeed(vel, this.getThrowSpeed(), dist, this.getMaxRange(), MIN_SPEED_SCALE);
 		}
 		vel = new Vec3(vel.x, BoomerangPhysics.verticalVelocity(trigger, this.initialVelY, progress, HEIGHT_AMPLITUDE, ESTIMATED_FLIGHT_TICKS), vel.z);
 
@@ -363,9 +403,8 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		// 未碎 → 在撞击点化为掉落物（不再反弹乱飞，根治绕圈刨方块）
 		Vec3 hitPos = hit.getLocation().add(hit.getDirection().getUnitVec3().scale(0.2)); // 沿法线外移 0.2 格防卡方块
 		level.playSound(null, hitPos.x, hitPos.y, hitPos.z, state.getSoundType().getHitSound(), SoundSource.BLOCKS, 0.8F, 1.0F);
-		Entity owner = this.getOwner();
-		boolean creative = owner instanceof Player p && p.hasInfiniteMaterials();
-		if (!creative) {
+		// 投掷时已消耗（生存）→ 掉落本体可捡回；未消耗（创造投掷快照）→ 不生成防复制
+		if (this.consumed) {
 			level.addFreshEntity(new ItemEntity(level, hitPos.x, hitPos.y, hitPos.z, this.getItem()));
 		}
 		for (ItemStack stack : this.collected) {
@@ -387,9 +426,8 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 			return false;
 		}
 		// destroyBlock 内部会触发 2001 破坏粒子，掉落受 BLOCK_DROPS 规则管辖
-		// 创造模式不掉物（对齐原版创造手挖 ServerPlayerGameMode 的 preventsBlockDrops）
-		boolean dropBlocks = !(owner instanceof Player p && p.hasInfiniteMaterials());
-		level.destroyBlock(pos, dropBlocks, this, 3);
+		// 投掷时已消耗（生存）→ 方块掉落正常；创造投掷快照 → 方块不掉物
+		level.destroyBlock(pos, this.consumed, this, 3);
 		level.playSound(null, pos, state.getSoundType().getBreakSound(), SoundSource.BLOCKS, 0.8F, 1.0F);
 		return true;
 	}
@@ -402,12 +440,12 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 
 	/** 回到投掷者：消耗 1 点耐久（归零则损坏消失），归还数量与拾取物。
 	 * 耐久扣在玩家背包里的真实堆叠上（可堆叠物品共享耐久），数量用 grow(1) 归还——
-	 * 不归还实体副本，避免"原堆叠(满耐久)+副本(扣过耐久)"两个不同耐久的物品无法堆叠占两格。 */
+	 * 不归还实体副本，避免"原堆叠(满耐久)+副本(扣过耐久)"两个不同耐久的物品无法堆叠占两格。
+	 * 归还/损坏判定一律用投掷时的 consumed 快照（防飞行中切换游戏模式导致删除/复制）。 */
 	private void retrieveFor(ServerLevel level, Entity owner) {
 		if (owner instanceof Player player) {
-			boolean creative = player.hasInfiniteMaterials();
-			// 耐久：扣回玩家背包里的真实堆叠（创造模式不扣）；数量用 grow(1) 归还
-			boolean returned = this.returnStackToPlayer(player, creative);
+			// 耐久与归还：投掷时已消耗（生存）→ 正常归还流程；未消耗（创造）→ 不归还不扣耐久
+			boolean returned = this.returnStackToPlayer(player);
 			if (returned) {
 				player.playSound(SoundEvents.ARMOR_EQUIP_GENERIC.value(), 0.5F, 1.0F);
 			}
@@ -419,7 +457,10 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 				}
 			}
 		} else {
-			level.addFreshEntity(new ItemEntity(level, this.getX(), this.getY(), this.getZ(), this.getItem()));
+			// 投掷者非玩家（理论不发生）：按 consumed 快照决定是否掉落本体，拾取物照常
+			if (this.consumed) {
+				level.addFreshEntity(new ItemEntity(level, this.getX(), this.getY(), this.getZ(), this.getItem()));
+			}
 			for (ItemStack stack : this.collected) {
 				level.addFreshEntity(new ItemEntity(level, this.getX(), this.getY(), this.getZ(), stack));
 			}
@@ -430,16 +471,15 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	/**
 	 * 归还物品：耐久扣在玩家背包里的真实堆叠（可堆叠共享耐久），数量 grow(1) 归还，
 	 * 不归还实体副本（避免"原堆叠满耐久 + 副本扣过耐久"无法堆叠占两格）。
-	 * 创造模式：投掷不 consume，物品数量本就未变 → 不 grow 不扣耐久（防复制）。
-	 * 单飞镖场景（背包无堆叠可扣）：扣副本耐久后直接放回手中。
-	 * 耐久归零损坏：物品消失（不归还）。
-	 * 返回 true = 物品已处理（回手/损坏/创造）；false = 兜底就地掉落。
+	 * 创造投掷（consumed=false）：不 grow 不扣耐久（数量从未变，防复制）。
+	 * 单飞镖（背包无堆叠可扣）：扣副本耐久后放回手中（损坏则消失）。
+	 * 返回 true = 成功回手；false = 损坏消失 / 背包满兜底掉落（不播回手音）。
 	 */
-	private boolean returnStackToPlayer(Player player, boolean creative) {
+	private boolean returnStackToPlayer(Player player) {
 		Inventory inventory = player.getInventory();
 		ItemStack flying = this.getItem();
-		if (creative) {
-			return true; // 投掷未消耗，数量已正确
+		if (!this.consumed) {
+			return true; // 创造投掷：物品数量从未减少，直接视为回手
 		}
 		// 找同种可堆叠堆叠（优先原手持槽位）
 		ItemStack target = null;
@@ -474,14 +514,19 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 				this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ITEM_BREAK, SoundSource.PLAYERS, 0.8F, 1.0F);
 			});
 		}
+		if (flying.isEmpty()) {
+			return false; // 损坏消失
+		}
+		// 优先放回原手持槽（清空引用防复制），其次背包空位；放不下则就地掉落
+		if (this.throwSlot >= 0 && this.throwSlot < inventory.getContainerSize() && inventory.getItem(this.throwSlot).isEmpty()) {
+			inventory.setItem(this.throwSlot, flying);
+			flying = ItemStack.EMPTY;
+		} else {
+			inventory.add(flying); // add 失败余量留在 flying
+		}
 		if (!flying.isEmpty()) {
-			// 优先原手持槽，其次背包空位；放不下则就地掉落
-			if (!(this.throwSlot >= 0 && this.throwSlot < inventory.getContainerSize() && inventory.getItem(this.throwSlot).isEmpty())) {
-				inventory.add(flying);
-			}
-			if (!flying.isEmpty()) {
-				this.level().addFreshEntity(new ItemEntity((ServerLevel) this.level(), player.getX(), player.getY(), player.getZ(), flying));
-			}
+			this.level().addFreshEntity(new ItemEntity((ServerLevel) this.level(), player.getX(), player.getY(), player.getZ(), flying));
+			return false;
 		}
 		return true;
 	}
@@ -489,10 +534,8 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	/** 兜底掉落（10 秒上限/投掷者不可用）：坠入虚空不掉落，其余就地掉落。 */
 	private void dropAllAndDiscard(ServerLevel level) {
 		if (this.getY() >= level.getMinY() - 32.0) {
-			// 创造模式不掉落回旋镖本体（手里未消耗，掉落即复制）；拾取物照常掉落
-			Entity owner = this.getOwner();
-			boolean creative = owner instanceof Player p && p.hasInfiniteMaterials();
-			if (!creative) {
+			// 投掷时已消耗（生存）→ 掉落本体可捡回；未消耗（创造投掷快照）→ 不生成防复制；拾取物照常
+			if (this.consumed) {
 				level.addFreshEntity(new ItemEntity(level, this.getX(), this.getY(), this.getZ(), this.getItem()));
 			}
 			for (ItemStack stack : this.collected) {

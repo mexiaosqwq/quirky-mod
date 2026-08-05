@@ -77,8 +77,10 @@ public class BoomerangItem extends Item {
 		InteractionHand hand = player.getUsedItemHand();
 		int throwSlot = hand == InteractionHand.MAIN_HAND ? player.getInventory().getSelectedSlot() : Inventory.SLOT_OFFHAND;
 		boolean clockwise = hand == InteractionHand.MAIN_HAND;
+		// consumed 快照：生存投掷=已消耗物品（返航要归还）；创造=未消耗（返航不归还不扣耐久，防复制）
+		boolean consumed = !player.hasInfiniteMaterials();
 
-		BoomerangEntity boomerang = new BoomerangEntity(serverLevel, player, stack, throwSlot, clockwise, power);
+		BoomerangEntity boomerang = new BoomerangEntity(serverLevel, player, stack, throwSlot, clockwise, power, consumed);
 		float throwSpeed = (float) (0.7 * power);
 		boomerang.setPos(player.getX(), player.getEyeY() - 0.1, player.getZ());
 		boomerang.shootFromRotation(player, player.getXRot(), player.getYRot(), 0.0F, throwSpeed, 0.0F);
