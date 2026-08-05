@@ -191,4 +191,37 @@ class BoomerangPhysicsTest {
 		assertTrue(maxLateral > 1.0, "should have lateral arc displacement > 1.0, got " + maxLateral);
 		assertTrue(minHorizSpeed < 0.7, "should slow down at far end, min=" + minHorizSpeed);
 	}
+
+	@Test
+	void fullFlightLeftHandReturnsToOwnerWithOppositeArc() {
+		// 副手投掷 = 左手回旋(clockwise=false)：应同样回手，且弧线弯向 -X（与右手镜像）
+		Vec3 ownerPos = new Vec3(0, 0, 0);
+		Vec3 pos = new Vec3(0, 0, 0.5);
+		Vec3 vel = new Vec3(0, 0, 0.7);
+		double rate = 0.08, strength = 0.05, minScale = 0.55, amp = 0.4, maxRange = 16.0;
+		int total = 60;
+
+		double maxX = 0.0;  // 最右横向位移（左手回旋朝 +Z 投应弯向 +X）
+		boolean caught = false;
+		int t;
+		for (t = 0; t < 90; t++) {
+			double progress = Math.min(1.0, (double) t / total);
+			double dist = pos.subtract(ownerPos).horizontalDistance();
+			maxX = Math.max(maxX, pos.x - ownerPos.x);
+
+			if (dist <= 1.8 && t > 5) {
+				caught = true;
+				break;
+			}
+
+			vel = BoomerangPhysics.precess(vel, rate, false);
+			vel = BoomerangPhysics.converge(vel, pos, ownerPos, strength);
+			vel = BoomerangPhysics.modulateSpeed(vel, 0.7, dist, maxRange, minScale);
+			vel = new Vec3(vel.x, BoomerangPhysics.heightVelocity(progress, amp, total), vel.z);
+			pos = BoomerangPhysics.step(pos, vel, 1.0);
+		}
+
+		assertTrue(caught, "left-hand throw should also return to owner (t=" + t + ")");
+		assertTrue(maxX > 1.0, "left-hand arc should bend toward +X (mirror of right-hand), got maxX=" + maxX);
+	}
 }

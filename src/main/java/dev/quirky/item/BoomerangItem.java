@@ -35,7 +35,8 @@ public class BoomerangItem extends Item {
 		ItemStack stack = player.getItemInHand(hand);
 		int throwSlot = hand == InteractionHand.MAIN_HAND ? player.getInventory().getSelectedSlot() : Inventory.SLOT_OFFHAND;
 
-		BoomerangEntity boomerang = new BoomerangEntity(serverLevel, player, stack, throwSlot);
+		boolean clockwise = hand == InteractionHand.MAIN_HAND;
+		BoomerangEntity boomerang = new BoomerangEntity(serverLevel, player, stack, throwSlot, clockwise);
 		boomerang.setPos(player.getX(), player.getEyeY() - 0.1, player.getZ());
 		// force = 初始速度 0.7 格/tick，对齐 BoomerangEntity.THROW_SPEED（从容弧线手感）
 		boomerang.shootFromRotation(player, player.getXRot(), player.getYRot(), 0.0F, 0.7F, 0.0F);

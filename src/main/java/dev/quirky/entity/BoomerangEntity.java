@@ -5,6 +5,7 @@ import dev.quirky.boomerang.BoomerangBlockLogic;
 import dev.quirky.boomerang.BoomerangPhysics;
 import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -64,8 +65,6 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	private static final int ESTIMATED_FLIGHT_TICKS = 60;
 	/** 回手判定距离 1.8 格（平方；可调）。 */
 	private static final double CATCH_DISTANCE_SQ = 3.24;
-	/** 右手回旋镖：进动顺时针（俯视）= 投掷者右手边。 */
-	private static final boolean CLOCKWISE = true;
 	/** 命中生物固定伤害（武器化后不再走配置；对齐近战属性 4）。 */
 	private static final float HIT_DAMAGE = 4.0F;
 	/** 10 秒兜底自毁上限。 */
@@ -96,15 +95,18 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	/** 连续模型已废弃距离阈值；保留字段仅供旧存档 NBT 兼容读取。 */
 	private double traveledDistance;
 	private int lifetimeTicks;
+	/** 进动方向：true=右手回旋(俯视顺时针,主手投掷)，false=左手回旋(副手投掷)。 */
+	private boolean clockwise = true;
 
 	public BoomerangEntity(EntityType<? extends BoomerangEntity> type, Level level) {
 		super(type, level);
 	}
 
-	public BoomerangEntity(ServerLevel level, Player owner, ItemStack item, int throwSlot) {
+	public BoomerangEntity(ServerLevel level, Player owner, ItemStack item, int throwSlot, boolean clockwise) {
 		super(ModEntities.BOOMERANG, level);
 		this.setItem(item);
 		this.throwSlot = throwSlot;
+		this.clockwise = clockwise;
 		this.maxRange = QuirkyConfigHolder.get().boomerangRange;
 		this.setOwner(owner);
 	}
@@ -139,6 +141,7 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		output.putInt(TAG_MAX_RANGE, this.maxRange);
 		output.putInt(TAG_THROW_SLOT, this.throwSlot);
 		output.putDouble(TAG_TRAVELED, this.traveledDistance);
+		output.putBoolean("Clockwise", this.clockwise);
 		output.store("Item", ItemStack.CODEC, this.getItem());
 		output.store(TAG_COLLECTED, ItemStack.OPTIONAL_CODEC.listOf(), this.collected);
 		ValueOutput.ValueOutputList list = output.childrenList(TAG_HITS);
@@ -153,9 +156,10 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	protected void readAdditionalSaveData(ValueInput input) {
 		super.readAdditionalSaveData(input);
 		this.returning = input.getBooleanOr(TAG_RETURNING, false);
-		this.maxRange = input.getIntOr(TAG_MAX_RANGE, 12);
+		this.maxRange = input.getIntOr(TAG_MAX_RANGE, 16);
 		this.throwSlot = input.getIntOr(TAG_THROW_SLOT, -1);
 		this.traveledDistance = input.getDoubleOr(TAG_TRAVELED, 0.0);
+		this.clockwise = input.getBooleanOr("Clockwise", true);
 		this.collected.clear();
 		this.collected.addAll(input.read(TAG_COLLECTED, ItemStack.OPTIONAL_CODEC.listOf()).orElse(List.of()));
 		input.read("Item", ItemStack.CODEC).ifPresent(this::setItem);
@@ -220,7 +224,7 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 			return;
 		}
 
-		vel = BoomerangPhysics.precess(vel, PRECESSION_RATE, CLOCKWISE);
+		vel = BoomerangPhysics.precess(vel, PRECESSION_RATE, this.clockwise);
 		vel = BoomerangPhysics.converge(vel, pos, ownerPos, CONVERGE_STRENGTH);
 		vel = BoomerangPhysics.modulateSpeed(vel, THROW_SPEED, dist, this.maxRange, MIN_SPEED_SCALE);
 		vel = new Vec3(vel.x, BoomerangPhysics.heightVelocity(progress, HEIGHT_AMPLITUDE, ESTIMATED_FLIGHT_TICKS), vel.z);
@@ -252,6 +256,10 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		}
 
 		this.setPos(newPos);
+		// 飞行拖尾粒子：每 2 tick 在当前位置发 1 个端粒，稀疏运动痕迹（服务端 sendParticles；Level.addParticle 是空实现）
+		if ((this.lifetimeTicks & 1) == 0) {
+			level.sendParticles(ParticleTypes.END_ROD, this.getX(), this.getY(), this.getZ(), 1, 0.08, 0.08, 0.08, 0.0);
+		}
 		this.setDeltaMovement(vel);
 		this.updateRotationFromVelocity();
 	}
