@@ -284,8 +284,8 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 				serverLevel, this, pos, newPos, this.getBoundingBox().expandTowards(vel).inflate(HIT_INFLATE), this::canHitEntity
 			);
 			if (entityHit != null && entityHit.getEntity() instanceof LivingEntity target) {
+				// 穿透：命中生物不截断位置，回旋镝继续飞行可打多个敌人（每生物每次飞行只判一次，由 hitEntities 保证）
 				this.hitLiving(target);
-				newPos = entityHit.getLocation();
 			} else {
 				BlockHitResult blockHit = serverLevel.clipIncludingBorder(new ClipContext(pos, newPos, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this));
 				if (blockHit.getType() != HitResult.Type.MISS) {
