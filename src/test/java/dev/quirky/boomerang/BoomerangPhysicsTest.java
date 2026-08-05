@@ -237,7 +237,7 @@ class BoomerangPhysicsTest {
 		Vec3 ownerPos = new Vec3(0, 0, 0);
 		Vec3 pos = new Vec3(0, 0, 0.5);
 		Vec3 vel = new Vec3(0, 0, 0.7);
-		double rate = 0.25, strength = 0.35, minScale = 0.55, amp = 0.4, maxRange = 12.0;
+		double rate = 0.25, strength = 0.35, minScale = 0.3, amp = 0.4, maxRange = 12.0;
 		int total = 30;
 		boolean clockwise = true;
 
@@ -287,7 +287,7 @@ class BoomerangPhysicsTest {
 		Vec3 ownerPos = new Vec3(0, 0, 0);
 		Vec3 pos = new Vec3(0, 0, 0.5);
 		Vec3 vel = new Vec3(0, 0, 0.7);
-		double rate = 0.25, strength = 0.35, minScale = 0.55, amp = 0.4, maxRange = 12.0;
+		double rate = 0.25, strength = 0.35, minScale = 0.3, amp = 0.4, maxRange = 12.0;
 		int total = 30;
 
 		double maxX = 0.0;  // 最右横向位移（左手回旋朝 +Z 投应弯向 +X）
@@ -327,7 +327,7 @@ class BoomerangPhysicsTest {
 		Vec3 ownerPos = new Vec3(0, 0, 0);
 		Vec3 pos = new Vec3(0, 0, 0.5);
 		Vec3 vel = new Vec3(0, 0, 0.7);
-		double rate = 0.25, strength = 0.35, minScale = 0.55, maxRange = 12.0;
+		double rate = 0.25, strength = 0.35, minScale = 0.3, maxRange = 12.0;
 		int total = 30;
 		Vec3 ownerMove = new Vec3(0.2, 0, 0);  // 玩家朝 +X 跑步
 

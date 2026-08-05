@@ -57,8 +57,8 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	private static final double PRECESSION_RATE = 0.25;
 	/** 朝投掷者收敛强度（每帧水平方向 blend 比例；可调）。同样按距离触发，返程强收敛快速回手。 */
 	private static final double CONVERGE_STRENGTH = 0.35;
-	/** 远端最低速度倍率（可调）。 */
-	private static final double MIN_SPEED_SCALE = 0.55;
+	/** 远端最低速度倍率（可调）。0.3 让远端明显减速。 */
+	private static final double MIN_SPEED_SCALE = 0.3;
 	/** 远端抬升幅度（格；可调）。 */
 	private static final double HEIGHT_AMPLITUDE = 0.4;
 	/** 飞行进度归一化基准 tick（对齐实际回手时长，让高度起伏完整 0→峰→0；可调）。 */
@@ -352,18 +352,13 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		}
 
 		// 打碎判定：秒破类必碎 / 免疫与冒险不打碎 / 其余默认 5% 摇骰
-		// 返程接近玩家（dist<3）时禁用打碎，避免回旋镖在玩家附近绕圈接住时刨地/刨方块
-		Entity owner = this.getOwner();
-		Vec3 ownerPos = owner != null ? owner.position().add(0.0, owner.getEyeHeight() * 0.5, 0.0) : this.position();
-		if (!(this.returning && this.position().subtract(ownerPos).horizontalDistance() < 3.0) && this.breakBlock(level, pos, state)) {
+		if (this.breakBlock(level, pos, state)) {
 			return; // 打碎 → 穿透继续飞
 		}
 
-		// 未碎 → 进入返程（spec：撞到方块后掉头）+ 沿法线反射速度
-		this.returning = true;
-		Vec3 vel = this.getDeltaMovement();
-		Vec3 normal = hit.getDirection().getUnitVec3();
-		this.setDeltaMovement(vel.subtract(normal.scale(2.0 * vel.dot(normal))));
+		// 未碎 → 直接化为掉落物（不再反弹乱飞，根治绕圈刨方块）
+		level.playSound(null, this.getX(), this.getY(), this.getZ(), state.getSoundType().getHitSound(), SoundSource.BLOCKS, 0.8F, 1.0F);
+		this.dropAllAndDiscard(level);
 	}
 
 	/** 打碎判定与执行；返回是否打碎（打碎后回旋镖穿透继续飞）。 */
