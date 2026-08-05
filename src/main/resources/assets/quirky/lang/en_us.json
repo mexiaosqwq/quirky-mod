@@ -18,7 +18,7 @@
   "tooltip.quirky.clock": "Day %s · %s",
   "tooltip.quirky.rope": "Place against a wall or under a block; right-click a rope to extend, sneak for batch.\nClimbable, slide safely (sneak to let go). Right-click with a lantern to hang it.",
   "tooltip.quirky.shift_details": "Hold Shift for details",
-  "tooltip.quirky.seed_pouch": "Right-click to plant 3×3; click in inventory to load/unload seeds",
+  "tooltip.quirky.seed_pouch": "Right-click farmland to plant a 3×3 area; sneak+right-click plants a single cell\nSeeds only: cursor-click seeds to load, right-click to unload",
   "tooltip.quirky.fish_bait": "Throw into water to create a bait zone that makes nearby bobbers bite faster",
   "tooltip.quirky.food.always_edible": "Edible at any time",
   "tooltip.quirky.food.eat_time": "Eat time: %s s",
@@ -69,10 +69,6 @@
   "text.autoconfig.quirky.option.arrowDingVolume.@Tooltip": "Volume of the arrow hit ding (0.0-1.0). Kills play at 1.2x this volume.",
   "text.autoconfig.quirky.option.wakeUpSlowFallingSeconds": "Wake-Up Protection (seconds)",
   "text.autoconfig.quirky.option.wakeUpSlowFallingSeconds.@Tooltip": "Slow Falling duration after a full night's sleep; interrupted sleep grants a third of this.",
-  "text.autoconfig.quirky.option.parrotEggHatchChance": "Parrot Egg Hatch Chance",
-  "text.autoconfig.quirky.option.parrotEggHatchChance.@Tooltip": "Base chance (0.0-1.0) that a thrown parrot egg hatches; +0.25 when it lands on jungle leaves or logs.",
-  "text.autoconfig.quirky.option.parrotEggTwinChance": "Parrot Egg Twin Chance",
-  "text.autoconfig.quirky.option.parrotEggTwinChance.@Tooltip": "Chance (0.0-1.0) that a successful hatch produces twins instead of one parrot.",
   "text.autoconfig.quirky.option.seedPouchRadius": "Seed Pouch Radius",
   "text.autoconfig.quirky.option.seedPouchRadius.@Tooltip": "Pouch planting area: 0 plants only the clicked block, 1 plants a 3×3 area, 2 plants a 5×5 area.",
   "text.autoconfig.quirky.option.fishBaitDurationSeconds": "Fish Bait Duration (seconds)",
@@ -95,8 +91,6 @@
   "text.autoconfig.quirky.option.ropeMaxExtendPerUse.@Tooltip": "Maximum rope segments placed at once when sneak-right-clicking a rope.",
   "text.autoconfig.quirky.option.boomerangRange": "Boomerang Range",
   "text.autoconfig.quirky.option.boomerangRange.@Tooltip": "Maximum flight distance in blocks before the boomerang turns back.",
-  "text.autoconfig.quirky.option.boomerangDamage": "Boomerang Damage",
-  "text.autoconfig.quirky.option.boomerangDamage.@Tooltip": "Damage dealt per hit to a living creature (0 makes it a pure pickup toy).",
   "text.autoconfig.quirky.option.boomerangBreakChance": "Boomerang Break Chance",
   "text.autoconfig.quirky.option.boomerangBreakChance.@Tooltip": "Chance (0-1) that a solid block is shattered on impact; ignored for instant-break blocks.",
   "item.quirky.rope": "Rope",
@@ -119,5 +113,6 @@
   "text.autoconfig.quirky.category.items": "Items",
   "text.autoconfig.quirky.category.totem": "Totem of Holding",
   "text.autoconfig.quirky.category.mechanics": "Mechanics",
-  "text.autoconfig.quirky.category.client": "Client"
+  "text.autoconfig.quirky.category.client": "Client",
+  "tooltip.quirky.pet_whistle": "Right-click: pets within range path to you, farther ones teleport\nSneak+right-click: toggle sit/stand\nAt night: taunts phantoms to dive at you"
 }

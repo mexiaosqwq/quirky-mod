@@ -18,7 +18,7 @@
   "tooltip.quirky.clock": "第 %s 天 · %s",
   "tooltip.quirky.rope": "右键方块侧面贴墙或下方悬挂，右键绳段向下延伸，潜行批量铺设；\n可攀爬，滑落不摔伤（潜行松手）；手持灯笼右键挂灯",
   "tooltip.quirky.shift_details": "按住 Shift 查看详情",
-  "tooltip.quirky.seed_pouch": "右键播种 3×3；物品栏内光标点击放/取种子",
+  "tooltip.quirky.seed_pouch": "右键耕地播种 3×3 区域；潜行+右键精准播种 1 格\n只装种子：物品栏内光标拿种子左键放入，右键取出",
   "tooltip.quirky.fish_bait": "扔到水面上形成诱鱼区，区内的浮漂咬钩更快",
   "tooltip.quirky.food.always_edible": "任何时候都可以食用",
   "tooltip.quirky.food.eat_time": "食用耗时：%s 秒",
@@ -69,10 +69,6 @@
   "text.autoconfig.quirky.option.arrowDingVolume.@Tooltip": "箭矢命中叮声的音量（0.0-1.0）；击杀时按 1.2 倍播放。",
   "text.autoconfig.quirky.option.wakeUpSlowFallingSeconds": "起床保护时长（秒）",
   "text.autoconfig.quirky.option.wakeUpSlowFallingSeconds.@Tooltip": "睡满整晚起床后的缓降时长；睡眠被打断时按三分之一计。",
-  "text.autoconfig.quirky.option.parrotEggHatchChance": "鹦鹉蛋孵化率",
-  "text.autoconfig.quirky.option.parrotEggHatchChance.@Tooltip": "投掷的鹦鹉蛋基础孵化率（0.0-1.0）；落在丛林树叶/原木上时 +0.25。",
-  "text.autoconfig.quirky.option.parrotEggTwinChance": "鹦鹉蛋双胞胎概率",
-  "text.autoconfig.quirky.option.parrotEggTwinChance.@Tooltip": "孵化成功时孵出两只鹦鹉的概率（0.0-1.0）。",
   "text.autoconfig.quirky.option.seedPouchRadius": "播种袋范围",
   "text.autoconfig.quirky.option.seedPouchRadius.@Tooltip": "播种范围：0 只种点击的那一格，1 种 3×3 区域，2 种 5×5 区域。",
   "text.autoconfig.quirky.option.fishBaitDurationSeconds": "鱼饵球持续时间（秒）",
@@ -83,8 +79,6 @@
   "text.autoconfig.quirky.option.ropeMaxExtendPerUse.@Tooltip": "潜行右键绳段时一次最多铺设的绳段数。",
   "text.autoconfig.quirky.option.boomerangRange": "回旋镖最大射程",
   "text.autoconfig.quirky.option.boomerangRange.@Tooltip": "回旋镖开始折返前的最大飞行距离（格）。",
-  "text.autoconfig.quirky.option.boomerangDamage": "回旋镖伤害",
-  "text.autoconfig.quirky.option.boomerangDamage.@Tooltip": "每次命中生物造成的伤害（设为 0 即为纯拾取玩具）。",
   "text.autoconfig.quirky.option.boomerangBreakChance": "回旋镖碎块概率",
   "text.autoconfig.quirky.option.boomerangBreakChance.@Tooltip": "实心方块被撞击打碎的概率（0-1）；对秒破方块不生效。",
   "item.quirky.rope": "绳",
@@ -119,5 +113,6 @@
   "text.autoconfig.quirky.category.items": "物品",
   "text.autoconfig.quirky.category.totem": "保留图腾",
   "text.autoconfig.quirky.category.mechanics": "机制",
-  "text.autoconfig.quirky.category.client": "客户端"
+  "text.autoconfig.quirky.category.client": "客户端",
+  "tooltip.quirky.pet_whistle": "右键吹哨：半径内宠物寻路走来，更远的直接传送到身边\n潜行+右键：切换坐定/站起\n夜晚吹哨：嘲讽幻翼锁定你 30 秒"
 }

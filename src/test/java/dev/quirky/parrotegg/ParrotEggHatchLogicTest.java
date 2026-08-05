@@ -19,61 +19,50 @@ class ParrotEggHatchLogicTest {
 	}
 
 	@Test
-	void zeroChanceNeverHatches() {
+	void rollAboveChanceNeverHatches() {
 		RandomSource random = mock(RandomSource.class);
-		when(random.nextFloat()).thenReturn(0.5F);
-		assertEquals(0, ParrotEggHatchLogic.hatchCount(random, 0.0F, 0.03F));
+		when(random.nextFloat()).thenReturn(0.5F); // 0.5 >= 1/8 → 失败
+		assertEquals(0, ParrotEggHatchLogic.hatchCount(random, ParrotEggHatchLogic.BASE_HATCH_CHANCE));
 	}
 
 	@Test
-	void fullChanceAlwaysHatchesSingle() {
+	void rollBelowChanceHatchesSingle() {
 		RandomSource random = mock(RandomSource.class);
-		when(random.nextFloat()).thenReturn(0.5F);
-		assertEquals(1, ParrotEggHatchLogic.hatchCount(random, 1.0F, 0.0F));
-	}
-
-	@Test
-	void middleChanceRespectsRandomRoll() {
-		RandomSource above = mock(RandomSource.class);
-		when(above.nextFloat()).thenReturn(0.8F);
-		assertEquals(0, ParrotEggHatchLogic.hatchCount(above, 0.5F, 0.0F));
-
-		RandomSource below = mock(RandomSource.class);
-		when(below.nextFloat()).thenReturn(0.2F);
-		assertEquals(1, ParrotEggHatchLogic.hatchCount(below, 0.5F, 0.0F));
+		// 第一掷 0.05 < 1/8 → 孵化；第二掷 0.9 >= 1/32 → 单只
+		when(random.nextFloat()).thenReturn(0.05F, 0.9F);
+		assertEquals(1, ParrotEggHatchLogic.hatchCount(random, ParrotEggHatchLogic.BASE_HATCH_CHANCE));
 	}
 
 	@Test
 	void twinRollTriggersTwins() {
 		RandomSource random = mock(RandomSource.class);
-		// 第一掷 0.2 < 0.5 → 孵化；第二掷 0.1 < 1.0（twinChance 越界仍 clamp）→ 双胞胎
-		when(random.nextFloat()).thenReturn(0.2F, 0.1F);
-		assertEquals(2, ParrotEggHatchLogic.hatchCount(random, 0.5F, 1.0F));
+		// 第一掷 0.05 < 1/8 → 孵化；第二掷 0.01 < 1/32 → 双胞胎
+		when(random.nextFloat()).thenReturn(0.05F, 0.01F);
+		assertEquals(2, ParrotEggHatchLogic.hatchCount(random, ParrotEggHatchLogic.BASE_HATCH_CHANCE));
 	}
 
 	@Test
-	void twinChanceBelowZeroNeverTwins() {
+	void hatchBoundaryRollFails() {
 		RandomSource random = mock(RandomSource.class);
-		when(random.nextFloat()).thenReturn(0.2F);
-		assertEquals(1, ParrotEggHatchLogic.hatchCount(random, 0.5F, -0.1F));
+		when(random.nextFloat()).thenReturn(1.0F / 8.0F); // 恰好等于基准 → 不孵化（>= 判定）
+		assertEquals(0, ParrotEggHatchLogic.hatchCount(random, ParrotEggHatchLogic.BASE_HATCH_CHANCE));
 	}
 
 	@Test
-	void twinChanceBoundaryFallsThroughToSingle() {
-		RandomSource random = mock(RandomSource.class);
-		// 第一掷 0.2 → 孵化；第二掷 0.5 不小于 0.03 → 单只
-		when(random.nextFloat()).thenReturn(0.2F, 0.5F);
-		assertEquals(1, ParrotEggHatchLogic.hatchCount(random, 0.5F, 0.03F));
+	void jungleBoostDoublesBaseChance() {
+		assertEquals(0.25F, ParrotEggHatchLogic.jungleBoost(), 1.0E-6F);
 	}
 
 	@Test
-	void jungleBoostRaisesDefaultChance() {
-		assertEquals(0.75F, ParrotEggHatchLogic.jungleBoost(0.5F), 1.0E-6F);
-	}
+	void higherChanceHatchesWhereBaseFails() {
+		// 丛林概率 25%：0.2 < 0.25 → 孵化；基础 12.5%：0.2 >= 0.125 → 失败
+		RandomSource baseRoll = mock(RandomSource.class);
+		when(baseRoll.nextFloat()).thenReturn(0.2F);
+		assertEquals(0, ParrotEggHatchLogic.hatchCount(baseRoll, ParrotEggHatchLogic.BASE_HATCH_CHANCE));
 
-	@Test
-	void jungleBoostCapsAtOne() {
-		assertEquals(1.0F, ParrotEggHatchLogic.jungleBoost(0.9F), 1.0E-6F);
+		RandomSource jungleRoll = mock(RandomSource.class);
+		when(jungleRoll.nextFloat()).thenReturn(0.2F, 0.9F); // 0.2 < 0.25 孵化；0.9 >= 1/32 单只
+		assertEquals(1, ParrotEggHatchLogic.hatchCount(jungleRoll, ParrotEggHatchLogic.jungleBoost()));
 	}
 
 	@Test

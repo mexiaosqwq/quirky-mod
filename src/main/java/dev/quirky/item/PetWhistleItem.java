@@ -2,13 +2,17 @@ package dev.quirky.item;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 
 import dev.quirky.config.QuirkyConfigHolder;
+import dev.quirky.tooltips.TooltipShiftState;
 import dev.quirky.whistle.WhistleLogic;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -23,7 +27,9 @@ import net.minecraft.world.entity.monster.Phantom;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -53,6 +59,20 @@ public class PetWhistleItem extends Item {
 
 	public PetWhistleItem(Properties properties) {
 		super(properties);
+	}
+
+	@Override
+	public void appendHoverText(
+		ItemStack stack, Item.TooltipContext context, TooltipDisplay display, Consumer<Component> builder, TooltipFlag flag
+	) {
+		// 高级 tooltip 模式：未按 Shift 时由 TooltipShiftGateMixin 隐藏并追加提示行
+		if (TooltipShiftState.isSuppressing()) {
+			return;
+		}
+		// lang 文本以 \n 分行，逐行渲染（避免超长单行堆叠）
+		for (String line : Component.translatable("tooltip.quirky.pet_whistle").getString().split("\n")) {
+			builder.accept(Component.literal(line).withStyle(ChatFormatting.GRAY));
+		}
 	}
 
 	@Override

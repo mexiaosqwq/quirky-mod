@@ -2,7 +2,6 @@ package dev.quirky.parrotegg;
 
 import dev.quirky.ModEntities;
 import dev.quirky.ModItems;
-import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.core.particles.ColorParticleOption;
 import net.minecraft.core.particles.ItemParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
@@ -81,13 +80,8 @@ public class ParrotEggEntity extends ThrowableItemProjectile {
 			return; // 孵化与粒子由服务端权威执行
 		}
 		ServerLevel serverLevel = (ServerLevel) this.level();
-		float hatchChance;
-		if (isOnJungle(serverLevel, hitResult)) {
-			hatchChance = ParrotEggHatchLogic.jungleBoost(QuirkyConfigHolder.get().parrotEggHatchChance);
-		} else {
-			hatchChance = QuirkyConfigHolder.get().parrotEggHatchChance;
-		}
-		int count = ParrotEggHatchLogic.hatchCount(this.random, hatchChance, QuirkyConfigHolder.get().parrotEggTwinChance);
+		float hatchChance = isOnJungle(serverLevel, hitResult) ? ParrotEggHatchLogic.jungleBoost() : ParrotEggHatchLogic.BASE_HATCH_CHANCE;
+		int count = ParrotEggHatchLogic.hatchCount(this.random, hatchChance);
 		int shellColor = ParrotEggHatchLogic.randomShellColor(this.random);
 		if (count > 0) {
 			for (int i = 0; i < count; i++) {
@@ -98,19 +92,17 @@ public class ParrotEggEntity extends ThrowableItemProjectile {
 					shellColor = ParrotEggHatchLogic.shellColor(parrot.getVariant());
 				}
 			}
-			serverLevel.playSound(
-				null, this.getX(), this.getY(), this.getZ(), SoundEvents.PARROT_AMBIENT, SoundSource.NEUTRAL, 1.0F, 1.0F
-			);
 			serverLevel.sendParticles(ParticleTypes.HEART, this.getX(), this.getY() + 0.5, this.getZ(), 5, 0.3, 0.3, 0.3, 0.0);
 		} else {
 			shellColor = ParrotEggHatchLogic.randomShellColor(this.random);
 		}
-		// 碎壳色粒子（先看到壳色，再看到鹦鹉）+ 轻量碎壳音效（设计 §3.2，成败均播）
+		// 碎壳色粒子（先看到壳色，再看到鹦鹉）+ 蛋壳碎裂声（成败均播，对齐用户对"鸡蛋破碎声"的预期；
+		// 26.2 无独立鸡蛋碎壳音，用海龟蛋裂碎声 TURTLE_EGG_BREAK 代替）
 		serverLevel.sendParticles(
 			ColorParticleOption.create(ParticleTypes.ENTITY_EFFECT, ARGB.color(255, shellColor)),
 			this.getX(), this.getY(), this.getZ(), 8, 0.2, 0.2, 0.2, 0.0
 		);
-		serverLevel.playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ITEM_BREAK, SoundSource.PLAYERS, 0.5F, 1.0F);
+		serverLevel.playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.TURTLE_EGG_BREAK, SoundSource.PLAYERS, 0.5F, 1.0F);
 		this.level().broadcastEntityEvent(this, (byte) 3);
 		this.discard();
 	}

@@ -40,6 +40,9 @@ public final class TooltipShiftHelper {
 		if (stack.is(ModItems.FISH_BAIT)) {
 			return true;
 		}
+		if (stack.is(ModItems.PET_WHISTLE)) {
+			return true;
+		}
 		if (stack.is(ModItems.ROPE) || stack.is(ModItems.ROPE_LANTERN)) {
 			return true;
 		}
