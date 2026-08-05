@@ -50,22 +50,28 @@ class RopeSupportLogicTest {
 
 	@Test
 	void solidWallBehindSupportsWallRope() {
-		assertTrue(RopeSupportLogic.isBacked(false, false, false));
+		assertTrue(RopeSupportLogic.isBacked(false, false, false, true));
 	}
 
 	@Test
 	void airBehindDoesNotSupportWallRope() {
-		assertFalse(RopeSupportLogic.isBacked(true, false, false));
+		assertFalse(RopeSupportLogic.isBacked(true, false, false, false));
 	}
 
 	@Test
 	void fluidBehindDoesNotSupportWallRope() {
-		assertFalse(RopeSupportLogic.isBacked(false, true, false));
+		assertFalse(RopeSupportLogic.isBacked(false, true, false, false));
 	}
 
 	@Test
 	void ropeBehindDoesNotSupportWallRope() {
-		assertFalse(RopeSupportLogic.isBacked(false, false, true));
+		assertFalse(RopeSupportLogic.isBacked(false, false, true, false));
+	}
+
+	@Test
+	void nonSolidBlockBehindDoesNotSupportWallRope() {
+		// 植物/树叶/半砖等非完整方块不能当墙（2026-08-05 用户反馈：草上也能挂）
+		assertFalse(RopeSupportLogic.isBacked(false, false, false, false));
 	}
 
 	// ==== 连锁掉落段计算 ====
@@ -182,6 +188,16 @@ class RopeSupportLogicTest {
 		BlockPos pos = new BlockPos(10, 64, 10);
 		when(level.getBlockState(pos)).thenReturn(Blocks.STONE.defaultBlockState());
 		when(level.getBlockState(pos.above())).thenReturn(Blocks.AIR.defaultBlockState());
+		assertFalse(RopeSupportLogic.isSupportedAt(level, pos));
+	}
+
+	@Test
+	void nonFullBlockAboveIsNotSupported() {
+		// 草植物/树叶/半砖等非完整方块顶部不能挂绳（isCollisionShapeFullBlock=false）
+		Level level = mock(Level.class);
+		BlockPos pos = new BlockPos(10, 64, 10);
+		when(level.getBlockState(pos)).thenReturn(Blocks.AIR.defaultBlockState());
+		when(level.getBlockState(pos.above())).thenReturn(Blocks.SHORT_GRASS.defaultBlockState());
 		assertFalse(RopeSupportLogic.isSupportedAt(level, pos));
 	}
 }

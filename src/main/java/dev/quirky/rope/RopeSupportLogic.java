@@ -94,17 +94,19 @@ public final class RopeSupportLogic {
 	}
 
 	/**
-	 * 贴墙段支撑判定（纯函数）：背后方块非空气、无流体、非绳段即可支撑。
+	 * 贴墙段支撑判定（纯函数）：背后方块为完整实心、无流体、非绳段即可支撑。
 	 * 每段独立依赖背后墙；连锁掉落由 {@link #fallingSegments} 从失支撑段起统一处理。
 	 */
-	public static boolean isBacked(boolean behindIsAir, boolean behindHasFluid, boolean behindIsRope) {
-		return !behindIsAir && !behindHasFluid && !behindIsRope;
+	public static boolean isBacked(boolean behindIsAir, boolean behindHasFluid, boolean behindIsRope, boolean behindIsSolid) {
+		return !behindIsAir && !behindHasFluid && !behindIsRope && behindIsSolid;
 	}
 
 	/** 贴墙段支撑判定（生产）：读取背后方块状态组装纯函数输入。 */
 	public static boolean isBackedAt(Level level, BlockPos pos, Direction facing) {
-		BlockState behind = level.getBlockState(pos.relative(facing));
-		return isBacked(behind.isAir(), !behind.getFluidState().isEmpty(), isRope(behind));
+		BlockPos behindPos = pos.relative(facing);
+		BlockState behind = level.getBlockState(behindPos);
+		return isBacked(behind.isAir(), !behind.getFluidState().isEmpty(), isRope(behind),
+			behind.isCollisionShapeFullBlock(level, behindPos));
 	}
 
 	// ==== 生产环境辅助 ====
@@ -116,11 +118,11 @@ public final class RopeSupportLogic {
 			// 贴墙段：支撑 = 背后墙（泰拉瑞亚式；墙破 → 该段起连锁掉落）
 			return isBackedAt(level, pos, state.getValue(RopeBlock.FACING));
 		}
-		// 悬挂绳段或非绳位置（放置判定）：由正上方支撑。
+		// 悬挂绳段或非绳位置（放置判定）：由正上方支撑（完整实心/栅栏墙顶/另一段绳）。
 		// 注意：只有绳段才具备 WALL/FACING 属性，非绳方块直接读会 IllegalArgumentException。
 		BlockState above = level.getBlockState(pos.above());
 		return isSupported(
-			above.isSolid(),
+			above.isCollisionShapeFullBlock(level, pos.above()),
 			above.is(BlockTags.FENCES) || above.is(BlockTags.WALLS),
 			above.is(ModBlocks.ROPE) || above.is(ModBlocks.ROPE_LANTERN)
 		);

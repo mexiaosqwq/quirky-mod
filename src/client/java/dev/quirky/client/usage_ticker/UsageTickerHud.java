@@ -161,17 +161,35 @@ public final class UsageTickerHud {
 		int x = hotbarLeft - SLOT_SIZE - HOTBAR_GAP;
 		graphics.fill(x - 1, y - 1, x + 17, y + 17, 0x40000000);
 		TickerEvent event = currentEvent;
-		ItemStack display = new ItemStack(event.item(), Math.max(1, event.newCount()));
+		// 用背包中的实际堆叠渲染（保留数据组件：药水种类/附魔/染色等），缺失时兑底默认实例
+		ItemStack display = findStackInInventory(minecraft.player.getInventory(), event.item());
+		if (display == null) {
+			display = new ItemStack(event.item());
+		}
 		graphics.item(display, x, y);
 		graphics.itemDecorations(minecraft.font, display, x, y, String.valueOf(totalCount(minecraft.player, event)));
 	}
 
+	/** 在背包中找该物品的第一个堆叠（保留组件）；空返回 null。 */
+	private static ItemStack findStackInInventory(Inventory inventory, Item item) {
+		for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+			ItemStack stack = inventory.getItem(slot);
+			if (!stack.isEmpty() && stack.is(item)) {
+				return stack;
+			}
+		}
+		return null;
+	}
+
 	/**
-	 * 背包内该物品的总数：遍历背包按 isSameItemSameComponents 求和，再与事件时刻总数取较大值
-	 * （带自定义组件的堆叠可能比对不上，兜底显示事件时刻的总数）。
+	 * 背包内该物品的总数：以背包实际堆叠为基准按 isSameItemSameComponents 求和（药水按种类精确），
+	 * 再与事件时刻总数取较大值（带自定义组件的堆叠可能比对不上，兜底显示事件时刻的总数）。
 	 */
 	private static int totalCount(Player player, TickerEvent event) {
-		ItemStack reference = new ItemStack(event.item());
+		ItemStack reference = findStackInInventory(player.getInventory(), event.item());
+		if (reference == null) {
+			return event.newCount();
+		}
 		int total = 0;
 		Inventory inventory = player.getInventory();
 		for (int i = 0; i < inventory.getContainerSize(); i++) {
