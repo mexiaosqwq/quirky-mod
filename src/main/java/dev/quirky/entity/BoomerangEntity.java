@@ -5,6 +5,9 @@ import dev.quirky.boomerang.BoomerangBlockLogic;
 import dev.quirky.boomerang.BoomerangPhysics;
 import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -69,7 +72,11 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	private static final String TAG_HIT_UUID_MOST = "M";
 	private static final String TAG_HIT_UUID_LEAST = "L";
 
-	private ItemStack item = ItemStack.EMPTY;
+	/** 物品同步：entityData 广播到客户端（渲染器用），照原版 ThrowableItemProjectile 的 DATA_ITEM_STACK 模式。 */
+	private static final EntityDataAccessor<ItemStack> DATA_ITEM_STACK = SynchedEntityData.defineId(
+		BoomerangEntity.class, EntityDataSerializers.ITEM_STACK
+	);
+
 	private final List<ItemStack> collected = new ArrayList<>();
 	private final Set<UUID> hitEntities = new HashSet<>();
 	private boolean returning;
@@ -84,15 +91,20 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 
 	public BoomerangEntity(ServerLevel level, Player owner, ItemStack item, int throwSlot) {
 		super(ModEntities.BOOMERANG, level);
-		this.item = item.copyWithCount(1);
+		this.setItem(item);
 		this.throwSlot = throwSlot;
 		this.maxRange = QuirkyConfigHolder.get().boomerangRange;
 		this.setOwner(owner);
 	}
 
+	/** 写入 entityData（客户端可见），同原版 setItem 语义。 */
+	public void setItem(ItemStack source) {
+		this.getEntityData().set(DATA_ITEM_STACK, source.copyWithCount(1));
+	}
+
 	@Override
 	public ItemStack getItem() {
-		return this.item;
+		return this.getEntityData().get(DATA_ITEM_STACK);
 	}
 
 	/** 是否属于该玩家（用于投掷时防重复飞行）。 */
@@ -103,6 +115,7 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 
 	@Override
 	protected void defineSynchedData(net.minecraft.network.syncher.SynchedEntityData.Builder builder) {
+		builder.define(DATA_ITEM_STACK, ItemStack.EMPTY);
 	}
 
 	// ==== NBT ====
@@ -114,6 +127,7 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		output.putInt(TAG_MAX_RANGE, this.maxRange);
 		output.putInt(TAG_THROW_SLOT, this.throwSlot);
 		output.putDouble(TAG_TRAVELED, this.traveledDistance);
+		output.store("Item", ItemStack.CODEC, this.getItem());
 		output.store(TAG_COLLECTED, ItemStack.OPTIONAL_CODEC.listOf(), this.collected);
 		ValueOutput.ValueOutputList list = output.childrenList(TAG_HITS);
 		for (UUID id : this.hitEntities) {
@@ -132,6 +146,7 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		this.traveledDistance = input.getDoubleOr(TAG_TRAVELED, 0.0);
 		this.collected.clear();
 		this.collected.addAll(input.read(TAG_COLLECTED, ItemStack.OPTIONAL_CODEC.listOf()).orElse(List.of()));
+		input.read("Item", ItemStack.CODEC).ifPresent(this::setItem);
 		this.hitEntities.clear();
 		for (ValueInput child : input.childrenListOrEmpty(TAG_HITS)) {
 			this.hitEntities.add(new UUID(child.getLongOr(TAG_HIT_UUID_MOST, 0L), child.getLongOr(TAG_HIT_UUID_LEAST, 0L)));
@@ -301,7 +316,7 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 				if (this.returnToInventory(player)) {
 					player.playSound(SoundEvents.ARMOR_EQUIP_GENERIC.value(), 0.5F, 1.0F);
 				} else {
-					level.addFreshEntity(new ItemEntity(level, player.getX(), player.getY(), player.getZ(), this.item));
+					level.addFreshEntity(new ItemEntity(level, player.getX(), player.getY(), player.getZ(), this.getItem()));
 				}
 			}
 			// 拾取物：放入背包，部分放入的剩余就地掉落（不吞物品）
@@ -312,7 +327,7 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 				}
 			}
 		} else {
-			level.addFreshEntity(new ItemEntity(level, this.getX(), this.getY(), this.getZ(), this.item));
+			level.addFreshEntity(new ItemEntity(level, this.getX(), this.getY(), this.getZ(), this.getItem()));
 			for (ItemStack stack : this.collected) {
 				level.addFreshEntity(new ItemEntity(level, this.getX(), this.getY(), this.getZ(), stack));
 			}
@@ -322,22 +337,22 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 
 	/** 每次完整飞行消耗 1 点耐久；归零时物品 shrink 消失并播放 ITEM_BREAK，返回是否已损坏。 */
 	private boolean applyFlightDurability(ServerLevel level, Entity owner) {
-		if (this.item.isDamageableItem() && !this.item.isBroken()) {
-			this.item.hurtAndBreak(1, level, owner instanceof ServerPlayer player ? player : null, broken -> {
+		if (this.getItem().isDamageableItem() && !this.getItem().isBroken()) {
+			this.getItem().hurtAndBreak(1, level, owner instanceof ServerPlayer player ? player : null, broken -> {
 				level.playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.ITEM_BREAK, SoundSource.PLAYERS, 0.8F, 1.0F);
 			});
 		}
-		return this.item.isEmpty();
+		return this.getItem().isEmpty();
 	}
 
 	/** 优先回填原手持槽，其次背包空位。 */
 	private boolean returnToInventory(Player player) {
 		Inventory inventory = player.getInventory();
 		if (this.throwSlot >= 0 && this.throwSlot < inventory.getContainerSize() && inventory.getItem(this.throwSlot).isEmpty()) {
-			inventory.setItem(this.throwSlot, this.item);
+			inventory.setItem(this.throwSlot, this.getItem());
 			return true;
 		}
-		return inventory.add(this.item);
+		return inventory.add(this.getItem());
 	}
 
 	/** 兜底掉落（10 秒上限/投掷者不可用）：坠入虚空不掉落，其余就地掉落。 */
@@ -347,7 +362,7 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 			Entity owner = this.getOwner();
 			boolean creative = owner instanceof Player p && p.hasInfiniteMaterials();
 			if (!creative) {
-				level.addFreshEntity(new ItemEntity(level, this.getX(), this.getY(), this.getZ(), this.item));
+				level.addFreshEntity(new ItemEntity(level, this.getX(), this.getY(), this.getZ(), this.getItem()));
 			}
 			for (ItemStack stack : this.collected) {
 				level.addFreshEntity(new ItemEntity(level, this.getX(), this.getY(), this.getZ(), stack));

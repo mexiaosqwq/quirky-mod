@@ -18,7 +18,7 @@
   "tooltip.quirky.clock": "Day %s · %s",
   "tooltip.quirky.rope": "Place against a wall or under a block; right-click a rope to extend, sneak for batch.\nClimbable, slide safely (sneak to let go). Right-click with a lantern to hang it.",
   "tooltip.quirky.shift_details": "Hold Shift for details",
-  "tooltip.quirky.seed_pouch": "Right-click farmland to plant a 3×3 area; sneak+right-click plants a single cell\nSeeds only: cursor-click seeds to load, right-click to unload",
+  "tooltip.quirky.seed_pouch": "Right-click to plant; click in inventory to store seeds",
   "tooltip.quirky.fish_bait": "Throw into water to create a bait zone that makes nearby bobbers bite faster",
   "tooltip.quirky.food.always_edible": "Edible at any time",
   "tooltip.quirky.food.eat_time": "Eat time: %s s",

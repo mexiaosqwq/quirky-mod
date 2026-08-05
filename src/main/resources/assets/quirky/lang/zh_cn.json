@@ -18,7 +18,7 @@
   "tooltip.quirky.clock": "第 %s 天 · %s",
   "tooltip.quirky.rope": "右键方块侧面贴墙或下方悬挂，右键绳段向下延伸，潜行批量铺设；\n可攀爬，滑落不摔伤（潜行松手）；手持灯笼右键挂灯",
   "tooltip.quirky.shift_details": "按住 Shift 查看详情",
-  "tooltip.quirky.seed_pouch": "右键耕地播种 3×3 区域；潜行+右键精准播种 1 格\n只装种子：物品栏内光标拿种子左键放入，右键取出",
+  "tooltip.quirky.seed_pouch": "右键耕地播种；物品栏内光标点击装取种子",
   "tooltip.quirky.fish_bait": "扔到水面上形成诱鱼区，区内的浮漂咬钩更快",
   "tooltip.quirky.food.always_edible": "任何时候都可以食用",
   "tooltip.quirky.food.eat_time": "食用耗时：%s 秒",
