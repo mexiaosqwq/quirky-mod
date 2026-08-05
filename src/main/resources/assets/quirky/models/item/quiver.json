@@ -1,7 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "quirky:item/quiver",
-    "layer1": "quirky:item/quiver_overlay"
+    "layer0": "quirky:item/quiver"
   }
 }

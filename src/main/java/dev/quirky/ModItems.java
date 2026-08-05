@@ -22,6 +22,7 @@ import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.BundleContents;
 import net.minecraft.world.item.component.DyedItemColor;
 
 public final class ModItems {
@@ -79,7 +80,11 @@ public final class ModItems {
 	);
 
 	public static final Item SEED_POUCH = new SeedPouchItem(
-		new Item.Properties().stacksTo(1).setId(SEED_POUCH_ID)
+		new Item.Properties()
+			.stacksTo(1)
+			// 原版 bundle 同款：默认挂空 BUNDLE_CONTENTS，创造首拿即有容器组件 → tooltip 网格/空态正常
+			.component(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY)
+			.setId(SEED_POUCH_ID)
 	);
 
 	public static final Item FISH_BAIT = new FishBaitItem(
