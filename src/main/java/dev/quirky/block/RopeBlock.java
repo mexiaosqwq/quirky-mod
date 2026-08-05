@@ -199,7 +199,9 @@ public class RopeBlock extends Block implements SimpleWaterloggedBlock {
 		}
 		BlockState above = level.getBlockState(pos.above());
 		boolean top = !RopeSupportLogic.isRope(above);
-		boolean aboveWall = RopeSupportLogic.isRope(above) && above.getValue(WALL);
+		// 上方绳段的柱是否贴墙（贴墙段 WALL，或已退化的贴墙挂段 ABOVE_WALL）：链式传递
+		boolean aboveWall = RopeSupportLogic.isRope(above)
+			&& (above.getValue(WALL) || above.getValue(ABOVE_WALL));
 		if (state.getValue(TOP) != top || state.getValue(ABOVE_WALL) != aboveWall) {
 			level.setBlock(pos, state.setValue(TOP, top).setValue(ABOVE_WALL, aboveWall), 2);
 		}

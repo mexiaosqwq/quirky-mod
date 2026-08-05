@@ -22,7 +22,7 @@
       "model": "quirky:block/rope_wall_north"
     },
     "facing=north,top=false,wall=false,waterlogged=false,above_wall=true": {
-      "model": "quirky:block/rope_link"
+      "model": "quirky:block/rope_wall_north"
     },
     "facing=north,top=true,wall=true,waterlogged=true,above_wall=false": {
       "model": "quirky:block/rope_wall_knot_north"
@@ -46,7 +46,7 @@
       "model": "quirky:block/rope_wall_north"
     },
     "facing=north,top=false,wall=false,waterlogged=true,above_wall=true": {
-      "model": "quirky:block/rope_link"
+      "model": "quirky:block/rope_wall_north"
     },
     "facing=east,top=true,wall=true,waterlogged=false,above_wall=false": {
       "model": "quirky:block/rope_wall_knot_east"
@@ -70,7 +70,7 @@
       "model": "quirky:block/rope_wall_east"
     },
     "facing=east,top=false,wall=false,waterlogged=false,above_wall=true": {
-      "model": "quirky:block/rope_link"
+      "model": "quirky:block/rope_wall_east"
     },
     "facing=east,top=true,wall=true,waterlogged=true,above_wall=false": {
       "model": "quirky:block/rope_wall_knot_east"
@@ -94,7 +94,7 @@
       "model": "quirky:block/rope_wall_east"
     },
     "facing=east,top=false,wall=false,waterlogged=true,above_wall=true": {
-      "model": "quirky:block/rope_link"
+      "model": "quirky:block/rope_wall_east"
     },
     "facing=south,top=true,wall=true,waterlogged=false,above_wall=false": {
       "model": "quirky:block/rope_wall_knot_south"
@@ -118,7 +118,7 @@
       "model": "quirky:block/rope_wall_south"
     },
     "facing=south,top=false,wall=false,waterlogged=false,above_wall=true": {
-      "model": "quirky:block/rope_link"
+      "model": "quirky:block/rope_wall_south"
     },
     "facing=south,top=true,wall=true,waterlogged=true,above_wall=false": {
       "model": "quirky:block/rope_wall_knot_south"
@@ -142,7 +142,7 @@
       "model": "quirky:block/rope_wall_south"
     },
     "facing=south,top=false,wall=false,waterlogged=true,above_wall=true": {
-      "model": "quirky:block/rope_link"
+      "model": "quirky:block/rope_wall_south"
     },
     "facing=west,top=true,wall=true,waterlogged=false,above_wall=false": {
       "model": "quirky:block/rope_wall_knot_west"
@@ -166,7 +166,7 @@
       "model": "quirky:block/rope_wall_west"
     },
     "facing=west,top=false,wall=false,waterlogged=false,above_wall=true": {
-      "model": "quirky:block/rope_link"
+      "model": "quirky:block/rope_wall_west"
     },
     "facing=west,top=true,wall=true,waterlogged=true,above_wall=false": {
       "model": "quirky:block/rope_wall_knot_west"
@@ -190,7 +190,7 @@
       "model": "quirky:block/rope_wall_west"
     },
     "facing=west,top=false,wall=false,waterlogged=true,above_wall=true": {
-      "model": "quirky:block/rope_link"
+      "model": "quirky:block/rope_wall_west"
     }
   }
 }

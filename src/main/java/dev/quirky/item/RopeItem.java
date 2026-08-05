@@ -171,7 +171,9 @@ public class RopeItem extends BlockItem {
 		boolean waterlogged = target.getFluidState().is(Fluids.WATER);
 		BlockState aboveState = level.getBlockState(pos.above());
 		boolean top = !RopeSupportLogic.isRope(aboveState);
-		boolean aboveWall = RopeSupportLogic.isRope(aboveState) && aboveState.getValue(RopeBlock.WALL);
+		// 上方绳段的柱是否贴墙（贴墙段 WALL，或已退化的贴墙挂段 ABOVE_WALL）：链式传递，整条退化柱保持贴墙
+		boolean aboveWall = RopeSupportLogic.isRope(aboveState)
+			&& (aboveState.getValue(RopeBlock.WALL) || aboveState.getValue(RopeBlock.ABOVE_WALL));
 		Direction wall = wallFacing != null && RopeSupportLogic.isBackedAt(level, pos, wallFacing) ? wallFacing : null;
 		Direction facing = wall != null ? wall : (aboveWall ? aboveState.getValue(RopeBlock.FACING) : Direction.NORTH);
 		BlockState ropeState = this.getBlock().defaultBlockState()
