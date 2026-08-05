@@ -22,6 +22,19 @@ public final class BoomerangPhysics {
 	private BoomerangPhysics() {
 	}
 
+	/**
+	 * 平滑阶跃：x≤0→0，x≥1→1，中间 S 形过渡（3x²−2x³）。用于按距离平滑触发返程偏转/收敛。
+	 */
+	public static double smoothstep(double x) {
+		if (x <= 0.0) {
+			return 0.0;
+		}
+		if (x >= 1.0) {
+			return 1.0;
+		}
+		return x * x * (3.0 - 2.0 * x);
+	}
+
 	/** 线性步进:位置积分(无重力)。 */
 	public static Vec3 step(Vec3 pos, Vec3 vel, double dt) {
 		return pos.add(vel.scale(dt));

@@ -12,7 +12,7 @@ class QuirkyConfigDefaultsTest {
 		QuirkyConfig c = new QuirkyConfig();
 		assertEquals(4, c.quiverCapacity);
 		assertEquals(32, c.ropeMaxExtendPerUse);
-		assertEquals(16, c.boomerangRange);
+		assertEquals(12, c.boomerangRange);
 		assertEquals(0.05F, c.boomerangBreakChance);
 		assertEquals(1, c.seedPouchRadius);
 		assertEquals(90, c.fishBaitDurationSeconds);

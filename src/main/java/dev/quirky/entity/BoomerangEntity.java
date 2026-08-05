@@ -53,16 +53,16 @@ import java.util.UUID;
  * 投掷者 UUID 由 {@link Projectile#getOwner()}（EntityReference）查找，防内存悬挂。
  */
 public class BoomerangEntity extends Projectile implements ItemSupplier {
-	/** 进动偏转速率（弧度/tick，≈4.6°/tick；可调）。飞约 39 tick 转过 180° 自然回指投掷者。 */
-	private static final double PRECESSION_RATE = 0.08;
-	/** 朝投掷者收敛强度（每帧水平方向 blend 比例；可调）。 */
-	private static final double CONVERGE_STRENGTH = 0.05;
+	/** 进动偏转速率（弧度/tick；可调）。仅在远端（dist 接近 maxRange）通过 smoothstep 触发，出程近似直线可命中敌人。 */
+	private static final double PRECESSION_RATE = 0.25;
+	/** 朝投掷者收敛强度（每帧水平方向 blend 比例；可调）。同样按距离触发，返程强收敛快速回手。 */
+	private static final double CONVERGE_STRENGTH = 0.20;
 	/** 远端最低速度倍率（可调）。 */
 	private static final double MIN_SPEED_SCALE = 0.55;
 	/** 远端抬升幅度（格；可调）。 */
 	private static final double HEIGHT_AMPLITUDE = 0.4;
-	/** 飞行进度归一化基准 tick（≈3s；可调）。 */
-	private static final int ESTIMATED_FLIGHT_TICKS = 60;
+	/** 飞行进度归一化基准 tick（对齐实际回手时长，让高度起伏完整 0→峰→0；可调）。 */
+	private static final int ESTIMATED_FLIGHT_TICKS = 30;
 	/** 回手判定距离 1.8 格（平方；可调）。 */
 	private static final double CATCH_DISTANCE_SQ = 3.24;
 	/** 命中生物固定伤害（武器化后不再走配置；对齐近战属性 4）。 */
@@ -80,7 +80,10 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	private static final String TAG_TRAVELED = "TraveledDistance";
 	private static final String TAG_HIT_UUID_MOST = "M";
 	private static final String TAG_HIT_UUID_LEAST = "L";
+	private static final String TAG_PEAK_DISTANCE = "PeakDistance";
 
+	/** 命中检测盒膨胀（格；可调）。越大越容易碰到敌人。 */
+	private static final double HIT_INFLATE = 1.5;
 	/** 物品同步：entityData 广播到客户端（渲染器用），照原版 ThrowableItemProjectile 的 DATA_ITEM_STACK 模式。 */
 	private static final EntityDataAccessor<ItemStack> DATA_ITEM_STACK = SynchedEntityData.defineId(
 		BoomerangEntity.class, EntityDataSerializers.ITEM_STACK
@@ -94,7 +97,9 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 	private final Set<UUID> hitEntities = new HashSet<>();
 	/** 连续模型已废弃出程/返程切换；保留字段仅供旧存档 NBT 兼容读取。 */
 	private boolean returning;
-	private int maxRange = 16;
+	/** 出程飞行峰值距离，用于检测开始返程（dist 开始减小）。 */
+	private double peakDistance;
+	private int maxRange = 12;
 	private int throwSlot = -1;
 	/** 连续模型已废弃距离阈值；保留字段仅供旧存档 NBT 兼容读取。 */
 	private double traveledDistance;
@@ -153,6 +158,7 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		output.putInt(TAG_MAX_RANGE, this.maxRange);
 		output.putInt(TAG_THROW_SLOT, this.throwSlot);
 		output.putDouble(TAG_TRAVELED, this.traveledDistance);
+		output.putDouble(TAG_PEAK_DISTANCE, this.peakDistance);
 		output.putBoolean("Clockwise", this.isClockwise());
 		output.store("Item", ItemStack.CODEC, this.getItem());
 		output.store(TAG_COLLECTED, ItemStack.OPTIONAL_CODEC.listOf(), this.collected);
@@ -171,6 +177,7 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		this.maxRange = input.getIntOr(TAG_MAX_RANGE, 16);
 		this.throwSlot = input.getIntOr(TAG_THROW_SLOT, -1);
 		this.traveledDistance = input.getDoubleOr(TAG_TRAVELED, 0.0);
+		this.peakDistance = input.getDoubleOr(TAG_PEAK_DISTANCE, 0.0);
 		this.setClockwise(input.getBooleanOr("Clockwise", true));
 		this.collected.clear();
 		this.collected.addAll(input.read(TAG_COLLECTED, ItemStack.OPTIONAL_CODEC.listOf()).orElse(List.of()));
@@ -250,9 +257,16 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 			return;
 		}
 
-		vel = BoomerangPhysics.precess(vel, PRECESSION_RATE, this.isClockwise());
+		// 距离触发 + 返程状态：出程 smoothstep(dist/maxRange) 近直线可命中；返程 returning 永久满触发强收敛。
+		// 修复纯距离触发返程失效（回旋镖到玩家附近 dist 小→trigger→0→不收敛→绕圈接不住）
+		if (!this.returning && (dist >= this.maxRange * 0.7 || (this.lifetimeTicks > 5 && dist < this.peakDistance - 0.3))) {
+			this.returning = true;
+		}
+		this.peakDistance = Math.max(this.peakDistance, dist);
+		double trigger = Math.max(BoomerangPhysics.smoothstep(this.maxRange > 0 ? dist / this.maxRange : 1.0), this.returning ? 1.0 : 0.0);
+		vel = BoomerangPhysics.precess(vel, PRECESSION_RATE * trigger, this.isClockwise());
 		if (owner != null) {
-			vel = BoomerangPhysics.converge(vel, pos, ownerPos, CONVERGE_STRENGTH);
+			vel = BoomerangPhysics.converge(vel, pos, ownerPos, CONVERGE_STRENGTH * trigger);
 		}
 		vel = BoomerangPhysics.modulateSpeed(vel, THROW_SPEED, dist, this.maxRange, MIN_SPEED_SCALE);
 		vel = new Vec3(vel.x, BoomerangPhysics.heightVelocity(progress, HEIGHT_AMPLITUDE, ESTIMATED_FLIGHT_TICKS), vel.z);
@@ -263,7 +277,7 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 			ServerLevel serverLevel = (ServerLevel) level;
 			// 实体命中（比方块优先，贴合原版弹射物流程）
 			EntityHitResult entityHit = ProjectileUtil.getEntityHitResult(
-				serverLevel, this, pos, newPos, this.getBoundingBox().expandTowards(vel).inflate(1.0), this::canHitEntity
+				serverLevel, this, pos, newPos, this.getBoundingBox().expandTowards(vel).inflate(HIT_INFLATE), this::canHitEntity
 			);
 			if (entityHit != null && entityHit.getEntity() instanceof LivingEntity target) {
 				this.hitLiving(target);

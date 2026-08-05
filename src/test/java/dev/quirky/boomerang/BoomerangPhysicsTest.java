@@ -152,58 +152,87 @@ class BoomerangPhysicsTest {
 		assertEquals(-0.4 * Math.PI / 50.0, v, 1e-9);
 	}
 
-	// ==== 集成:完整飞行模拟 ====
+	// ==== smoothstep 工具 ====
 
 	@Test
-	void fullFlightReturnsToOwnerWithArcAndSlowdown() {
-		// 投掷者固定在原点,回旋镖朝 +Z 投出,右手回旋(clockwise)
+	void smoothstepClampsAndSmooths() {
+		assertEquals(0.0, BoomerangPhysics.smoothstep(-0.5), 1e-9, "x<=0 → 0");
+		assertEquals(0.0, BoomerangPhysics.smoothstep(0.0), 1e-9);
+		assertEquals(1.0, BoomerangPhysics.smoothstep(1.0), 1e-9);
+		assertEquals(1.0, BoomerangPhysics.smoothstep(1.5), 1e-9, "x>=1 → 1");
+		// 中点 0.5
+		assertEquals(0.5, BoomerangPhysics.smoothstep(0.5), 1e-9);
+		// 单调递增
+		assertTrue(BoomerangPhysics.smoothstep(0.3) < BoomerangPhysics.smoothstep(0.7));
+	}
+
+	// ==== 集成:完整飞行模拟（距离触发模型）====
+
+	@Test
+	void fullFlightReturnsToOwnerAndHitsFrontalTarget() {
+		// 距离触发模型：玩家固定原点朝 +Z 投出，主手右手回旋。
+		// 出程近似直线（能命中前方敌人），远端弧线回手。
 		Vec3 ownerPos = new Vec3(0, 0, 0);
 		Vec3 pos = new Vec3(0, 0, 0.5);
 		Vec3 vel = new Vec3(0, 0, 0.7);
-		double rate = 0.08, strength = 0.05, minScale = 0.55, amp = 0.4, maxRange = 16.0;
-		int total = 60;
+		double rate = 0.25, strength = 0.35, minScale = 0.55, amp = 0.4, maxRange = 12.0;
+		int total = 30;
 		boolean clockwise = true;
 
-		double maxLateral = 0.0;   // 横向(x)位移 → 证明有弧线
+		double maxLateral = 0.0;
 		double minHorizSpeed = Double.MAX_VALUE;
+		double lateralAtZ5 = Double.MAX_VALUE;  // 飞到 z≈5 时的横向偏差 → 命中判定
 
 		boolean caught = false;
 		int t;
+		boolean returning = false;
+		double peakDist = 0.0;
 		for (t = 0; t < 90; t++) {
 			double progress = Math.min(1.0, (double) t / total);
 			double dist = pos.subtract(ownerPos).horizontalDistance();
 			maxLateral = Math.max(maxLateral, Math.abs(pos.x - ownerPos.x));
 			minHorizSpeed = Math.min(minHorizSpeed, vel.horizontalDistance());
+			if (pos.z >= 4.8 && pos.z <= 5.2) {
+				lateralAtZ5 = Math.min(lateralAtZ5, Math.abs(pos.x - ownerPos.x));
+			}
 
 			if (dist <= 1.8 && t > 5) {
 				caught = true;
 				break;
 			}
 
-			vel = BoomerangPhysics.precess(vel, rate, clockwise);
-			vel = BoomerangPhysics.converge(vel, pos, ownerPos, strength);
+			if (!returning && (dist >= maxRange * 0.7 || (t > 5 && dist < peakDist - 0.3))) {
+				returning = true;
+			}
+			peakDist = Math.max(peakDist, dist);
+			double trigger = Math.max(BoomerangPhysics.smoothstep(dist / maxRange), returning ? 1.0 : 0.0);
+			vel = BoomerangPhysics.precess(vel, rate * trigger, clockwise);
+			vel = BoomerangPhysics.converge(vel, pos, ownerPos, strength * trigger);
 			vel = BoomerangPhysics.modulateSpeed(vel, 0.7, dist, maxRange, minScale);
 			vel = new Vec3(vel.x, BoomerangPhysics.heightVelocity(progress, amp, total), vel.z);
 			pos = BoomerangPhysics.step(pos, vel, 1.0);
 		}
 
 		assertTrue(caught, "should return to owner within 90 ticks (got t=" + t + ")");
-		assertTrue(maxLateral > 1.0, "should have lateral arc displacement > 1.0, got " + maxLateral);
+		assertTrue(maxLateral > 1.0, "should have lateral arc displacement > 1.0 at far end, got " + maxLateral);
 		assertTrue(minHorizSpeed < 0.7, "should slow down at far end, min=" + minHorizSpeed);
+		assertTrue(lateralAtZ5 < 1.0, "should fly straight enough to hit a frontal enemy at z=5 (lateral=" + lateralAtZ5 + ")");
 	}
 
 	@Test
 	void fullFlightLeftHandReturnsToOwnerWithOppositeArc() {
-		// 副手投掷 = 左手回旋(clockwise=false)：应同样回手，且弧线弯向 -X（与右手镜像）
+		// 副手投掷 = 左手回旋(clockwise=false)：应同样回手，且弧线弯向 +X（与右手镜像）
 		Vec3 ownerPos = new Vec3(0, 0, 0);
 		Vec3 pos = new Vec3(0, 0, 0.5);
 		Vec3 vel = new Vec3(0, 0, 0.7);
-		double rate = 0.08, strength = 0.05, minScale = 0.55, amp = 0.4, maxRange = 16.0;
-		int total = 60;
+		double rate = 0.25, strength = 0.35, minScale = 0.55, amp = 0.4, maxRange = 12.0;
+		int total = 30;
 
 		double maxX = 0.0;  // 最右横向位移（左手回旋朝 +Z 投应弯向 +X）
 		boolean caught = false;
 		int t;
+		boolean returning = false;
+		double peakDist = 0.0;
 		for (t = 0; t < 90; t++) {
 			double progress = Math.min(1.0, (double) t / total);
 			double dist = pos.subtract(ownerPos).horizontalDistance();
@@ -214,8 +243,13 @@ class BoomerangPhysicsTest {
 				break;
 			}
 
-			vel = BoomerangPhysics.precess(vel, rate, false);
-			vel = BoomerangPhysics.converge(vel, pos, ownerPos, strength);
+			if (!returning && (dist >= maxRange * 0.7 || (t > 5 && dist < peakDist - 0.3))) {
+				returning = true;
+			}
+			peakDist = Math.max(peakDist, dist);
+			double trigger = Math.max(BoomerangPhysics.smoothstep(dist / maxRange), returning ? 1.0 : 0.0);
+			vel = BoomerangPhysics.precess(vel, rate * trigger, false);
+			vel = BoomerangPhysics.converge(vel, pos, ownerPos, strength * trigger);
 			vel = BoomerangPhysics.modulateSpeed(vel, 0.7, dist, maxRange, minScale);
 			vel = new Vec3(vel.x, BoomerangPhysics.heightVelocity(progress, amp, total), vel.z);
 			pos = BoomerangPhysics.step(pos, vel, 1.0);
@@ -223,5 +257,39 @@ class BoomerangPhysicsTest {
 
 		assertTrue(caught, "left-hand throw should also return to owner (t=" + t + ")");
 		assertTrue(maxX > 1.0, "left-hand arc should bend toward +X (mirror of right-hand), got maxX=" + maxX);
+	}
+
+	@Test
+	void returningStateCatchesEvenWhenOwnerRuns() {
+		// 核心回归：玩家跑步移动时回旋镖仍能可靠回手（旧纯距离触发模型跑步时绕圈接不住）
+		Vec3 ownerPos = new Vec3(0, 0, 0);
+		Vec3 pos = new Vec3(0, 0, 0.5);
+		Vec3 vel = new Vec3(0, 0, 0.7);
+		double rate = 0.25, strength = 0.35, minScale = 0.55, maxRange = 12.0;
+		int total = 30;
+		Vec3 ownerMove = new Vec3(0.2, 0, 0);  // 玩家朝 +X 跑步
+
+		boolean caught = false;
+		int t;
+		boolean returning = false;
+		double peakDist = 0.0;
+		for (t = 0; t < 100; t++) {
+			double dist = pos.subtract(ownerPos).horizontalDistance();
+			if (dist <= 1.8 && t > 5) {
+				caught = true;
+				break;
+			}
+			if (!returning && (dist >= maxRange * 0.7 || (t > 5 && dist < peakDist - 0.3))) {
+				returning = true;
+			}
+			peakDist = Math.max(peakDist, dist);
+			double trigger = Math.max(BoomerangPhysics.smoothstep(dist / maxRange), returning ? 1.0 : 0.0);
+			vel = BoomerangPhysics.precess(vel, rate * trigger, true);
+			vel = BoomerangPhysics.converge(vel, pos, ownerPos, strength * trigger);
+			vel = BoomerangPhysics.modulateSpeed(vel, 0.7, dist, maxRange, minScale);
+			pos = BoomerangPhysics.step(pos, vel, 1.0);
+			ownerPos = ownerPos.add(ownerMove);  // 玩家移动
+		}
+		assertTrue(caught, "should catch even when owner runs (t=" + t + ")");
 	}
 }
