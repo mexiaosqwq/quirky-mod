@@ -56,10 +56,10 @@ public class RopeBlock extends Block implements SimpleWaterloggedBlock {
 	/** 2px 细柱轮廓：无碰撞但可被玩家射线选中（交互/延伸）。 */
 	private static final VoxelShape OUTLINE = Block.box(7.0, 0.0, 7.0, 9.0, 16.0, 9.0);
 	/** 贴墙段轮廓：柱靠墙侧（FACING 对应方向），与模型一致。 */
-	private static final VoxelShape OUTLINE_NORTH = OUTLINE;
+	private static final VoxelShape OUTLINE_NORTH = Block.box(7.0, 0.0, 1.0, 9.0, 16.0, 3.0);
 	private static final VoxelShape OUTLINE_EAST = Block.box(13.0, 0.0, 7.0, 15.0, 16.0, 9.0);
 	private static final VoxelShape OUTLINE_SOUTH = Block.box(7.0, 0.0, 13.0, 9.0, 16.0, 15.0);
-	private static final VoxelShape OUTLINE_WEST = Block.box(5.0, 0.0, 7.0, 7.0, 16.0, 9.0);
+	private static final VoxelShape OUTLINE_WEST = Block.box(1.0, 0.0, 7.0, 3.0, 16.0, 9.0);
 
 	public RopeBlock(Properties properties) {
 		super(properties);
