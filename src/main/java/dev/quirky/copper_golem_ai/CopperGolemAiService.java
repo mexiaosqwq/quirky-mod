@@ -252,8 +252,7 @@ public final class CopperGolemAiService {
 			+ "\n现在是自主行动时间：至少做一件事——查看周围（look_containers/get_player_status/get_world_info），"
 			+ "做点有用的事（捡掉落物/搬东西/跟着玩家/去看看生物）。"
 			+ "看一圈（最多两次感知工具）就动手干，别反复查看；搬箱子里东西时 transport 的 destination 直接写 copper（最近的铜箱）或末影箱坐标，不用等玩家指定目标。"
-			+ "玩家在旁边时主动打个招呼或汇报你在干什么（比如'我刚捡了 X'），看到有趣的事（玩家戴了新帽子、箱子里有奇怪的东西）可以说出来，"
-			+ "但不要编造没看到的东西；实在没什么可做的才回复：无事。";
+			+ "说话纪律（防刷屏）：纯巡逻结果（天气/时间/箱子盘点/地上没东西）一律不播报，回：无事；只有三种情况才说话——①干完了实事（捡了/搬了/走到了）②玩家主动看你或问你③发现危险或玩家相关的重要事。";
 		CopperGolemAgentLoop loop = new CopperGolemAgentLoop(QuirkyConfigHolder.get(), systemPrompt, List.of(), "[自主行动时间]");
 		CopperGolemAgentTools.ToolContext ctx = new CopperGolemAgentTools.ToolContext(golem, level, null, new java.util.HashSet<>());
 		IO.submit(() -> {
