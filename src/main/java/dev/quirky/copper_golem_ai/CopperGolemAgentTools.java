@@ -135,11 +135,15 @@ public final class CopperGolemAgentTools {
 				break;
 			}
 			var sample = mobs.stream().filter(x -> x.getType() == entry.getKey()).findFirst().orElse(null);
+			String pos = "";
+			if (sample != null) {
+				pos = "@" + (int) sample.getX() + "," + (int) sample.getY() + "," + (int) sample.getZ();
+			}
 			if (sample instanceof CopperGolem cg && cg.getCustomName() != null) {
-				sb.append(cg.getDisplayName().getString()).append("[铜傀儡](").append(entry.getValue()[1]).append("格)");
+				sb.append(cg.getDisplayName().getString()).append("[铜傀儡]").append(pos).append("(").append(entry.getValue()[1]).append("格)");
 			} else {
 				sb.append(entry.getKey().getDescription().getString()).append("×").append(entry.getValue()[0])
-					.append("(最近").append(entry.getValue()[1]).append("格)");
+					.append("(最近").append(entry.getValue()[1]).append("格").append(pos).append(")");
 			}
 			shown++;
 			if (shown < groups.size() && shown < 10) {
