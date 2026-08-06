@@ -12,6 +12,7 @@ import me.shedaniel.autoconfig.AutoConfig;
 import me.shedaniel.autoconfig.serializer.JanksonConfigSerializer;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.InteractionResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +25,12 @@ public class QuirkyMod implements ModInitializer {
 		// AutoConfig 在双端进程都会执行；服务端进程读写服务端 config 目录，客户端进程读写客户端 config 目录
 		AutoConfig.register(QuirkyConfig.class, JanksonConfigSerializer::new);
 		QuirkyConfigHolder.set(AutoConfig.getConfigHolder(QuirkyConfig.class).getConfig());
+		// AutoConfig 保存时用新反序列化的实例替换内部引用（见 QuirkyReloadCommand 注释）：
+		// 注册 save listener，ModMenu 保存配置后立即刷新静态 holder，机制无需 /quirky reload 即读到新值
+		AutoConfig.getConfigHolder(QuirkyConfig.class).registerSaveListener((holder, config) -> {
+			QuirkyConfigHolder.set(config);
+			return InteractionResult.SUCCESS;
+		});
 		ModBlocks.register();
 		ModBlockEntityTypes.register();
 		ModParticles.register();
