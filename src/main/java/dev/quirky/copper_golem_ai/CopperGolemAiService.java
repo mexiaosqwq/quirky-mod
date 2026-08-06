@@ -67,6 +67,7 @@ public final class CopperGolemAiService {
 	private static final Map<UUID, Long> LAST_HEARTBEAT_TICK = new ConcurrentHashMap<>();
 	private static final Map<UUID, Long> LAST_CHATTER_TICK = new ConcurrentHashMap<>();
 	private static final Map<UUID, Integer> MOOD_SCORES = new ConcurrentHashMap<>(); // golemId → 心情分数
+	private static final Map<UUID, CopperGolemRename.RenameState> RENAMES = new ConcurrentHashMap<>(); // golemId → 待命名
 	private static final Map<UUID, ActiveTransport> ACTIVE_TRANSPORTS = new ConcurrentHashMap<>();
 	private static final Map<UUID, UUID> ACTIVE_FOLLOWS = new ConcurrentHashMap<>(); // golemId → playerId
 	private static final Map<UUID, UUID> ACTIVE_APPROACHES = new ConcurrentHashMap<>(); // golemId → entityId
@@ -126,6 +127,7 @@ public final class CopperGolemAiService {
 				SESSIONS.keySet().removeIf(id -> !LAST_REPLY_TICK.containsKey(id));
 				LAST_HEARTBEAT_TICK.keySet().removeIf(id -> !SESSIONS.containsKey(id) && !ACTIVE_TRANSPORTS.containsKey(id)
 					&& !ACTIVE_FOLLOWS.containsKey(id) && !ACTIVE_APPROACHES.containsKey(id) && !ACTIVE_COLLECTS.containsKey(id));
+				RENAMES.entrySet().removeIf(e -> CopperGolemRename.RenameState.isExpired(e.getValue(), server.getTickCount()));
 			}
 		});
 	}
@@ -216,7 +218,12 @@ public final class CopperGolemAiService {
 		}
 		ServerLevel level = (ServerLevel) player.level(); // 26.2 ServerPlayer 无 serverLevel()，level() 运行时即 ServerLevel
 		long gameTime = level.getGameTime();
-		CopperGolem golem = nearestGolem(level, player, config.aiListenRange);
+		// 待命名通道：发起者下一条消息 = 名字（不进 AI 对话）
+		if (consumeRename(player, level, text)) {
+			return;
+		}
+		// 名字分拣：消息含某傀儡名字 → 只触发它；否则最近者
+		CopperGolem golem = findTargetGolem(level, player, config.aiListenRange, text);
 		if (golem == null) {
 			return;
 		}
@@ -259,6 +266,72 @@ public final class CopperGolemAiService {
 		return golems.stream()
 			.min(Comparator.comparingDouble(g -> g.distanceToSqr(player)))
 			.orElse(null);
+	}
+
+	/** 名字分拣：范围内（默认 8 格）名字含于消息的傀儡优先（只触发它）；否则最近者。 */
+	private static CopperGolem findTargetGolem(ServerLevel level, ServerPlayer player, int range, String text) {
+		AABB box = new AABB(player.blockPosition()).inflate(range);
+		List<CopperGolem> golems = level.getEntities(EntityTypeTest.forClass(CopperGolem.class), box, e -> !e.isRemoved());
+		CopperGolem byName = null;
+		for (CopperGolem g : golems) {
+			String name = g.getName().getString();
+			if (!name.equals("铜傀儡") && text.contains(name)) {
+				byName = g;
+				break;
+			}
+		}
+		if (byName != null) {
+			return byName;
+		}
+		return golems.stream()
+			.min(Comparator.comparingDouble(g -> g.distanceToSqr(player)))
+			.orElse(null);
+	}
+
+	// ===== 右键改名（聊天栏输入式）=====
+
+	/** 右键进入待命名（mixin 调用）：提示 + 音效；返回 true=消费了本次交互。 */
+	public static boolean tryEnterRename(net.minecraft.world.entity.player.Player player, CopperGolem golem) {
+		if (!(player instanceof ServerPlayer sp)) {
+			return false; // 仅服务端
+		}
+		long expireTick = player.level().getGameTime() + CopperGolemRename.RENAME_TIMEOUT_TICKS;
+		RENAMES.put(golem.getUUID(), new CopperGolemRename.RenameState(player.getUUID(), expireTick));
+		sp.sendSystemMessage(Component.literal("[" + golem.getDisplayName().getString() + "] 你想给我起什么名字？直接输入，30 秒内有效")
+			.withStyle(ChatFormatting.DARK_AQUA));
+		player.level().playSound(null, golem.getX(), golem.getY(), golem.getZ(), SoundEvents.COPPER_GOLEM_SPIN, SoundSource.PLAYERS, 1.0F, 1.0F);
+		return true;
+	}
+
+	/** 待命名通道消费：发起者的消息设为名字；空白取消；过期忽略。返回 true=消息被命名通道消费。 */
+	private static boolean consumeRename(ServerPlayer player, ServerLevel level, String text) {
+		UUID golemId = null;
+		for (var entry : RENAMES.entrySet()) {
+			if (CopperGolemRename.RenameState.isOwner(entry.getValue(), player.getUUID())) {
+				golemId = entry.getKey();
+				break;
+			}
+		}
+		if (golemId == null) {
+			return false;
+		}
+		CopperGolemRename.RenameState state = RENAMES.remove(golemId);
+		if (CopperGolemRename.RenameState.isExpired(state, level.getGameTime())) {
+			return false; // 过期：不消费，走正常对话
+		}
+		CopperGolem golem = (CopperGolem) level.getEntity(golemId);
+		if (golem == null || golem.isRemoved()) {
+			return true;
+		}
+		if (text.isBlank()) {
+			player.sendSystemMessage(Component.literal("[" + golem.getDisplayName().getString() + "] 改名取消了"));
+			return true;
+		}
+		golem.setCustomName(Component.literal(CopperGolemRename.truncate(text)));
+		level.playSound(null, golem.getX(), golem.getY(), golem.getZ(), SoundEvents.COPPER_GOLEM_ITEM_GET, SoundSource.PLAYERS, 1.0F, 1.0F);
+		player.sendSystemMessage(Component.literal("[" + golem.getDisplayName().getString() + "] 记住了，以后叫我 " + CopperGolemRename.truncate(text) + "！")
+			.withStyle(ChatFormatting.DARK_AQUA));
+		return true;
 	}
 
 	private static void requestReply(ServerPlayer player, CopperGolem golem, CopperGolemAiHistory.GolemSession session, QuirkyConfig config, String text) {
@@ -359,6 +432,7 @@ public final class CopperGolemAiService {
 		ACTIVE_FOLLOWS.clear();
 		ACTIVE_APPROACHES.clear();
 		ACTIVE_COLLECTS.clear();
+		RENAMES.clear();
 	}
 
 	// ===== V1 搬运执行 =====

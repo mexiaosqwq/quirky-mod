@@ -11,6 +11,7 @@
     "CampfireBlockMixin",
     "ContainerTooltipMixin",
     "CopperGolemTransportMixin",
+    "CopperGolemRenameMixin",
     "CrossbowItemAmmoMixin",
     "DoubleDoorMixin",
     "EnderChestContainerMixin",
