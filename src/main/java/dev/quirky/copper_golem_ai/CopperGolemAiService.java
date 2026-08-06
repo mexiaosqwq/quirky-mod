@@ -1118,6 +1118,10 @@ public final class CopperGolemAiService {
 
 	private static void tickTransportTask(CopperGolem golem, ServerLevel level) {
 		ActiveTransport t = ACTIVE_TRANSPORTS.get(golem.getUUID());
+		if (t == null) {
+			TRANSPORT_START_TICK.remove(golem.getUUID()); // 任务已清（stop/互斥/超时）：回收起始记录
+			return;
+		}
 		if (t.state() == CopperGolemTransportTask.State.DONE || t.state() == CopperGolemTransportTask.State.FAIL) {
 			TRANSPORT_START_TICK.remove(golem.getUUID());
 			return;
