@@ -136,7 +136,11 @@ public final class CopperGolemAiHttp {
 				if (fn == null) {
 					continue;
 				}
+				// 缺 id 时生成 fallback（tool 消息的 tool_call_id 必须与 assistant tool_calls 匹配，空串会导致 API 400）
 				String id = el.getAsJsonObject().has("id") ? el.getAsJsonObject().get("id").getAsString() : "";
+				if (id.isBlank()) {
+					id = "call_" + calls.size();
+				}
 				String name = fn.has("name") ? fn.get("name").getAsString() : "";
 				String args = fn.has("arguments") ? fn.get("arguments").getAsString() : "{}";
 				calls.add(new ToolCall(id, name, args));

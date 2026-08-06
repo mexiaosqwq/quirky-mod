@@ -9,7 +9,7 @@ public final class CopperGolemRename {
 	/** 名字最大长度。 */
 	public static final int NAME_MAX_LENGTH = 50;
 
-	public record RenameState(UUID ownerId, long expireTick) {
+	public record RenameState(UUID ownerId, long expireTick, net.minecraft.resources.Identifier dimension) {
 		/** 消息是否来自发起者。 */
 		public static boolean isOwner(RenameState state, UUID candidate) {
 			return state.ownerId().equals(candidate);
@@ -18,6 +18,11 @@ public final class CopperGolemRename {
 		/** 是否已过期（30 秒）。 */
 		public static boolean isExpired(RenameState state, long nowTick) {
 			return nowTick > state.expireTick();
+		}
+
+		/** 消息是否来自同一维度（防跨维度误吞：玩家在别的维度说话不应被命名通道消费）。 */
+		public static boolean isSameDimension(RenameState state, net.minecraft.resources.Identifier dimension) {
+			return state.dimension().equals(dimension);
 		}
 	}
 

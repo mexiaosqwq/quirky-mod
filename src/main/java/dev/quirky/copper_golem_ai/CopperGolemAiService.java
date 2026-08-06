@@ -157,12 +157,15 @@ public final class CopperGolemAiService {
 	}
 
 	/** 发起一次心跳：独立上下文（不进长期历史），AI 自主决策；无事静默，有内容搭话（限流）。 */
-	/** system prompt：人设 + 心情 + 名字（Task 7 接名字）。 */
+	/** system prompt：人设 + 心情 + 名字 + 天线引导。 */
 	private static String buildSystemPrompt(CopperGolem golem) {
 		String name = golem.getName().getString();
 		String nameLine = name.equals("铜傀儡") ? "" : "你叫" + name + "。";
+		ItemStack antenna = golem.getItemBySlot(EquipmentSlot.SADDLE);
+		String antennaLine = antenna.isEmpty() ? ""
+			: "你头顶戴着" + antenna.getHoverName().getString() + "，可以自然地炫耀或回应关于它的提问。";
 		CopperGolemAgentMood.Mood mood = CopperGolemAgentMood.moodFor(MOOD_SCORES.getOrDefault(golem.getUUID(), 0));
-		return CopperGolemAiHttp.SYSTEM_PROMPT + "\n" + nameLine + CopperGolemAgentMood.toPrompt(mood);
+		return CopperGolemAiHttp.SYSTEM_PROMPT + "\n" + nameLine + antennaLine + CopperGolemAgentMood.toPrompt(mood);
 	}
 
 	/** 心跳里心情衰减（每心跳 -1 向平静回归）。 */
@@ -291,24 +294,29 @@ public final class CopperGolemAiService {
 
 	// ===== 右键改名（聊天栏输入式）=====
 
-	/** 右键进入待命名（mixin 调用）：提示 + 音效；返回 true=消费了本次交互。 */
+	/** 右键进入待命名（mixin 调用）：提示 + 音效；返回 true=消费了本次交互。
+	 * 同一玩家同时只能对一个傀儡改名（先移除其旧待命名，防多目标混淆）。 */
 	public static boolean tryEnterRename(net.minecraft.world.entity.player.Player player, CopperGolem golem) {
 		if (!(player instanceof ServerPlayer sp)) {
 			return false; // 仅服务端
 		}
+		RENAMES.entrySet().removeIf(e -> CopperGolemRename.RenameState.isOwner(e.getValue(), player.getUUID()));
 		long expireTick = player.level().getGameTime() + CopperGolemRename.RENAME_TIMEOUT_TICKS;
-		RENAMES.put(golem.getUUID(), new CopperGolemRename.RenameState(player.getUUID(), expireTick));
+		RENAMES.put(golem.getUUID(), new CopperGolemRename.RenameState(player.getUUID(), expireTick, golem.level().dimension().identifier()));
 		sp.sendSystemMessage(Component.literal("[" + golem.getDisplayName().getString() + "] 你想给我起什么名字？直接输入，30 秒内有效")
 			.withStyle(ChatFormatting.DARK_AQUA));
 		player.level().playSound(null, golem.getX(), golem.getY(), golem.getZ(), SoundEvents.COPPER_GOLEM_SPIN, SoundSource.PLAYERS, 1.0F, 1.0F);
 		return true;
 	}
 
-	/** 待命名通道消费：发起者的消息设为名字；空白取消；过期忽略。返回 true=消息被命名通道消费。 */
+	/** 待命名通道消费：发起者的消息设为名字；空白取消；过期/跨维度忽略。返回 true=消息被命名通道消费。 */
 	private static boolean consumeRename(ServerPlayer player, ServerLevel level, String text) {
 		UUID golemId = null;
 		for (var entry : RENAMES.entrySet()) {
-			if (CopperGolemRename.RenameState.isOwner(entry.getValue(), player.getUUID())) {
+			CopperGolemRename.RenameState state = entry.getValue();
+			if (CopperGolemRename.RenameState.isOwner(state, player.getUUID())
+				&& CopperGolemRename.RenameState.isSameDimension(state, level.dimension().identifier())
+				&& !CopperGolemRename.RenameState.isExpired(state, level.getGameTime())) {
 				golemId = entry.getKey();
 				break;
 			}
@@ -317,9 +325,6 @@ public final class CopperGolemAiService {
 			return false;
 		}
 		CopperGolemRename.RenameState state = RENAMES.remove(golemId);
-		if (CopperGolemRename.RenameState.isExpired(state, level.getGameTime())) {
-			return false; // 过期：不消费，走正常对话
-		}
 		CopperGolem golem = (CopperGolem) level.getEntity(golemId);
 		if (golem == null || golem.isRemoved()) {
 			return true;
