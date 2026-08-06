@@ -20,6 +20,8 @@ import net.minecraft.world.level.block.entity.ShulkerBoxBlockEntity;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.phys.AABB;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +32,7 @@ import java.util.List;
  */
 public final class CopperGolemAgentTools {
 	private static final Gson GSON = new Gson();
+	private static final Logger LOGGER = LoggerFactory.getLogger("quirky-copper-golem-ai");
 
 	/** 10 工具声明（OpenAI 兼容 tools 数组）。感知 4 + 行动 5 + transport。 */
 	public static final String TOOLS_JSON =
@@ -56,7 +59,7 @@ public final class CopperGolemAgentTools {
 	private CopperGolemAgentTools() {
 	}
 
-	/** 按工具名分发执行；未知工具 → error JSON。 */
+	/** 按工具名分发执行；未知工具 → error JSON。每次调用打 debug 日志（排查 AI 行为用）。 */
 	public static String execute(String name, String argsJson, @Nullable ToolContext ctx) {
 		JsonObject args;
 		try {
@@ -64,7 +67,7 @@ public final class CopperGolemAgentTools {
 		} catch (RuntimeException e) {
 			args = new JsonObject();
 		}
-		return switch (name) {
+		String result = switch (name) {
 			case "look_containers" -> lookContainers(ctx, args);
 			case "get_player_status" -> getPlayerStatus(ctx);
 			case "get_world_info" -> getWorldInfo(ctx);
@@ -77,6 +80,8 @@ public final class CopperGolemAgentTools {
 			case "transport" -> transport(ctx, args);
 			default -> "{\"error\":\"unknown tool: " + name + "\"}";
 		};
+		LOGGER.debug("golem tool {} args={} -> {}", name, argsJson, result.length() > 200 ? result.substring(0, 200) + "…" : result);
+		return result;
 	}
 
 	// ===== 感知工具 =====
@@ -231,6 +236,15 @@ public final class CopperGolemAgentTools {
 			return "{\"error\":\"no context\"}";
 		}
 		String name = args.has("name") ? args.get("name").getAsString() : "";
+		// 名字不可靠（AI 可能传错）：优先按名匹配，找不到就用对话发起者兜底
+		if (ctx.player() != null) {
+			final String candidate = name;
+			boolean nameMatches = !candidate.isBlank()
+				&& ctx.level().players().stream().anyMatch(p -> p.getName().getString().equals(candidate));
+			if (!nameMatches) {
+				name = ctx.player().getName().getString();
+			}
+		}
 		if (name.isBlank()) {
 			return "{\"error\":\"missing name\"}";
 		}
