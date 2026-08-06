@@ -37,7 +37,7 @@ class CopperGolemAiHttpTest {
 		var messages = root.getAsJsonArray("messages");
 		assertEquals(4, messages.size());
 		assertEquals("system", messages.get(0).getAsJsonObject().get("role").getAsString());
-		assertEquals("player", messages.get(3).getAsJsonObject().get("role").getAsString());
+		assertEquals("user", messages.get(3).getAsJsonObject().get("role").getAsString());
 		assertEquals("今天天气如何", messages.get(3).getAsJsonObject().get("content").getAsString());
 	}
 

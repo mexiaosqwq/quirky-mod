@@ -43,7 +43,7 @@ public final class CopperGolemAiHttp {
 		for (String h : history) {
 			addMessage(messages, roleOf(h), contentOf(h));
 		}
-		addMessage(messages, "player", userText);
+		addMessage(messages, "user", userText);
 		body.add("messages", messages);
 		return GSON.toJson(body);
 	}
@@ -64,10 +64,10 @@ public final class CopperGolemAiHttp {
 		return GSON.toJson(body);
 	}
 
-	/** 历史行角色：player: / system: 前缀识别，其余视为 assistant。 */
+	/** 历史行角色：player: / system: 前缀识别，其余视为 assistant；发往 API 统一用 OpenAI 兼容名（user 非 player）。 */
 	private static String roleOf(String historyLine) {
 		if (historyLine.startsWith("player")) {
-			return "player";
+			return "user";
 		}
 		if (historyLine.startsWith("system")) {
 			return "system";
