@@ -67,27 +67,28 @@ public final class CopperGolemAiService {
 	private static final Map<UUID, ActiveTransport> ACTIVE_TRANSPORTS = new ConcurrentHashMap<>();
 	private static final Map<UUID, UUID> ACTIVE_FOLLOWS = new ConcurrentHashMap<>(); // golemId → playerId
 	private static final Map<UUID, UUID> ACTIVE_APPROACHES = new ConcurrentHashMap<>(); // golemId → entityId
+	private static final Map<UUID, CollectTask> ACTIVE_COLLECTS = new ConcurrentHashMap<>(); // golemId → 掉落物
 	private static final ConcurrentLinkedQueue<Runnable> PENDING_TASKS = new ConcurrentLinkedQueue<>();
 	private static final int MAX_TRANSPORT_DISTANCE = 64;
 	private static final int TARGETED_RAYCAST_DISTANCE = 6;
 	private static volatile boolean initialized = false;
 
-	/** 进行中的搬运任务（每傀儡一个）。playerId=发起者；openPos=当前打开的容器（stopOpen 配对用）。 */
+	/** 进行中的搬运任务（每傀儡一个）。givePlayerId=give 目标玩家（非 give 为 null）；openPos=当前打开的容器。 */
 	private record ActiveTransport(
 		CopperGolemAiIntent.TransportRequest request,
 		CopperGolemTransportTask.State state,
 		BlockPos source,
-		BlockPos destination,
+		@Nullable BlockPos destination,
 		String itemId,
-		UUID playerId,
+		@Nullable UUID givePlayerId,
 		@Nullable BlockPos openPos
 	) {
 		ActiveTransport withState(CopperGolemTransportTask.State s) {
-			return new ActiveTransport(request, s, source, destination, itemId, playerId, openPos);
+			return new ActiveTransport(request, s, source, destination, itemId, givePlayerId, openPos);
 		}
 
 		ActiveTransport withOpenPos(BlockPos p) {
-			return new ActiveTransport(request, state, source, destination, itemId, playerId, p);
+			return new ActiveTransport(request, state, source, destination, itemId, givePlayerId, p);
 		}
 	}
 
@@ -179,7 +180,7 @@ public final class CopperGolemAiService {
 
 	private static void requestReply(ServerPlayer player, CopperGolem golem, CopperGolemAiHistory.GolemSession session, QuirkyConfig config, String text) {
 		CopperGolemAgentLoop loop = new CopperGolemAgentLoop(config, CopperGolemAiHttp.SYSTEM_PROMPT, session.messages(), text);
-		CopperGolemAgentTools.ToolContext ctx = new CopperGolemAgentTools.ToolContext(golem, (ServerLevel) player.level(), player);
+		CopperGolemAgentTools.ToolContext ctx = new CopperGolemAgentTools.ToolContext(golem, (ServerLevel) player.level(), player, new java.util.HashSet<>());
 		IO.submit(() -> {
 			try {
 				String reply = loop.run(
@@ -269,43 +270,58 @@ public final class CopperGolemAiService {
 		ACTIVE_TRANSPORTS.clear();
 		ACTIVE_FOLLOWS.clear();
 		ACTIVE_APPROACHES.clear();
+		ACTIVE_COLLECTS.clear();
 	}
 
 	// ===== V1 搬运执行 =====
 
 	/** 处理 transport 意图：白名单 + 准心射线 + 启动搬运；任一不满足 → 提示并放弃。 */
-	private static void handleTransportIntent(ServerPlayer player, CopperGolem golem,
-		CopperGolemAiHistory.GolemSession session, QuirkyConfig config, CopperGolemAiIntent.TransportRequest req) {
+	/** transport 工具执行：白名单 + knownItems 校验 + 定位 + 注册任务；返回工具结果 JSON（给 AI）。 */
+	public static String handleTransportRequest(CopperGolem golem, ServerLevel level, @Nullable ServerPlayer player,
+		java.util.Set<String> knownItems, CopperGolemAiIntent.TransportRequest req) {
 		if (!CopperGolemAiIntent.isPlausibleItem(req.item())) {
-			reply(player, golem, "我没听懂要搬什么，请再说一次");
-			return;
+			return "{\"error\":\"物品名不合法\"}";
 		}
-		ServerLevel level = (ServerLevel) player.level();
-		boolean needsTargeted = req.source() == CopperGolemAiIntent.Target.TARGETED
-			|| req.destination() == CopperGolemAiIntent.Target.TARGETED;
-		BlockPos targeted = needsTargeted ? findTargetedContainer(player, level) : null;
-		if (needsTargeted && targeted == null) {
-			reply(player, golem, "没有对准箱子，请重新告诉我放进哪");
-			return;
+		if (!CopperGolemAiIntent.isKnownItem(req.item(), knownItems)) {
+			return "{\"error\":\"我看不到这个物品（" + req.item() + "），请先 look_containers 查看容器内容\"}";
 		}
-		boolean needsCopper = req.source() == CopperGolemAiIntent.Target.COPPER
-			|| req.destination() == CopperGolemAiIntent.Target.COPPER;
-		BlockPos copper = needsCopper ? findNearestCopperChest(golem, level, MAX_TRANSPORT_DISTANCE) : null;
-		if (needsCopper && copper == null) {
-			reply(player, golem, "附近没有铜箱子，我搬不了");
-			return;
+		if (!CopperGolemAiIntent.isPlausibleTarget(req.source()) || !CopperGolemAiIntent.isPlausibleTarget(req.destination())) {
+			return "{\"error\":\"搬运目标不合法\"}";
 		}
-		BlockPos source = req.source() == CopperGolemAiIntent.Target.TARGETED ? targeted : copper;
-		BlockPos destination = req.destination() == CopperGolemAiIntent.Target.TARGETED ? targeted : copper;
-		if (source == null || destination == null || source.equals(destination)) {
-			reply(player, golem, "搬运目标不明确，请重新对准箱子告诉我");
-			return;
+		boolean toPlayer = "give".equals(req.destination());
+		if (player == null && toPlayer) {
+			return "{\"error\":\"玩家不在线，没法递给他\"}";
+		}
+		BlockPos source = "copper".equals(req.source())
+			? findNearestCopperChest(golem, level, MAX_TRANSPORT_DISTANCE)
+			: CopperGolemAgentTools.parseCoords(req.source());
+		if (source == null) {
+			return "{\"error\":\"附近没有铜箱子\"}";
+		}
+		if (containerAt(level, source) == null) {
+			return "{\"error\":\"取货位置不是容器\"}";
+		}
+		BlockPos destination = null;
+		if (!toPlayer) {
+			destination = "copper".equals(req.destination())
+				? findNearestCopperChest(golem, level, MAX_TRANSPORT_DISTANCE)
+				: CopperGolemAgentTools.parseCoords(req.destination());
+			if (destination == null) {
+				return "{\"error\":\"目标位置无效\"}";
+			}
+			if (destination.equals(source)) {
+				return "{\"error\":\"来源和目标相同\"}";
+			}
+			if (containerAt(level, destination) == null) {
+				return "{\"error\":\"放货位置不是容器\"}";
+			}
 		}
 		// 暂停原版运输 AI（调度枢纽：有 cooldown memory 则原版运输行为不启动）
 		golem.getBrain().setMemory(MemoryModuleType.TRANSPORT_ITEMS_COOLDOWN_TICKS, 6000);
 		ACTIVE_TRANSPORTS.put(golem.getUUID(),
-			new ActiveTransport(req, CopperGolemTransportTask.State.WALK_SOURCE, source, destination, req.item(), player.getUUID(), null));
-		reply(player, golem, "好嘞，这就去搬" + (req.item().equals("any") ? "点东西" : " " + req.item()));
+			new ActiveTransport(req, CopperGolemTransportTask.State.WALK_SOURCE, source, destination, req.item(),
+				toPlayer ? player.getUUID() : null, null));
+		return "{\"ok\":\"开始搬运 " + req.item() + "\"}";
 	}
 
 	/** 玩家准心射线（≤6 格）命中且为容器的方块位置；未命中/非容器 → null。 */
@@ -343,6 +359,57 @@ public final class CopperGolemAiService {
 			}
 		}
 		return best != null && bestDist <= (double) maxDist * maxDist ? best : null;
+	}
+
+	/** 捡掉落物任务：走到掉落物旁 → 捡起 → 转入 TRANSPORT（带回最近铜箱）。 */
+	private record CollectTask(BlockPos pos, UUID itemEntityId, String itemId) {
+	}
+
+	/** 开始捡掉落物：找 range 内最近 ItemEntity → 注册 COLLECT 任务。 */
+	public static String startCollect(CopperGolem golem, ServerLevel level, int range) {
+		AABB box = new AABB(golem.blockPosition()).inflate(range);
+		var found = level.getEntities(EntityTypeTest.forClass(net.minecraft.world.entity.item.ItemEntity.class), box, e -> !e.isRemoved())
+			.stream()
+			.min(Comparator.comparingDouble(e -> e.distanceToSqr(golem)));
+		if (found.isEmpty()) {
+			return "{\"ok\":\"附近没有掉落物\"}";
+		}
+		net.minecraft.world.entity.item.ItemEntity item = found.get();
+		ACTIVE_COLLECTS.put(golem.getUUID(), new CollectTask(item.blockPosition(), item.getUUID(),
+			BuiltInRegistries.ITEM.getKey(item.getItem().getItem()).toString()));
+		return "{\"ok\":\"去捡 " + ACTIVE_COLLECTS.get(golem.getUUID()).itemId() + "\"}";
+	}
+
+	private static void tickCollect(CopperGolem golem, ServerLevel level) {
+		CollectTask task = ACTIVE_COLLECTS.get(golem.getUUID());
+		if (task == null) {
+			return;
+		}
+		if (golem.blockPosition().distSqr(task.pos()) > 4.0) {
+			BehaviorUtils.setWalkAndLookTargetMemories(golem, task.pos(), 1.0F, 1);
+			return;
+		}
+		ACTIVE_COLLECTS.remove(golem.getUUID());
+		var entity = level.getEntity(task.itemEntityId());
+		if (!(entity instanceof net.minecraft.world.entity.item.ItemEntity item) || item.isRemoved()) {
+			return;
+		}
+		ItemStack stack = item.getItem();
+		item.discard();
+		golem.setItemSlot(EquipmentSlot.MAINHAND, stack);
+		golem.setGuaranteedDrop(EquipmentSlot.MAINHAND);
+		golem.setState(CopperGolemState.GETTING_ITEM);
+		level.playSound(null, golem.getX(), golem.getY(), golem.getZ(), SoundEvents.COPPER_GOLEM_ITEM_GET, SoundSource.PLAYERS, 1.0F, 1.0F);
+		// 转入 TRANSPORT：带回最近铜箱（跳过取货，直接放货）
+		BlockPos copper = findNearestCopperChest(golem, level, MAX_TRANSPORT_DISTANCE);
+		if (copper == null) {
+			return;
+		}
+		golem.getBrain().setMemory(MemoryModuleType.TRANSPORT_ITEMS_COOLDOWN_TICKS, 6000);
+		CopperGolemAiIntent.TransportRequest req = new CopperGolemAiIntent.TransportRequest(
+			BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(), "copper", copper.getX() + "," + copper.getY() + "," + copper.getZ());
+		ACTIVE_TRANSPORTS.put(golem.getUUID(),
+			new ActiveTransport(req, CopperGolemTransportTask.State.WALK_DEST, task.pos(), copper, req.item(), null, null));
 	}
 
 	/** 开始移动：设 WALK_TARGET（一次性）。返回确认文本。 */
@@ -420,10 +487,12 @@ public final class CopperGolemAiService {
 			ACTIVE_TRANSPORTS.remove(golem.getUUID());
 			ACTIVE_FOLLOWS.remove(golem.getUUID());
 			ACTIVE_APPROACHES.remove(golem.getUUID());
+			ACTIVE_COLLECTS.remove(golem.getUUID());
 			return;
 		}
 		tickFollow(golem, level);
 		tickApproach(golem, level);
+		tickCollect(golem, level);
 		tickTransportTask(golem, level);
 	}
 
@@ -470,7 +539,14 @@ public final class CopperGolemAiService {
 		}
 		if (t.state() == CopperGolemTransportTask.State.WALK_SOURCE
 			|| t.state() == CopperGolemTransportTask.State.WALK_DEST) {
-			BlockPos target = t.state() == CopperGolemTransportTask.State.WALK_SOURCE ? t.source() : t.destination();
+			BlockPos target = t.state() == CopperGolemTransportTask.State.WALK_SOURCE
+				? t.source()
+				: (t.givePlayerId() != null ? giveTarget(level, t) : t.destination());
+			if (target == null) {
+				// give 且玩家不在 → 中止
+				finishTransport(golem, t);
+				return;
+			}
 			boolean atTarget = golem.blockPosition().distSqr(target) <= 4.0;
 			if (!atTarget) {
 				BehaviorUtils.setWalkAndLookTargetMemories(golem, target, 1.0F, 0);
@@ -483,10 +559,44 @@ public final class CopperGolemAiService {
 					finishTransport(golem, t);
 				}
 			} else {
-				doPut(golem, level, t);
+				if (t.givePlayerId() != null) {
+					doGive(golem, level, t);
+				} else {
+					doPut(golem, level, t);
+				}
 				finishTransport(golem, t);
 			}
 		}
+	}
+
+	/** give 目标位置：玩家当前位置；玩家不在 → null。 */
+	private static @Nullable BlockPos giveTarget(ServerLevel level, ActiveTransport t) {
+		if (t.givePlayerId() == null) {
+			return null;
+		}
+		ServerPlayer player = level.getServer().getPlayerList().getPlayer(t.givePlayerId());
+		return player != null && player.isAlive() ? player.blockPosition() : null;
+	}
+
+	/** 递物品给玩家：走到面前 → 面朝玩家 → 掉落物交付 + 音效。 */
+	private static void doGive(CopperGolem golem, ServerLevel level, ActiveTransport t) {
+		ServerPlayer player = level.getServer().getPlayerList().getPlayer(t.givePlayerId());
+		if (player == null || !player.isAlive()) {
+			replyTo(golem, level, t, "你不在，东西我先放回箱子了");
+			if (t.source() != null && containerAt(level, t.source()) != null) {
+				addToContainer(containerAt(level, t.source()), golem.getMainHandItem());
+			}
+			golem.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+			return;
+		}
+		golem.getBrain().setMemory(MemoryModuleType.LOOK_TARGET,
+			new net.minecraft.world.entity.ai.behavior.EntityTracker(player, true));
+		ItemStack held = golem.getMainHandItem();
+		golem.spawnAtLocation(level, held);
+		golem.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+		golem.setState(CopperGolemState.DROPPING_ITEM);
+		level.playSound(null, golem.getX(), golem.getY(), golem.getZ(), SoundEvents.COPPER_GOLEM_ITEM_DROP, SoundSource.PLAYERS, 1.0F, 1.0F);
+		replyTo(golem, level, t, "给你，接好咯");
 	}
 
 	/** 取货：成功返回 true（推进 WALK_DEST）；失败返回 false（任务中止，提示已发）。 */
@@ -603,7 +713,7 @@ public final class CopperGolemAiService {
 
 	/** 任务提示只发给发起者（不走全局广播，避免泄露对话/刷屏）。 */
 	private static void replyTo(CopperGolem golem, ServerLevel level, ActiveTransport t, String text) {
-		ServerPlayer player = level.getServer().getPlayerList().getPlayer(t.playerId());
+		ServerPlayer player = level.getServer().getPlayerList().getPlayer(t.givePlayerId());
 		if (player != null) {
 			player.sendSystemMessage(
 				Component.literal("[" + golem.getDisplayName().getString() + "] " + text).withStyle(ChatFormatting.DARK_AQUA));

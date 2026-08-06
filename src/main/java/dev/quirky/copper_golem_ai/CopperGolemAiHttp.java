@@ -6,7 +6,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import dev.quirky.config.QuirkyConfig;
-import dev.quirky.copper_golem_ai.CopperGolemAiIntent.TransportRequest;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -199,30 +198,6 @@ public final class CopperGolemAiHttp {
 			}
 			String text = content.getAsString();
 			return text.isBlank() ? null : text;
-		} catch (RuntimeException e) {
-			return null;
-		}
-	}
-
-	/** 提取 choices[0].message.tool_calls[0]（name=transport）→ TransportRequest；无/异常返回 null。 */
-	public static @Nullable TransportRequest parseToolCall(String responseJson) {
-		try {
-			JsonObject root = JsonParser.parseString(responseJson).getAsJsonObject();
-			JsonArray choices = root.getAsJsonArray("choices");
-			if (choices == null || choices.isEmpty()) {
-				return null;
-			}
-			JsonObject message = choices.get(0).getAsJsonObject().getAsJsonObject("message");
-			JsonArray toolCalls = message == null ? null : message.getAsJsonArray("tool_calls");
-			if (toolCalls == null || toolCalls.isEmpty()) {
-				return null;
-			}
-			JsonObject fn = toolCalls.get(0).getAsJsonObject().getAsJsonObject("function");
-			if (fn == null || !"transport".equals(fn.get("name").getAsString())) {
-				return null;
-			}
-			String args = fn.get("arguments").getAsString();
-			return CopperGolemAiIntent.parse(args);
 		} catch (RuntimeException e) {
 			return null;
 		}

@@ -165,6 +165,16 @@ public class QuirkyConfig implements ConfigData {
 	// ==== AI 组：铜傀儡 AI 对话参数 ====
 
 	@ConfigEntry.Category("ai")
+	@ConfigEntry.BoundedDiscrete(min = 10, max = 300)
+	@ConfigEntry.Gui.Tooltip
+	public int heartbeatIntervalSeconds = 30;
+
+	@ConfigEntry.Category("ai")
+	@ConfigEntry.BoundedDiscrete(min = 4, max = 32)
+	@ConfigEntry.Gui.Tooltip
+	public int droppedPickupRange = 16;
+
+	@ConfigEntry.Category("ai")
 	@ConfigEntry.Gui.Tooltip
 	public String aiBaseUrl = "https://api.openai.com/v1";
 

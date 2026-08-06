@@ -113,20 +113,23 @@ class CopperGolemAiHttpTest {
 	}
 
 	@Test
-	void parseToolCallExtractsTransportArguments() {
-		// 场景：把铜锭放进准心指着的箱子 → source=copper, destination=targeted（与断言一致；与 CopperGolemAiIntent.parse 语义一致）
-		String json = "{\"choices\":[{\"message\":{\"content\":null,\"tool_calls\":[{\"function\":{\"name\":\"transport\",\"arguments\":\"{\\\"item\\\":\\\"minecraft:copper_ingot\\\",\\\"source\\\":\\\"copper\\\",\\\"destination\\\":\\\"targeted\\\"}\"}}]}}]}";
-		var req = CopperGolemAiHttp.parseToolCall(json);
-		assertNotNull(req);
-		assertEquals("minecraft:copper_ingot", req.item());
-		assertEquals(CopperGolemAiIntent.Target.COPPER, req.source());
-		assertEquals(CopperGolemAiIntent.Target.TARGETED, req.destination());
+	void parseToolCallsExtractsMultiple() {
+		String json = "{\"choices\":[{\"message\":{\"content\":null,\"tool_calls\":["
+			+ "{\"id\":\"a\",\"function\":{\"name\":\"look_containers\",\"arguments\":\"{\"}},"
+			+ "{\"id\":\"b\",\"function\":{\"name\":\"transport\",\"arguments\":\"{\\\"item\\\":\\\"minecraft:copper_ingot\\\",\\\"source\\\":\\\"copper\\\",\\\"destination\\\":\\\"give\\\"}\"}}"
+			+ "]}}]}";
+		var calls = CopperGolemAiHttp.parseToolCalls(json);
+		assertEquals(2, calls.size());
+		assertEquals("a", calls.get(0).id());
+		assertEquals("look_containers", calls.get(0).name());
+		assertEquals("transport", calls.get(1).name());
+		assertEquals("minecraft:copper_ingot", CopperGolemAiIntent.parse(calls.get(1).arguments()).item());
 	}
 
 	@Test
-	void parseToolCallReturnsNullWhenAbsentOrMalformed() {
-		assertNull(CopperGolemAiHttp.parseToolCall("{\"choices\":[{\"message\":{\"content\":\"你好呀\"}}]}"));
-		assertNull(CopperGolemAiHttp.parseToolCall("{\"choices\":[{\"message\":{\"tool_calls\":[]}}]}"));
-		assertNull(CopperGolemAiHttp.parseToolCall("not json"));
+	void parseToolCallsEmptyWhenAbsentOrMalformed() {
+		assertTrue(CopperGolemAiHttp.parseToolCalls("{\"choices\":[{\"message\":{\"content\":\"你好呀\"}}]}").isEmpty());
+		assertTrue(CopperGolemAiHttp.parseToolCalls("{\"choices\":[{\"message\":{\"tool_calls\":[]}}]}").isEmpty());
+		assertTrue(CopperGolemAiHttp.parseToolCalls("not json").isEmpty());
 	}
 }

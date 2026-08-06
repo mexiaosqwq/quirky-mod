@@ -3,6 +3,7 @@ package dev.quirky.copper_golem_ai;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerLevel;
@@ -44,8 +45,8 @@ public final class CopperGolemAgentTools {
 			+ "{\"type\":\"function\",\"function\":{\"name\":\"collect_dropped_items\",\"description\":\"捡起附近地上的掉落物并放进最近的铜箱\",\"parameters\":{\"type\":\"object\",\"properties\":{\"range\":{\"type\":\"integer\",\"description\":\"搜索半径格，默认16\"}},\"required\":[]}}},"
 			+ "{\"type\":\"function\",\"function\":{\"name\":\"transport\",\"description\":\"把物品在容器之间搬运；item 必须引用 look_containers 返回的真实物品ID；source/destination 用 look_containers 返回的坐标(如 12,64,-8)或 copper；destination 可为 give=直接给玩家\",\"parameters\":{\"type\":\"object\",\"properties\":{\"item\":{\"type\":\"string\",\"description\":\"物品ID，必须来自 look_containers 结果\"},\"source\":{\"type\":\"string\",\"description\":\"取货来源：坐标或 copper\"},\"destination\":{\"type\":\"string\",\"description\":\"放货目标：坐标/copper/give\"}},\"required\":[\"item\",\"source\",\"destination\"]}}}]";
 
-	/** 工具执行上下文。 */
-	public record ToolContext(CopperGolem golem, ServerLevel level, @Nullable ServerPlayer player) {
+	/** 工具执行上下文。knownItems=本回合 look_containers 已感知的物品 ID（transport 引用校验用）。 */
+	public record ToolContext(CopperGolem golem, ServerLevel level, @Nullable ServerPlayer player, java.util.Set<String> knownItems) {
 	}
 
 	/** 单个容器概要（formatContainers 的输入）。 */
@@ -72,8 +73,8 @@ public final class CopperGolemAgentTools {
 			case "follow_player" -> followPlayer(ctx, args);
 			case "approach_entity" -> approachEntity(ctx, args);
 			case "stop" -> stop(ctx);
-			case "collect_dropped_items", "transport" ->
-				"{\"error\":\"not implemented yet\"}";
+			case "collect_dropped_items" -> collectDropped(ctx, args);
+			case "transport" -> transport(ctx, args);
 			default -> "{\"error\":\"unknown tool: " + name + "\"}";
 		};
 	}
@@ -120,6 +121,7 @@ public final class CopperGolemAgentTools {
 						total++;
 						String id = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
 						items.add(id + "(" + stack.getHoverName().getString() + ")×" + stack.getCount());
+						ctx.knownItems().add(id);
 					}
 					found.add(new ContainerInfo(typeOf(be), pos.getX() + "," + pos.getY() + "," + pos.getZ(), items, total));
 				}
@@ -192,6 +194,25 @@ public final class CopperGolemAgentTools {
 	}
 
 	// ===== 行动工具（服务端执行，复用原版移动机制）=====
+
+	private static String transport(@Nullable ToolContext ctx, JsonObject args) {
+		if (ctx == null) {
+			return "{\"error\":\"no context\"}";
+		}
+		CopperGolemAiIntent.TransportRequest req = CopperGolemAiIntent.parse(args.toString());
+		if (req == null) {
+			return "{\"error\":\"搬运参数不合法：item 用物品ID（或 any），source/destination 用 look_containers 的坐标或 copper，destination 可为 give\"}";
+		}
+		return CopperGolemAiService.handleTransportRequest(ctx.golem(), ctx.level(), ctx.player(), ctx.knownItems(), req);
+	}
+
+	private static String collectDropped(@Nullable ToolContext ctx, JsonObject args) {
+		if (ctx == null) {
+			return "{\"error\":\"no context\"}";
+		}
+		int range = rangeOf(args, QuirkyConfigHolder.get().droppedPickupRange);
+		return CopperGolemAiService.startCollect(ctx.golem(), ctx.level(), range);
+	}
 
 	private static String moveTo(@Nullable ToolContext ctx, JsonObject args) {
 		if (ctx == null) {
