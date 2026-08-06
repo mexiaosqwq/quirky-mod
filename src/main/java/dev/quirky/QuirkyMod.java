@@ -3,6 +3,7 @@ package dev.quirky;
 import dev.quirky.config.QuirkyConfig;
 import dev.quirky.config.QuirkyConfigHolder;
 import dev.quirky.config.QuirkyReloadCommand;
+import dev.quirky.copper_golem_ai.CopperGolemAiService;
 import dev.quirky.deathcam.DeathCamServer;
 import dev.quirky.equip_swap.EquipSwapServer;
 import dev.quirky.harvest.HarvestHandler;
@@ -34,6 +35,7 @@ public class QuirkyMod implements ModInitializer {
 		EquipSwapServer.init();
 		DeathCamServer.init();
 		QuirkyReloadCommand.init();
+		CopperGolemAiService.init();
 		LOGGER.info("Quirky loaded");
 	}
 
