@@ -114,6 +114,7 @@
   "text.autoconfig.quirky.category.totem": "保留图腾",
   "text.autoconfig.quirky.category.mechanics": "机制",
   "text.autoconfig.quirky.category.client": "客户端",
+  "text.autoconfig.quirky.category.ai": "AI",
   "tooltip.quirky.pet_whistle": "右键吹哨：半径内宠物寻路走来，更远的直接传送到身边\n潜行+右键：切换坐定/站起\n夜晚吹哨：嘲讽幻翼锁定你 30 秒",
   "text.autoconfig.quirky.option.aiBaseUrl": "AI 接口地址",
   "text.autoconfig.quirky.option.aiBaseUrl.@Tooltip": "OpenAI 兼容的 API 端点（如 https://api.openai.com/v1）",
