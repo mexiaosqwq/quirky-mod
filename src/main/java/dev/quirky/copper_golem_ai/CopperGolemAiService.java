@@ -96,14 +96,15 @@ public final class CopperGolemAiService {
 		String itemId,
 		@Nullable UUID givePlayerId,
 		@Nullable BlockPos openPos,
-		@Nullable List<UUID> collectQueue
+		@Nullable List<UUID> collectQueue,
+		@Nullable UUID enderOwner // 末影箱归属玩家（对话发起者）；非末影箱任务为 null
 	) {
 		ActiveTransport withState(CopperGolemTransportTask.State s) {
-			return new ActiveTransport(request, s, source, destination, itemId, givePlayerId, openPos, collectQueue);
+			return new ActiveTransport(request, s, source, destination, itemId, givePlayerId, openPos, collectQueue, enderOwner);
 		}
 
 		ActiveTransport withOpenPos(BlockPos p) {
-			return new ActiveTransport(request, state, source, destination, itemId, givePlayerId, p, collectQueue);
+			return new ActiveTransport(request, state, source, destination, itemId, givePlayerId, p, collectQueue, enderOwner);
 		}
 	}
 
@@ -649,8 +650,9 @@ public final class CopperGolemAiService {
 		if (source == null) {
 			return "{\"error\":\"附近没有铜箱子\"}";
 		}
-		if (containerAt(level, source) == null) {
-			return "{\"error\":\"取货位置不是容器\"}";
+		UUID enderOwner = enderOwnerOf(level, source, player);
+		if (containerAt(level, source, enderOwner) == null) {
+			return "{\"error\":\"取货位置不是容器（末影箱需玩家在场）\"}";
 		}
 		BlockPos destination = null;
 		if (!toPlayer) {
@@ -663,8 +665,11 @@ public final class CopperGolemAiService {
 			if (destination.equals(source)) {
 				return "{\"error\":\"来源和目标相同\"}";
 			}
-			if (containerAt(level, destination) == null) {
-				return "{\"error\":\"放货位置不是容器\"}";
+			if (enderOwner == null) {
+				enderOwner = enderOwnerOf(level, destination, player);
+			}
+			if (containerAt(level, destination, enderOwner) == null) {
+				return "{\"error\":\"放货位置不是容器（末影箱需玩家在场）\"}";
 			}
 		}
 		// 暂停原版运输 AI（调度枢纽：有 cooldown memory 则原版运输行为不启动）
@@ -672,8 +677,16 @@ public final class CopperGolemAiService {
 		clearOtherTasks(golem, "transport");
 		ACTIVE_TRANSPORTS.put(golem.getUUID(),
 			new ActiveTransport(req, CopperGolemTransportTask.State.WALK_SOURCE, source, destination, req.item(),
-				toPlayer ? player.getUUID() : null, null, null));
+				toPlayer ? player.getUUID() : null, null, null, enderOwner));
 		return "{\"ok\":\"开始搬运 " + req.item() + "\"}";
+	}
+
+	/** 该位置是否为末影箱方块 → 归属玩家 UUID（无玩家上下文 → null）。 */
+	private static @Nullable UUID enderOwnerOf(ServerLevel level, BlockPos pos, @Nullable ServerPlayer player) {
+		if (level.getBlockState(pos).getBlock() instanceof net.minecraft.world.level.block.EnderChestBlock) {
+			return player == null ? null : player.getUUID();
+		}
+		return null;
 	}
 
 	/** 玩家准心射线（≤6 格）命中且为容器的方块位置；未命中/非容器 → null。 */
@@ -683,7 +696,7 @@ public final class CopperGolemAiService {
 			return null;
 		}
 		BlockPos pos = ((BlockHitResult) hit).getBlockPos();
-		return containerAt(level, pos) != null ? pos : null;
+		return containerAt(level, pos, null) != null ? pos : null;
 	}
 
 	/** 64 格内最近的铜箱子（BlockTags.COPPER_CHESTS）；无 → null。 */
@@ -768,7 +781,7 @@ public final class CopperGolemAiService {
 				BuiltInRegistries.ITEM.getKey(golem.getMainHandItem().getItem()).toString(), "copper",
 				copper.getX() + "," + copper.getY() + "," + copper.getZ());
 			ACTIVE_TRANSPORTS.put(golem.getUUID(),
-				new ActiveTransport(req, CopperGolemTransportTask.State.WALK_DEST, golem.blockPosition(), copper, req.item(), null, null, newQueue));
+				new ActiveTransport(req, CopperGolemTransportTask.State.WALK_DEST, golem.blockPosition(), copper, req.item(), null, null, newQueue, null));
 			return;
 		}
 		ItemStack stack = item.getItem();
@@ -786,13 +799,64 @@ public final class CopperGolemAiService {
 		CopperGolemAiIntent.TransportRequest req = new CopperGolemAiIntent.TransportRequest(
 			BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(), "copper", copper.getX() + "," + copper.getY() + "," + copper.getZ());
 		ACTIVE_TRANSPORTS.put(golem.getUUID(),
-			new ActiveTransport(req, CopperGolemTransportTask.State.WALK_DEST, task.pos(), copper, req.item(), null, null, task.queue()));
+			new ActiveTransport(req, CopperGolemTransportTask.State.WALK_DEST, task.pos(), copper, req.item(), null, null, task.queue(), null));
 	}
 
-	/** 开始移动：设 WALK_TARGET（一次性）。返回确认文本。 */
+	/** 移动中任务（move_to）：tick 推进，到达/卡住/超时收尾。 */
+	private record ActiveMove(BlockPos target, BlockPos lastPos, int stuckTicks, int totalTicks, boolean retried) {
+	}
+
+	private static final Map<UUID, ActiveMove> ACTIVE_MOVES = new ConcurrentHashMap<>();
+
+	/** 开始移动：注册 MOVING 任务（tick 每帧重设目标，到达≤1.5格完成；卡住重试一次后中止；60 秒超时中止）。 */
 	public static String startMove(CopperGolem golem, BlockPos target) {
-		BehaviorUtils.setWalkAndLookTargetMemories(golem, target, 1.0F, 1);
+		ACTIVE_MOVES.put(golem.getUUID(), new ActiveMove(target, golem.blockPosition(), 0, 0, false));
 		return "{\"ok\":\"正在前往 " + target.getX() + "," + target.getY() + "," + target.getZ() + "\"}";
+	}
+
+	private static void tickMove(CopperGolem golem, ServerLevel level) {
+		ActiveMove m = ACTIVE_MOVES.get(golem.getUUID());
+		if (m == null) {
+			return;
+		}
+		if (golem.isRemoved()) {
+			ACTIVE_MOVES.remove(golem.getUUID());
+			return;
+		}
+		double dist = golem.position().distanceTo(net.minecraft.world.phys.Vec3.atCenterOf(m.target()));
+		if (dist <= 1.5) {
+			ACTIVE_MOVES.remove(golem.getUUID());
+			golem.getBrain().eraseMemory(MemoryModuleType.WALK_TARGET);
+			return; // 到达：静默完成（AI 可自行感知位置）
+		}
+		if (m.totalTicks() >= 1200) { // 60 秒超时
+			ACTIVE_MOVES.remove(golem.getUUID());
+			golem.getBrain().eraseMemory(MemoryModuleType.WALK_TARGET);
+			broadcastMoveAbort(golem, level, "太远了，我走不过去，先歇了");
+			return;
+		}
+		BehaviorUtils.setWalkAndLookTargetMemories(golem, m.target(), 1.0F, 0);
+		int stuck = golem.blockPosition().equals(m.lastPos()) ? m.stuckTicks() + 1 : 0;
+		if (stuck >= 40) { // 2 秒没换格 = 卡住
+			if (!m.retried()) {
+				ACTIVE_MOVES.put(golem.getUUID(), new ActiveMove(m.target(), golem.blockPosition(), 0, m.totalTicks() + 1, true));
+				return; // 重试一次（重设目标）
+			}
+			ACTIVE_MOVES.remove(golem.getUUID());
+			golem.getBrain().eraseMemory(MemoryModuleType.WALK_TARGET);
+			broadcastMoveAbort(golem, level, "路被挡住了，我过不去");
+			return;
+		}
+		ACTIVE_MOVES.put(golem.getUUID(), new ActiveMove(m.target(), golem.blockPosition(), stuck, m.totalTicks() + 1, m.retried()));
+	}
+
+	private static void broadcastMoveAbort(CopperGolem golem, ServerLevel level, String text) {
+		Component msg = Component.literal("[" + golem.getDisplayName().getString() + "] " + text)
+			.withStyle(ChatFormatting.DARK_AQUA);
+		for (ServerPlayer p : level.getEntities(EntityTypeTest.forClass(ServerPlayer.class),
+			new AABB(golem.blockPosition()).inflate(CopperGolemHeartbeat.HEARTBEAT_PLAYER_RANGE), e -> !e.isRemoved())) {
+			p.sendSystemMessage(msg);
+		}
 	}
 
 	/** 开始跟随玩家：注册 FOLLOW 任务（tick 持续刷新目标）。 */
@@ -828,6 +892,9 @@ public final class CopperGolemAiService {
 	/** 新任务互斥：注册新任务时清掉其他任务（collect 顶 follow、follow 顶 collect……）；except 当前类型保留。 */
 	static void clearOtherTasks(CopperGolem golem, String keep) {
 		UUID golemId = golem.getUUID();
+		if (!"move".equals(keep)) {
+			ACTIVE_MOVES.remove(golemId);
+		}
 		if (!"follow".equals(keep)) {
 			ACTIVE_FOLLOWS.remove(golemId);
 		}
@@ -852,6 +919,7 @@ public final class CopperGolemAiService {
 		ACTIVE_FOLLOWS.remove(golem.getUUID());
 		ACTIVE_APPROACHES.remove(golem.getUUID());
 		ACTIVE_COLLECTS.remove(golem.getUUID());
+		ACTIVE_MOVES.remove(golem.getUUID());
 		ActiveTransport t = ACTIVE_TRANSPORTS.remove(golem.getUUID());
 		if (t != null && t.openPos() != null) {
 			BlockEntity be = golem.level().getBlockEntity(t.openPos());
@@ -869,6 +937,9 @@ public final class CopperGolemAiService {
 	/** 傀儡当前任务描述（供 get_self_status）。 */
 	public static String currentTaskDescription(CopperGolem golem) {
 		UUID id = golem.getUUID();
+		if (ACTIVE_MOVES.containsKey(id)) {
+			return "正在前往某处";
+		}
 		if (ACTIVE_FOLLOWS.containsKey(id)) {
 			return "正在跟随玩家";
 		}
@@ -895,6 +966,7 @@ public final class CopperGolemAiService {
 		tickApproach(golem, level);
 		tickCollect(golem, level);
 		tickTransportTask(golem, level);
+		tickMove(golem, level);
 	}
 
 	private static void tickFollow(CopperGolem golem, ServerLevel level) {
@@ -990,8 +1062,8 @@ public final class CopperGolemAiService {
 		ServerPlayer player = level.getServer().getPlayerList().getPlayer(t.givePlayerId());
 		if (player == null || !player.isAlive() || player.level() != level) {
 			replyTo(golem, level, t, "你不在，东西我先放回箱子了");
-			if (t.source() != null && containerAt(level, t.source()) != null) {
-				addToContainer(containerAt(level, t.source()), golem.getMainHandItem());
+			if (t.source() != null && containerAt(level, t.source(), t.enderOwner()) != null) {
+				addToContainer(containerAt(level, t.source(), t.enderOwner()), golem.getMainHandItem());
 			}
 			golem.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
 			return;
@@ -1008,7 +1080,7 @@ public final class CopperGolemAiService {
 
 	/** 取货：成功返回 true（推进 WALK_DEST）；失败返回 false（任务中止，提示已发）。 */
 	private static boolean doTake(CopperGolem golem, ServerLevel level, ActiveTransport t) {
-		Container container = containerAt(level, t.source());
+		Container container = containerAt(level, t.source(), t.enderOwner());
 		if (container == null) {
 			replyTo(golem, level, t, "取货的箱子不见了，我搬不了");
 			return false;
@@ -1035,7 +1107,7 @@ public final class CopperGolemAiService {
 
 	/** 放货：放完或放不下都结束任务；放不下提示玩家并让物品留在手里（不会消失）。 */
 	private static void doPut(CopperGolem golem, ServerLevel level, ActiveTransport t) {
-		Container container = containerAt(level, t.destination());
+		Container container = containerAt(level, t.destination(), t.enderOwner());
 		if (container == null) {
 			replyTo(golem, level, t, "放货的箱子不见了，我搬不了");
 			return;
@@ -1092,9 +1164,16 @@ public final class CopperGolemAiService {
 		return remaining;
 	}
 
-	/** 方块位置 → Container（箱子经 ChestBlock.getContainer，其他 Container 方块实体直接取）；非容器 → null。 */
-	private static @Nullable Container containerAt(ServerLevel level, BlockPos pos) {
+	/** 方块位置 → Container；末影箱 → 归属玩家的末影箱数据（PlayerEnderChestContainer）；非容器 → null。 */
+	private static @Nullable Container containerAt(ServerLevel level, BlockPos pos, @Nullable UUID enderOwner) {
 		BlockEntity be = level.getBlockEntity(pos);
+		if (be instanceof net.minecraft.world.level.block.entity.EnderChestBlockEntity) {
+			if (enderOwner == null) {
+				return null; // 末影箱需要玩家上下文
+			}
+			ServerPlayer owner = level.getServer().getPlayerList().getPlayer(enderOwner);
+			return owner == null ? null : owner.getEnderChestInventory();
+		}
 		if (be instanceof Container c) {
 			return c;
 		}

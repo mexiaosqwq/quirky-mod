@@ -9,7 +9,9 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.level.entity.EntityTypeTest;
 import net.minecraft.world.entity.animal.golem.CopperGolem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ChunkPos;
@@ -20,6 +22,10 @@ import net.minecraft.world.level.block.entity.ShulkerBoxBlockEntity;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.phys.AABB;
 import org.jspecify.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,10 +43,11 @@ public final class CopperGolemAgentTools {
 	/** 10 工具声明（OpenAI 兼容 tools 数组）。感知 4 + 行动 5 + transport。 */
 	public static final String TOOLS_JSON =
 		"["
-			+ "{\"type\":\"function\",\"function\":{\"name\":\"look_containers\",\"description\":\"查看附近容器里的物品（箱子/木桶/潜影盒），返回位置+物品清单；物品ID必须从这里获取才能搬运\",\"parameters\":{\"type\":\"object\",\"properties\":{\"range\":{\"type\":\"integer\",\"description\":\"搜索半径格，默认32\"},\"copper_only\":{\"type\":\"boolean\",\"description\":\"只看铜箱\"}},\"required\":[]}}},"
+			+ "{\"type\":\"function\",\"function\":{\"name\":\"look_containers\",\"description\":\"查看附近容器里的物品（箱子/木桶/潜影盒/末影箱），返回位置+物品清单；物品ID必须从这里获取才能搬运\",\"parameters\":{\"type\":\"object\",\"properties\":{\"range\":{\"type\":\"integer\",\"description\":\"搜索半径格，默认32\"},\"copper_only\":{\"type\":\"boolean\",\"description\":\"只看铜箱\"}},\"required\":[]}}},"
 			+ "{\"type\":\"function\",\"function\":{\"name\":\"get_player_status\",\"description\":\"查看附近的玩家：名字/位置/手持物品/血量\",\"parameters\":{\"type\":\"object\",\"properties\":{},\"required\":[]}}},"
 			+ "{\"type\":\"function\",\"function\":{\"name\":\"get_world_info\",\"description\":\"查看世界状态：时间/天气/生物群系\",\"parameters\":{\"type\":\"object\",\"properties\":{},\"required\":[]}}},"
 			+ "{\"type\":\"function\",\"function\":{\"name\":\"get_self_status\",\"description\":\"查看自己的状态：位置/手持物品/头顶天线/当前任务\",\"parameters\":{\"type\":\"object\",\"properties\":{},\"required\":[]}}},"
+			+ "{\"type\":\"function\",\"function\":{\"name\":\"scan_mobs\",\"description\":\"查看附近有什么生物（类型/数量/最近距离，含其他铜傀儡）\",\"parameters\":{\"type\":\"object\",\"properties\":{\"range\":{\"type\":\"integer\",\"description\":\"搜索半径格，默认16\"}},\"required\":[]}}},"
 			+ "{\"type\":\"function\",\"function\":{\"name\":\"move_to\",\"description\":\"走到指定坐标\",\"parameters\":{\"type\":\"object\",\"properties\":{\"x\":{\"type\":\"integer\"},\"y\":{\"type\":\"integer\"},\"z\":{\"type\":\"integer\"}},\"required\":[\"x\",\"y\",\"z\"]}}},"
 			+ "{\"type\":\"function\",\"function\":{\"name\":\"follow_player\",\"description\":\"跟随玩家（保持2-3格距离），说停下/stop 取消\",\"parameters\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"玩家名字\"}},\"required\":[\"name\"]}}},"
 			+ "{\"type\":\"function\",\"function\":{\"name\":\"approach_entity\",\"description\":\"走到附近指定类型的生物旁（含其他铜傀儡 copper_golem）\",\"parameters\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"description\":\"生物类型，如 sheep/zombie/player/copper_golem\"}},\"required\":[\"type\"]}}},"
@@ -73,6 +80,7 @@ public final class CopperGolemAgentTools {
 			case "get_player_status" -> getPlayerStatus(ctx);
 			case "get_world_info" -> getWorldInfo(ctx);
 			case "get_self_status" -> getSelfStatus(ctx);
+			case "scan_mobs" -> scanMobs(ctx, args);
 			case "move_to" -> moveTo(ctx, args);
 			case "follow_player" -> followPlayer(ctx, args);
 			case "approach_entity" -> approachEntity(ctx, args);
@@ -95,6 +103,52 @@ public final class CopperGolemAgentTools {
 	}
 
 	/** 附近储物容器（箱子/木桶/潜影盒）内容。copper_only 只看铜箱。 */
+	/** 附近生物清单：按类型分组（数量+最近距离），最多 10 组；玩家由 get_player_status 覆盖，此处不含。 */
+	private static String scanMobs(@Nullable ToolContext ctx, JsonObject args) {
+		if (ctx == null) {
+			return "{\"error\":\"no context\"}";
+		}
+		int range = rangeOf(args, 16);
+		AABB box = new AABB(ctx.golem().blockPosition()).inflate(range);
+		List<net.minecraft.world.entity.LivingEntity> mobs = ctx.level()
+			.getEntities(EntityTypeTest.forClass(net.minecraft.world.entity.LivingEntity.class), box,
+				e -> !e.isRemoved() && e != ctx.golem() && !(e instanceof net.minecraft.server.level.ServerPlayer))
+			.stream()
+			.sorted(Comparator.comparingDouble(e -> e.distanceToSqr(ctx.golem())))
+			.toList();
+		if (mobs.isEmpty()) {
+			return "{\"ok\":\"附近没有生物\"}";
+		}
+		java.util.LinkedHashMap<net.minecraft.world.entity.EntityType<?>, int[]> groups = new java.util.LinkedHashMap<>(); // count, minDist
+		for (var m : mobs) {
+			int[] v = groups.computeIfAbsent(m.getType(), k -> new int[] { 0, Integer.MAX_VALUE });
+			v[0]++;
+			int d = (int) Math.sqrt(m.distanceToSqr(ctx.golem()));
+			if (d < v[1]) {
+				v[1] = d;
+			}
+		}
+		StringBuilder sb = new StringBuilder("[生物]");
+		int shown = 0;
+		for (var entry : groups.entrySet()) {
+			if (shown >= 10) {
+				break;
+			}
+			var sample = mobs.stream().filter(x -> x.getType() == entry.getKey()).findFirst().orElse(null);
+			if (sample instanceof CopperGolem cg && cg.getCustomName() != null) {
+				sb.append(cg.getDisplayName().getString()).append("[铜傀儡](").append(entry.getValue()[1]).append("格)");
+			} else {
+				sb.append(entry.getKey().getDescription().getString()).append("×").append(entry.getValue()[0])
+					.append("(最近").append(entry.getValue()[1]).append("格)");
+			}
+			shown++;
+			if (shown < groups.size() && shown < 10) {
+				sb.append("、");
+			}
+		}
+		return sb.append("。").toString();
+	}
+
 	private static String lookContainers(@Nullable ToolContext ctx, JsonObject args) {
 		if (ctx == null) {
 			return "{\"error\":\"no context\"}";
@@ -111,6 +165,34 @@ public final class CopperGolemAgentTools {
 					continue;
 				}
 				for (BlockEntity be : chunk.getBlockEntities().values()) {
+					if (be instanceof net.minecraft.world.level.block.entity.EnderChestBlockEntity) {
+						BlockPos pos = be.getBlockPos();
+						if (Math.abs(pos.getX() - golemPos.getX()) > range || Math.abs(pos.getZ() - golemPos.getZ()) > range) {
+							continue;
+						}
+						if (copperOnly) {
+							continue; // 末影箱不是铜箱
+						}
+						// 末影箱是玩家绑定容器：内容 = 对话玩家的末影箱数据；无玩家上下文 → 只看得到存在
+						String ownerName = ctx.player() == null ? "?" : ctx.player().getName().getString();
+						net.minecraft.world.Container ec = ctx.player() == null ? null : ctx.player().getEnderChestInventory();
+						List<String> items = new ArrayList<>();
+						int total = 0;
+						if (ec != null) {
+							for (int slot = 0; slot < ec.getContainerSize(); slot++) {
+								ItemStack stack = ec.getItem(slot);
+								if (stack.isEmpty()) {
+									continue;
+								}
+								total++;
+								String id = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+								items.add(id + "(" + stack.getHoverName().getString() + ")×" + stack.getCount());
+								ctx.knownItems().add(id);
+							}
+						}
+						found.add(new ContainerInfo("ender_chest(" + ownerName + ")", pos.getX() + "," + pos.getY() + "," + pos.getZ(), items, total));
+						continue;
+					}
 					if (!(be instanceof ChestBlockEntity || be instanceof BarrelBlockEntity || be instanceof ShulkerBoxBlockEntity)) {
 						continue;
 					}

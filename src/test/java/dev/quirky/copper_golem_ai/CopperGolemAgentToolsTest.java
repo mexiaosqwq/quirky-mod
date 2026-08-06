@@ -14,16 +14,16 @@ import static org.junit.jupiter.api.Assertions.*;
 class CopperGolemAgentToolsTest {
 
 	@Test
-	void toolsJsonIsValidWithElevenFunctions() {
+	void toolsJsonIsValidWithTwelveFunctions() {
 		JsonArray tools = JsonParser.parseString(CopperGolemAgentTools.TOOLS_JSON).getAsJsonArray();
-		assertEquals(11, tools.size());
+		assertEquals(12, tools.size());
 		Set<String> names = new java.util.HashSet<>();
 		for (var el : tools) {
 			JsonObject fn = el.getAsJsonObject().getAsJsonObject("function");
 			assertEquals("function", el.getAsJsonObject().get("type").getAsString());
 			names.add(fn.get("name").getAsString());
 		}
-		assertEquals(Set.of("look_containers", "get_player_status", "get_world_info", "get_self_status",
+		assertEquals(Set.of("look_containers", "get_player_status", "get_world_info", "get_self_status", "scan_mobs",
 			"move_to", "follow_player", "approach_entity", "stop", "collect_dropped_items", "transport", "tell_golem"), names);
 	}
 
