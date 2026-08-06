@@ -170,15 +170,17 @@ public final class CopperGolemAiService {
 
 	/** 发起一次心跳：独立上下文（不进长期历史），AI 自主决策；无事静默，有内容搭话（限流）。 */
 	/** system prompt：{NAME} 占位符替换为玩家命名的名字（未命名用占位默认）+ 实时感知注入 + 心情 + 天线引导。 */
-	private static String buildSystemPrompt(CopperGolem golem) {
+	private static String buildSystemPrompt(CopperGolem golem, @Nullable ServerPlayer chatPlayer) {
 		Component customName = golem.getCustomName();
 		String name = customName == null ? "无名的小铜傀儡" : customName.getString();
 		ItemStack antenna = golem.getItemBySlot(EquipmentSlot.SADDLE);
 		String antennaLine = antenna.isEmpty() ? ""
 			: "你头顶戴着" + antenna.getHoverName().getString() + "，可以自然地炫耀或回应关于它的提问。";
 		CopperGolemAgentMood.Mood mood = CopperGolemAgentMood.moodFor(MOOD_SCORES.getOrDefault(golem.getUUID(), 0));
+		String chatter = chatPlayer == null ? ""
+			: "[对话者]" + chatPlayer.getName().getString() + " 正在跟你说话——直接回应它，称它" + chatPlayer.getName().getString() + "。";
 		return CopperGolemAiHttp.SYSTEM_PROMPT.replace("{NAME}", name) + "\n"
-			+ realtimeContext(golem) + consumeGolemMessages(golem) + antennaLine + CopperGolemAgentMood.toPrompt(mood);
+			+ chatter + realtimeContext(golem) + consumeGolemMessages(golem) + antennaLine + CopperGolemAgentMood.toPrompt(mood);
 	}
 
 	/** 实时感知注入：附近玩家（最近 2 个：名字/距离/手持）+ 天气时间 + 自身手持。一行内，AI 无需调工具即有临场感。 */
@@ -240,7 +242,7 @@ public final class CopperGolemAiService {
 
 	private static void fireHeartbeat(CopperGolem golem, ServerLevel level, long nowTick) {
 		decayMood(golem);
-		String systemPrompt = buildSystemPrompt(golem)
+		String systemPrompt = buildSystemPrompt(golem, null)
 			+ "\n现在是自主行动时间：至少做一件事——查看周围（look_containers/get_player_status/get_world_info），"
 			+ "做点有用的事（捡掉落物/搬东西/跟着玩家/去看看生物）。"
 			+ "玩家在旁边时主动打个招呼或汇报你在干什么（比如'我刚捡了 X'），看到有趣的事（玩家戴了新帽子、箱子里有奇怪的东西）可以说出来，"
@@ -507,7 +509,7 @@ public final class CopperGolemAiService {
 		if (delta != 0) {
 			MOOD_SCORES.merge(golem.getUUID(), delta, Integer::sum);
 		}
-		String systemPrompt = buildSystemPrompt(golem);
+		String systemPrompt = buildSystemPrompt(golem, player);
 		CopperGolemAgentLoop loop = new CopperGolemAgentLoop(config, systemPrompt, session.messages(), text);
 		PENDING_REPLIES.put(golem.getUUID(), true); // 对话在途（心跳 busy 检查）
 		IO.submit(() -> {
