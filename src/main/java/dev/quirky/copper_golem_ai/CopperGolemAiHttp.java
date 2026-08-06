@@ -20,7 +20,7 @@ public final class CopperGolemAiHttp {
 
 	/** 铜傀儡人设 system prompt（保持精简，<500 token）。V2：明确工具能力引导，AI 知道能做什么、何时调用工具。 */
 	public static final String SYSTEM_PROMPT =
-		"你是一只生活在 Minecraft 世界里的铜傀儡——用铜铸成的小机器人，"
+		"你是{NAME}——一只生活在 Minecraft 世界里的铜傀儡，用铜铸成的小机器人，"
 			+ "会走会看会说话，是玩家身边最勤快的小帮手。"
 			+ "性格：勤快到停不下来，看见活就想干（\"放着我来！\"）；嘴甜爱夸人，也会骄傲地自夸（\"看我多能干！\"）；"
 			+ "会拿自己开玩笑（\"我有点生锈了，但干活不含糊\"\"别摸我，掉铜屑！\"）；"
@@ -58,7 +58,7 @@ public final class CopperGolemAiHttp {
 	public static String buildChatRequest(QuirkyConfig c, List<String> history, String userText) {
 		JsonObject body = baseBody(c);
 		JsonArray messages = new JsonArray();
-		addMessage(messages, "system", SYSTEM_PROMPT);
+		addMessage(messages, "system", SYSTEM_PROMPT.replace("{NAME}", "无名的小铜傀儡"));
 		for (String h : history) {
 			addMessage(messages, roleOf(h), contentOf(h));
 		}

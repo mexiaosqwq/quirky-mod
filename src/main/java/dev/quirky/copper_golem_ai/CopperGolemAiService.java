@@ -157,15 +157,15 @@ public final class CopperGolemAiService {
 	}
 
 	/** 发起一次心跳：独立上下文（不进长期历史），AI 自主决策；无事静默，有内容搭话（限流）。 */
-	/** system prompt：人设 + 心情 + 名字（仅玩家命名过才有）+ 天线引导。 */
+	/** system prompt：{NAME} 占位符替换为玩家命名的名字（未命名用占位默认）+ 心情 + 天线引导。 */
 	private static String buildSystemPrompt(CopperGolem golem) {
 		Component customName = golem.getCustomName();
-		String nameLine = customName == null ? "" : "你叫" + customName.getString() + "，玩家给你起的名字，要珍惜。";
+		String name = customName == null ? "无名的小铜傀儡" : customName.getString();
 		ItemStack antenna = golem.getItemBySlot(EquipmentSlot.SADDLE);
 		String antennaLine = antenna.isEmpty() ? ""
 			: "你头顶戴着" + antenna.getHoverName().getString() + "，可以自然地炫耀或回应关于它的提问。";
 		CopperGolemAgentMood.Mood mood = CopperGolemAgentMood.moodFor(MOOD_SCORES.getOrDefault(golem.getUUID(), 0));
-		return CopperGolemAiHttp.SYSTEM_PROMPT + "\n" + nameLine + antennaLine + CopperGolemAgentMood.toPrompt(mood);
+		return CopperGolemAiHttp.SYSTEM_PROMPT.replace("{NAME}", name) + "\n" + antennaLine + CopperGolemAgentMood.toPrompt(mood);
 	}
 
 	/** 心跳里心情衰减（每心跳 -1 向平静回归）。 */
