@@ -66,6 +66,7 @@ public final class CopperGolemAiService {
 	private static final Map<UUID, Long> LAST_REPLY_TICK = new ConcurrentHashMap<>();
 	private static final Map<UUID, Long> LAST_HEARTBEAT_TICK = new ConcurrentHashMap<>();
 	private static final Map<UUID, Long> LAST_CHATTER_TICK = new ConcurrentHashMap<>();
+	private static final Map<UUID, Integer> MOOD_SCORES = new ConcurrentHashMap<>(); // golemId → 心情分数
 	private static final Map<UUID, ActiveTransport> ACTIVE_TRANSPORTS = new ConcurrentHashMap<>();
 	private static final Map<UUID, UUID> ACTIVE_FOLLOWS = new ConcurrentHashMap<>(); // golemId → playerId
 	private static final Map<UUID, UUID> ACTIVE_APPROACHES = new ConcurrentHashMap<>(); // golemId → entityId
@@ -153,8 +154,22 @@ public final class CopperGolemAiService {
 	}
 
 	/** 发起一次心跳：独立上下文（不进长期历史），AI 自主决策；无事静默，有内容搭话（限流）。 */
+	/** system prompt：人设 + 心情 + 名字（Task 7 接名字）。 */
+	private static String buildSystemPrompt(CopperGolem golem) {
+		String name = golem.getName().getString();
+		String nameLine = name.equals("铜傀儡") ? "" : "你叫" + name + "。";
+		CopperGolemAgentMood.Mood mood = CopperGolemAgentMood.moodFor(MOOD_SCORES.getOrDefault(golem.getUUID(), 0));
+		return CopperGolemAiHttp.SYSTEM_PROMPT + "\n" + nameLine + CopperGolemAgentMood.toPrompt(mood);
+	}
+
+	/** 心跳里心情衰减（每心跳 -1 向平静回归）。 */
+	private static void decayMood(CopperGolem golem) {
+		MOOD_SCORES.compute(golem.getUUID(), (id, score) -> CopperGolemAgentMood.decay(score == null ? 0 : score));
+	}
+
 	private static void fireHeartbeat(CopperGolem golem, ServerLevel level, long nowTick) {
-		String systemPrompt = CopperGolemAiHttp.SYSTEM_PROMPT
+		decayMood(golem);
+		String systemPrompt = buildSystemPrompt(golem)
 			+ "\n现在是自主行动时间：你可以查看周围（look_containers/get_player_status/get_world_info），"
 			+ "做点有用的事（捡掉落物/搬东西/跟着玩家/去看看生物）。没有值得做的就回复：无事。"
 			+ "如果看到有趣的事（比如玩家戴了新帽子、箱子里有奇怪的东西），可以主动说出来，但不要编造没看到的东西。";
@@ -247,7 +262,12 @@ public final class CopperGolemAiService {
 	}
 
 	private static void requestReply(ServerPlayer player, CopperGolem golem, CopperGolemAiHistory.GolemSession session, QuirkyConfig config, String text) {
-		CopperGolemAgentLoop loop = new CopperGolemAgentLoop(config, CopperGolemAiHttp.SYSTEM_PROMPT, session.messages(), text);
+		int delta = CopperGolemAgentMood.processWord(text);
+		if (delta != 0) {
+			MOOD_SCORES.merge(golem.getUUID(), delta, Integer::sum);
+		}
+		String systemPrompt = buildSystemPrompt(golem);
+		CopperGolemAgentLoop loop = new CopperGolemAgentLoop(config, systemPrompt, session.messages(), text);
 		CopperGolemAgentTools.ToolContext ctx = new CopperGolemAgentTools.ToolContext(golem, (ServerLevel) player.level(), player, new java.util.HashSet<>());
 		IO.submit(() -> {
 			try {
