@@ -591,23 +591,24 @@ public final class CopperGolemAiService {
 	}
 
 	/** 开始捡掉落物：找 range 内最近 ItemEntity → 注册 COLLECT 任务。 */
-	/** 批量捡掉落物：找最近 5 个（含当前），逐个捡并自动放铜箱；队列延续到捡完为止。 */
+	/** 清扫掉落物：找附近全部掉落物（最多 64 个安全上限），逐个捡并自动放铜箱；队列自动延续到捡完或被打断。 */
 	public static String startCollect(CopperGolem golem, ServerLevel level, int range) {
 		clearOtherTasks(golem, "collect");
 		AABB box = new AABB(golem.blockPosition()).inflate(range);
-		List<net.minecraft.world.entity.item.ItemEntity> items = level.getEntities(EntityTypeTest.forClass(net.minecraft.world.entity.item.ItemEntity.class),
+		List<net.minecraft.world.entity.item.ItemEntity> all = level.getEntities(EntityTypeTest.forClass(net.minecraft.world.entity.item.ItemEntity.class),
 				box, e -> !e.isRemoved()).stream()
 			.sorted(Comparator.comparingDouble(e -> e.distanceToSqr(golem)))
-			.limit(5)
 			.toList();
-		if (items.isEmpty()) {
+		if (all.isEmpty()) {
 			return "{\"ok\":\"附近没有掉落物\"}";
 		}
+		boolean truncated = all.size() > 64;
+		List<net.minecraft.world.entity.item.ItemEntity> items = all.subList(0, Math.min(all.size(), 64));
 		net.minecraft.world.entity.item.ItemEntity first = items.get(0);
 		List<UUID> queue = items.subList(1, items.size()).stream().map(net.minecraft.world.entity.Entity::getUUID).toList();
 		ACTIVE_COLLECTS.put(golem.getUUID(), new CollectTask(first.blockPosition(), first.getUUID(),
 			BuiltInRegistries.ITEM.getKey(first.getItem().getItem()).toString(), queue));
-		return "{\"ok\":\"发现 " + items.size() + " 个掉落物，开始逐个捡\"}";
+		return "{\"ok\":\"发现 " + all.size() + " 个掉落物" + (truncated ? "（超过 64 个，先捡前 64 个）" : "，开始逐个捡") + "\"}";
 	}
 
 	private static void tickCollect(CopperGolem golem, ServerLevel level) {
