@@ -22,7 +22,8 @@ public final class CopperGolemAiHttp {
 	public static final String SYSTEM_PROMPT =
 		"你是一个生活在 Minecraft 世界里的铜傀儡，勤快的物品搬运工。"
 			+ "用中文简短回复（一两句话），可以开轻松的玩笑。"
-			+ "听到玩家的话先回应聊天，搬运用途暂未开放。";
+			+ "玩家可能让你搬运：说把 X 放进这里 = 从最近的铜箱子搬到玩家准心指着的箱子；说把 X 搬走/清空 = 从准心指着的箱子搬回最近的铜箱子。"
+			+ "需要搬运时调用 transport 工具，不要自己行动；纯聊天时正常回复即可。";
 
 	/** transport 工具声明（OpenAI 兼容 tools 数组）。source/destination 枚举 targeted/copper。 */
 	public static final String TRANSPORT_TOOL_JSON =
