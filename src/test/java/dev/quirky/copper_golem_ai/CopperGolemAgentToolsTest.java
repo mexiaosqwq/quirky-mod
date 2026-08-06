@@ -14,9 +14,9 @@ import static org.junit.jupiter.api.Assertions.*;
 class CopperGolemAgentToolsTest {
 
 	@Test
-	void toolsJsonIsValidWithTenFunctions() {
+	void toolsJsonIsValidWithElevenFunctions() {
 		JsonArray tools = JsonParser.parseString(CopperGolemAgentTools.TOOLS_JSON).getAsJsonArray();
-		assertEquals(10, tools.size());
+		assertEquals(11, tools.size());
 		Set<String> names = new java.util.HashSet<>();
 		for (var el : tools) {
 			JsonObject fn = el.getAsJsonObject().getAsJsonObject("function");
@@ -24,7 +24,7 @@ class CopperGolemAgentToolsTest {
 			names.add(fn.get("name").getAsString());
 		}
 		assertEquals(Set.of("look_containers", "get_player_status", "get_world_info", "get_self_status",
-			"move_to", "follow_player", "approach_entity", "stop", "collect_dropped_items", "transport"), names);
+			"move_to", "follow_player", "approach_entity", "stop", "collect_dropped_items", "transport", "tell_golem"), names);
 	}
 
 	@Test

@@ -75,6 +75,14 @@ public final class CopperGolemAiService {
 	private static final Map<UUID, CollectTask> ACTIVE_COLLECTS = new ConcurrentHashMap<>(); // golemId → 掉落物
 	private static final ConcurrentLinkedQueue<Runnable> PENDING_TASKS = new ConcurrentLinkedQueue<>();
 	private static final Map<UUID, Boolean> PENDING_REPLIES = new ConcurrentHashMap<>(); // golemId → 对话请求在途（心跳 busy 检查用）
+
+	/** 傀儡间留言（tell_golem）：A 传给 B 的话，B 下次心跳/对话时注入并消费。 */
+	private record GolemMessage(String fromName, String text, long expireTick) {
+	}
+
+	private static final Map<UUID, List<GolemMessage>> GOLEM_MESSAGES = new ConcurrentHashMap<>();
+	private static final java.util.Set<UUID> GOLEM_MESSAGE_REPLYING = ConcurrentHashMap.newKeySet(); // 本轮回应对同伴留言，限流放行
+	private static final int GOLEM_MESSAGE_TTL_TICKS = 6000; // 5 分钟：心跳 30s，两轮内必被看到
 	private static final int MAX_TRANSPORT_DISTANCE = 64;
 	private static final int TARGETED_RAYCAST_DISTANCE = 6;
 	private static volatile boolean initialized = false;
@@ -129,6 +137,7 @@ public final class CopperGolemAiService {
 				LAST_REPLY_TICK.entrySet().removeIf(e -> e.getValue() < cutoff);
 				SESSIONS.keySet().removeIf(id -> !LAST_REPLY_TICK.containsKey(id));
 				// 注意：LAST_HEARTBEAT_TICK 不清理——删除会让无会话傀儡的心跳状态丢失 → 立即重触发（心跳风暴）
+				GOLEM_MESSAGES.entrySet().removeIf(e -> e.getValue().stream().allMatch(m -> m.expireTick() < server.getTickCount()));
 				RENAMES.entrySet().removeIf(e -> CopperGolemRename.RenameState.isExpired(e.getValue(), server.getTickCount()));
 			}
 		});
@@ -169,7 +178,7 @@ public final class CopperGolemAiService {
 			: "你头顶戴着" + antenna.getHoverName().getString() + "，可以自然地炫耀或回应关于它的提问。";
 		CopperGolemAgentMood.Mood mood = CopperGolemAgentMood.moodFor(MOOD_SCORES.getOrDefault(golem.getUUID(), 0));
 		return CopperGolemAiHttp.SYSTEM_PROMPT.replace("{NAME}", name) + "\n"
-			+ realtimeContext(golem) + antennaLine + CopperGolemAgentMood.toPrompt(mood);
+			+ realtimeContext(golem) + consumeGolemMessages(golem) + antennaLine + CopperGolemAgentMood.toPrompt(mood);
 	}
 
 	/** 实时感知注入：附近玩家（最近 2 个：名字/距离/手持）+ 天气时间 + 自身手持。一行内，AI 无需调工具即有临场感。 */
@@ -247,14 +256,16 @@ public final class CopperGolemAiService {
 					if (golem.isRemoved()) {
 						return; // 傀儡已死/消失：不广播
 					}
+					GOLEM_MESSAGE_REPLYING.remove(golem.getUUID()); // 标记只服务这一次回复
 					if (reply == null || reply.isBlank() || reply.equals("无事") || reply.contains("无事")) {
 						LOGGER.info("heartbeat golem {} silent: {}", golem.getUUID(), reply == null ? "null" : reply);
 						return; // 静默
 					}
 					Long lastChatter = LAST_CHATTER_TICK.get(golem.getUUID());
-					if (lastChatter != null && nowTick - lastChatter < CopperGolemHeartbeat.CHATTER_COOLDOWN_TICKS) {
+					if (lastChatter != null && nowTick - lastChatter < CopperGolemHeartbeat.CHATTER_COOLDOWN_TICKS
+						&& !GOLEM_MESSAGE_REPLYING.contains(golem.getUUID())) {
 						LOGGER.info("heartbeat golem {} chatter throttled: {}", golem.getUUID(), reply);
-						return; // 搭话限流
+						return; // 搭话限流（同伴留言的回应放行）
 					}
 					LAST_CHATTER_TICK.put(golem.getUUID(), nowTick);
 					LOGGER.info("heartbeat golem {} chatters: {}", golem.getUUID(), reply);
@@ -266,6 +277,7 @@ public final class CopperGolemAiService {
 					}
 				});
 			} catch (Exception e) {
+				GOLEM_MESSAGE_REPLYING.remove(golem.getUUID());
 				LOGGER.info("Copper golem heartbeat failed, skipped: {}", e.toString());
 			}
 		});
@@ -439,6 +451,55 @@ public final class CopperGolemAiService {
 		} catch (Exception e) {
 			return "{\"error\":\"tool timeout\"}";
 		}
+	}
+
+	/** tell_golem：给 32 格内名字匹配的同伴傀儡留言（大小写不敏感）。返回 ok 或 error。 */
+	public static String tellGolem(CopperGolem from, ServerLevel level, String targetName, String message) {
+		if (targetName == null || targetName.isBlank()) {
+			return "{\"error\":\"需要目标名字\"}";
+		}
+		if (message == null || message.isBlank()) {
+			return "{\"error\":\"消息不能为空\"}";
+		}
+		AABB box = new AABB(from.blockPosition()).inflate(32);
+		String lower = targetName.toLowerCase();
+		CopperGolem target = level.getEntities(EntityTypeTest.forClass(CopperGolem.class), box, e -> !e.isRemoved() && e != from).stream()
+			.filter(g -> g.getCustomName() != null && g.getName().getString().toLowerCase().equals(lower))
+			.min(Comparator.comparingDouble(g -> g.distanceToSqr(from)))
+			.orElse(null);
+		if (target == null) {
+			return "{\"error\":\"32 格内没有叫 " + targetName + " 的同伴傀儡\"}";
+		}
+		String fromName = from.getCustomName() == null ? "无名铜傀儡" : from.getCustomName().getString();
+		GOLEM_MESSAGES.computeIfAbsent(target.getUUID(), k -> new java.util.ArrayList<>())
+			.add(new GolemMessage(fromName, message, level.getGameTime() + GOLEM_MESSAGE_TTL_TICKS));
+		LOGGER.info("golem tell {} -> {}: {}", fromName, target.getName().getString(), message);
+		return "{\"ok\":\"留言已捎给 " + target.getName().getString() + "，它看到会回应\"}";
+	}
+
+	/** 消费留言：注入 system prompt 的文本（最多 2 条，注入后删除），无留言返回空串。 */
+	private static String consumeGolemMessages(CopperGolem golem) {
+		List<GolemMessage> list = GOLEM_MESSAGES.get(golem.getUUID());
+		if (list == null || list.isEmpty()) {
+			return "";
+		}
+		long now = golem.level().getGameTime();
+		List<GolemMessage> fresh = list.stream().filter(m -> m.expireTick() >= now).toList();
+		GOLEM_MESSAGES.remove(golem.getUUID()); // 消费（含过期）
+		if (fresh.isEmpty()) {
+			return "";
+		}
+		GOLEM_MESSAGE_REPLYING.add(golem.getUUID()); // 本轮回应对同伴留言 → 心跳回复不限流
+		StringBuilder sb = new StringBuilder("[同伴留言]");
+		for (int i = 0; i < fresh.size() && i < 2; i++) {
+			if (i > 0) {
+				sb.append("；");
+			}
+			GolemMessage m = fresh.get(i);
+			sb.append(m.fromName()).append(" 对你说：").append(m.text());
+		}
+		LOGGER.info("golem {} consumes {} golem message(s)", golem.getUUID(), fresh.size());
+		return sb.append("。同伴叫你时你要回应它或行动。").toString();
 	}
 
 	private static void requestReply(ServerPlayer player, CopperGolem golem, CopperGolemAiHistory.GolemSession session, QuirkyConfig config, String text) {

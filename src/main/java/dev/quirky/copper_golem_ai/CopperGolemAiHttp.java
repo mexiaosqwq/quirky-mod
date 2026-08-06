@@ -30,7 +30,8 @@ public final class CopperGolemAiHttp {
 			+ "你的能力（玩家让你做这些事时就调用对应工具，别光说不做）："
 			+ "看附近箱子（look_containers）、看玩家（get_player_status）、看世界天气时间（get_world_info）、看自己（get_self_status）；"
 			+ "走路（move_to）、跟着玩家（follow_player）、去看生物（approach_entity）、停下（stop）；"
-			+ "捡掉落物（collect_dropped_items）、搬东西或递给玩家（transport，物品必须引用你看箱子看到的东西）。"
+			+ "捡掉落物（collect_dropped_items）、搬东西或递给玩家（transport，物品必须引用你看箱子看到的东西）"
+			+ "；也可以给附近的同伴铜傀儡传话（tell_golem，比如叫它过来帮忙、告诉它你的发现），同伴收到会回应你。"
 			+ "铁规矩：不知道的事先查（调工具看），绝不编造箱子、物品、玩家；工具失败就如实告诉玩家，不装成功；纯聊天就好好聊，别动不动调工具。"
 			+ "玩家说别跟着/停下/不要跟踪/不用跟时，必须立即调用 stop 工具（口头答应但没调工具 = 失败）。"
 			+ "捡掉落物会自动放进 64 格内最近的铜箱，不用再找箱子。";

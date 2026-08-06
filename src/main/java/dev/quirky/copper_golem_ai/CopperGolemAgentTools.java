@@ -46,6 +46,7 @@ public final class CopperGolemAgentTools {
 			+ "{\"type\":\"function\",\"function\":{\"name\":\"approach_entity\",\"description\":\"走到附近指定类型的生物旁（含其他铜傀儡 copper_golem）\",\"parameters\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"description\":\"生物类型，如 sheep/zombie/player/copper_golem\"}},\"required\":[\"type\"]}}},"
 			+ "{\"type\":\"function\",\"function\":{\"name\":\"stop\",\"description\":\"停止所有行动（移动/跟随/搬运），恢复待机\",\"parameters\":{\"type\":\"object\",\"properties\":{},\"required\":[]}}},"
 			+ "{\"type\":\"function\",\"function\":{\"name\":\"collect_dropped_items\",\"description\":\"捡起附近地上所有掉落物并自动放进64格内最近的铜箱，一次调用捡完为止（最多64个）；随时可被stop打断\",\"parameters\":{\"type\":\"object\",\"properties\":{\"range\":{\"type\":\"integer\",\"description\":\"搜索半径格，默认16\"}},\"required\":[]}}},"
+			+ "{\"type\":\"function\",\"function\":{\"name\":\"tell_golem\",\"description\":\"给附近32格内名字匹配的同伴铜傀儡留言传话（如叫它过来、告诉它发现），它下次心跳会看到并回应\",\"parameters\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"同伴名字（如 小Q）\"},\"message\":{\"type\":\"string\",\"description\":\"要说的话\"}},\"required\":[\"name\",\"message\"]}}},"
 			+ "{\"type\":\"function\",\"function\":{\"name\":\"transport\",\"description\":\"把物品在容器之间搬运；item 必须引用 look_containers 返回的真实物品ID；source/destination 用 look_containers 返回的坐标(如 12,64,-8)或 copper；destination 可为 give=直接给玩家\",\"parameters\":{\"type\":\"object\",\"properties\":{\"item\":{\"type\":\"string\",\"description\":\"物品ID，必须来自 look_containers 结果\"},\"source\":{\"type\":\"string\",\"description\":\"取货来源：坐标或 copper\"},\"destination\":{\"type\":\"string\",\"description\":\"放货目标：坐标/copper/give\"}},\"required\":[\"item\",\"source\",\"destination\"]}}}]";
 
 	/** 工具执行上下文。knownItems=本回合 look_containers 已感知的物品 ID（transport 引用校验用）。 */
@@ -77,6 +78,7 @@ public final class CopperGolemAgentTools {
 			case "approach_entity" -> approachEntity(ctx, args);
 			case "stop" -> stop(ctx);
 			case "collect_dropped_items" -> collectDropped(ctx, args);
+			case "tell_golem" -> tellGolem(ctx, args);
 			case "transport" -> transport(ctx, args);
 			default -> "{\"error\":\"unknown tool: " + name + "\"}";
 		};
@@ -207,6 +209,15 @@ public final class CopperGolemAgentTools {
 	}
 
 	// ===== 行动工具（服务端执行，复用原版移动机制）=====
+
+	private static String tellGolem(@Nullable ToolContext ctx, JsonObject args) {
+		if (ctx == null) {
+			return "{\"error\":\"no context\"}";
+		}
+		String name = args.has("name") ? args.get("name").getAsString() : "";
+		String message = args.has("message") ? args.get("message").getAsString() : "";
+		return CopperGolemAiService.tellGolem(ctx.golem(), ctx.level(), name, message);
+	}
 
 	private static String transport(@Nullable ToolContext ctx, JsonObject args) {
 		if (ctx == null) {
