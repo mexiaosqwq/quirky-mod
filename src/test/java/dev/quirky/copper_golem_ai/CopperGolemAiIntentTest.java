@@ -53,6 +53,18 @@ class CopperGolemAiIntentTest {
 	}
 
 	@Test
+	void normalizeItemStripsCountSuffix() {
+		assertEquals("minecraft:obsidian", CopperGolemAiIntent.normalizeItem("minecraft:obsidian×29"));
+		assertEquals("minecraft:obsidian", CopperGolemAiIntent.normalizeItem("minecraft:obsidian"));
+		assertEquals("any", CopperGolemAiIntent.normalizeItem("any"));
+		assertEquals("", CopperGolemAiIntent.normalizeItem(null));
+		// isPlausibleItem 容忍 ×N 后缀（AI 从感知结果带数量）
+		assertTrue(CopperGolemAiIntent.isPlausibleItem("minecraft:obsidian×29"));
+		assertTrue(CopperGolemAiIntent.isPlausibleItem("quirky:rope×3"));
+		assertFalse(CopperGolemAiIntent.isPlausibleItem("minecraft:obsidian×abc"));
+	}
+
+	@Test
 	void knownItemCheck() {
 		Set<String> known = Set.of("minecraft:copper_ingot", "minecraft:iron_ingot");
 		assertTrue(CopperGolemAiIntent.isKnownItem("minecraft:copper_ingot", known));

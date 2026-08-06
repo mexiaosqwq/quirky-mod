@@ -112,7 +112,7 @@ public final class CopperGolemAgentTools {
 		AABB box = new AABB(ctx.golem().blockPosition()).inflate(range);
 		List<net.minecraft.world.entity.LivingEntity> mobs = ctx.level()
 			.getEntities(EntityTypeTest.forClass(net.minecraft.world.entity.LivingEntity.class), box,
-				e -> !e.isRemoved() && e != ctx.golem() && !(e instanceof net.minecraft.server.level.ServerPlayer))
+				e -> !e.isRemoved() && e.isAlive() && e != ctx.golem() && !(e instanceof net.minecraft.server.level.ServerPlayer))
 			.stream()
 			.sorted(Comparator.comparingDouble(e -> e.distanceToSqr(ctx.golem())))
 			.toList();
@@ -140,7 +140,8 @@ public final class CopperGolemAgentTools {
 				pos = "@" + (int) sample.getX() + "," + (int) sample.getY() + "," + (int) sample.getZ();
 			}
 			if (sample instanceof CopperGolem cg && cg.getCustomName() != null) {
-				sb.append(cg.getDisplayName().getString()).append("[铜傀儡]").append(pos).append("(").append(entry.getValue()[1]).append("格)");
+				sb.append(cg.getDisplayName().getString()).append("[铜傀儡]×").append(entry.getValue()[0]).append(pos)
+					.append("(最近").append(entry.getValue()[1]).append("格)");
 			} else {
 				sb.append(entry.getKey().getDescription().getString()).append("×").append(entry.getValue()[0])
 					.append("(最近").append(entry.getValue()[1]).append("格").append(pos).append(")");
@@ -177,8 +178,8 @@ public final class CopperGolemAgentTools {
 						if (copperOnly) {
 							continue; // 末影箱不是铜箱
 						}
-						// 末影箱是玩家绑定容器：内容 = 对话玩家的末影箱数据；无玩家上下文 → 只看得到存在
-						String ownerName = ctx.player() == null ? "未知玩家" : ctx.player().getName().getString();
+						// 末影箱是玩家绑定容器：内容 = 对话玩家的末影箱数据；无玩家上下文 → 看不到内容
+						String ownerName = ctx.player() == null ? "需玩家在场查看内容" : ctx.player().getName().getString();
 						net.minecraft.world.Container ec = ctx.player() == null ? null : ctx.player().getEnderChestInventory();
 						List<String> items = new ArrayList<>();
 						int total = 0;

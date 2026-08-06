@@ -254,19 +254,19 @@ public final class CopperGolemAiService {
 			try {
 				String reply = loop.run(
 					body -> post(CopperGolemAiHttp.endpoint(QuirkyConfigHolder.get()), QuirkyConfigHolder.get().aiApiKey, body),
-					(name, args) -> executeOnServerThread(null, golem, name, args));
+					(name, args) -> executeOnServerThread(null, golem, ctx, name, args));
 				PENDING_TASKS.add(() -> {
 					if (golem.isRemoved()) {
 						return; // 傀儡已死/消失：不广播
 					}
-					GOLEM_MESSAGE_REPLYING.remove(golem.getUUID()); // 标记只服务这一次回复
+					boolean replyingToGolem = GOLEM_MESSAGE_REPLYING.remove(golem.getUUID()); // 标记只服务这一次回复（先取后判）
 					if (reply == null || reply.isBlank() || reply.equals("无事") || reply.contains("无事")) {
 						LOGGER.info("heartbeat golem {} silent: {}", golem.getUUID(), reply == null ? "null" : reply);
 						return; // 静默
 					}
 					Long lastChatter = LAST_CHATTER_TICK.get(golem.getUUID());
 					if (lastChatter != null && nowTick - lastChatter < CopperGolemHeartbeat.CHATTER_COOLDOWN_TICKS
-						&& !GOLEM_MESSAGE_REPLYING.contains(golem.getUUID())) {
+						&& !replyingToGolem) {
 						LOGGER.info("heartbeat golem {} chatter throttled: {}", golem.getUUID(), reply);
 						return; // 搭话限流（同伴留言的回应放行）
 					}
@@ -436,11 +436,13 @@ public final class CopperGolemAiService {
 	}
 
 	/** 工具执行 dispatch 到服务端 tick 线程：副作用（Brain 记忆/entityData/容器）必须在游戏线程；IO 线程阻塞等待结果。 */
-	private static String executeOnServerThread(@Nullable ServerPlayer player, CopperGolem golem, String name, String args) {
+	/** 工具执行 dispatch 到服务端 tick 线程：副作用（Brain 记忆/entityData/容器）必须在游戏线程；IO 线程阻塞等待结果。
+	 *  ctx 由 loop 级创建（一次对话/心跳共享）：knownItems 在工具间累积（look → transport 同一轮有效）。 */
+	private static String executeOnServerThread(@Nullable ServerPlayer player, CopperGolem golem,
+		CopperGolemAgentTools.ToolContext ctx, String name, String args) {
 		if (!(golem.level() instanceof ServerLevel level)) {
 			return "{\"error\":\"no server level\"}";
 		}
-		CopperGolemAgentTools.ToolContext ctx = new CopperGolemAgentTools.ToolContext(golem, level, player, new java.util.HashSet<>());
 		java.util.concurrent.CompletableFuture<String> future = new java.util.concurrent.CompletableFuture<>();
 		level.getServer().execute(() -> {
 			try {
@@ -488,20 +490,32 @@ public final class CopperGolemAiService {
 		}
 		long now = golem.level().getGameTime();
 		List<GolemMessage> fresh = list.stream().filter(m -> m.expireTick() >= now).toList();
-		GOLEM_MESSAGES.remove(golem.getUUID()); // 消费（含过期）
-		if (fresh.isEmpty()) {
+		// 只消费注入的部分（最多 2 条）+ 过期条；第 3+ 条保留到下轮（防丢失）
+		int take = Math.min(fresh.size(), 2);
+		List<GolemMessage> expired = list.stream().filter(m -> m.expireTick() < now).toList();
+		if (take == 0) {
+			if (!expired.isEmpty()) {
+				GOLEM_MESSAGES.remove(golem.getUUID());
+			}
 			return "";
 		}
+		GOLEM_MESSAGES.compute(golem.getUUID(), (id, old) -> {
+			if (old == null) {
+				return null;
+			}
+			List<GolemMessage> kept = old.stream().filter(m -> m.expireTick() >= now).skip(take).toList();
+			return kept.isEmpty() ? null : new java.util.ArrayList<>(kept);
+		});
 		GOLEM_MESSAGE_REPLYING.add(golem.getUUID()); // 本轮回应对同伴留言 → 心跳回复不限流
 		StringBuilder sb = new StringBuilder("[同伴留言]");
-		for (int i = 0; i < fresh.size() && i < 2; i++) {
+		for (int i = 0; i < take; i++) {
 			if (i > 0) {
 				sb.append("；");
 			}
 			GolemMessage m = fresh.get(i);
 			sb.append(m.fromName()).append(" 对你说：").append(m.text());
 		}
-		LOGGER.info("golem {} consumes {} golem message(s)", golem.getUUID(), fresh.size());
+		LOGGER.info("golem {} consumes {} golem message(s)", golem.getUUID(), take);
 		return sb.append("。同伴叫你时你要回应它或行动。").toString();
 	}
 
@@ -512,20 +526,24 @@ public final class CopperGolemAiService {
 		}
 		String systemPrompt = buildSystemPrompt(golem, player);
 		CopperGolemAgentLoop loop = new CopperGolemAgentLoop(config, systemPrompt, session.messages(), text);
+		CopperGolemAgentTools.ToolContext ctx = new CopperGolemAgentTools.ToolContext(golem,
+			(ServerLevel) player.level(), player, new java.util.HashSet<>());
 		PENDING_REPLIES.put(golem.getUUID(), true); // 对话在途（心跳 busy 检查）
 		IO.submit(() -> {
 			try {
 				String reply = loop.run(
 					body -> post(CopperGolemAiHttp.endpoint(config), config.aiApiKey, body),
-					(name, args) -> executeOnServerThread(player, golem, name, args));
+					(name, args) -> executeOnServerThread(player, golem, ctx, name, args));
 				PENDING_TASKS.add(() -> {
 					PENDING_REPLIES.remove(golem.getUUID());
+					GOLEM_MESSAGE_REPLYING.remove(golem.getUUID()); // 对话可能消费过留言，防下次心跳误放行
 					LOGGER.info("golem reply: {}", reply);
 					session.addGolemReply(reply);
 					reply(player, golem, reply);
 				});
 			} catch (Exception e) {
 				PENDING_REPLIES.remove(golem.getUUID());
+				GOLEM_MESSAGE_REPLYING.remove(golem.getUUID());
 				LOGGER.warn("Copper golem AI request failed: {}", e.toString());
 			}
 		});
@@ -622,6 +640,14 @@ public final class CopperGolemAiService {
 		ACTIVE_FOLLOWS.clear();
 		ACTIVE_APPROACHES.clear();
 		ACTIVE_COLLECTS.clear();
+		ACTIVE_MOVES.clear();
+		GOLEM_MESSAGES.clear();
+		GOLEM_MESSAGE_REPLYING.clear();
+		PENDING_REPLIES.clear();
+		LAST_HEARTBEAT_TICK.clear();
+		LAST_CHATTER_TICK.clear();
+		MOOD_SCORES.clear();
+		LAST_LIGHTNING.clear();
 		RENAMES.clear();
 	}
 
@@ -909,8 +935,8 @@ public final class CopperGolemAiService {
 		if (!"transport".equals(keep)) {
 			ActiveTransport t = ACTIVE_TRANSPORTS.remove(golemId);
 			if (t != null && t.openPos() != null) {
-				// 打开中的箱子关闭（放回物品由 doPut 已处理；仅关动画）
-				if (golem.level().getBlockEntity(t.openPos()) instanceof Container c) {
+				// 打开中的箱子关闭（放回物品由 doPut 已处理；仅关动画；末影箱经 containerAt 走 enderOwner）
+				if (golem.level() instanceof ServerLevel sl && containerAt(sl, t.openPos(), t.enderOwner()) instanceof Container c) {
 					c.stopOpen(golem);
 				}
 			}
@@ -924,8 +950,7 @@ public final class CopperGolemAiService {
 		ACTIVE_MOVES.remove(golem.getUUID());
 		ActiveTransport t = ACTIVE_TRANSPORTS.remove(golem.getUUID());
 		if (t != null && t.openPos() != null) {
-			BlockEntity be = golem.level().getBlockEntity(t.openPos());
-			if (be instanceof Container c) {
+			if (golem.level() instanceof ServerLevel sl && containerAt(sl, t.openPos(), t.enderOwner()) instanceof Container c) {
 				c.stopOpen(golem);
 			}
 		}
@@ -962,6 +987,7 @@ public final class CopperGolemAiService {
 			ACTIVE_FOLLOWS.remove(golem.getUUID());
 			ACTIVE_APPROACHES.remove(golem.getUUID());
 			ACTIVE_COLLECTS.remove(golem.getUUID());
+			LAST_HEARTBEAT_TICK.remove(golem.getUUID()); // 实体已消失：回收心跳记录（不会复现风暴）
 			return;
 		}
 		tickFollow(golem, level);
@@ -1018,10 +1044,10 @@ public final class CopperGolemAiService {
 				? t.source()
 				: (t.givePlayerId() != null ? giveTarget(level, t) : t.destination());
 			if (target == null) {
-				// give 且玩家不在/跨维度 → 中止；手里物品放回源容器（防滞留后塞错箱子）
+				// give 且玩家不在/跨维度 → 中止；手里物品放回源容器（含末影箱：containerAt 走 enderOwner，防滞留后塞错箱子）
 				if (t.givePlayerId() != null && !golem.getMainHandItem().isEmpty() && t.source() != null) {
-					if (level.getBlockEntity(t.source()) instanceof Container c) {
-						addToContainer(c, golem.getMainHandItem());
+					Container c = containerAt(level, t.source(), t.enderOwner());
+					if (c != null && addToContainer(c, golem.getMainHandItem()).isEmpty()) {
 						golem.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
 					}
 				}
@@ -1063,11 +1089,17 @@ public final class CopperGolemAiService {
 	private static void doGive(CopperGolem golem, ServerLevel level, ActiveTransport t) {
 		ServerPlayer player = level.getServer().getPlayerList().getPlayer(t.givePlayerId());
 		if (player == null || !player.isAlive() || player.level() != level) {
-			replyTo(golem, level, t, "你不在，东西我先放回箱子了");
-			if (t.source() != null && containerAt(level, t.source(), t.enderOwner()) != null) {
-				addToContainer(containerAt(level, t.source(), t.enderOwner()), golem.getMainHandItem());
+			// 放回源容器成功才清空主手（防容器缺失/满时 setItemSlot 静默销毁物品）
+			ItemStack held = golem.getMainHandItem();
+			if (t.source() != null && !held.isEmpty()) {
+				Container c = containerAt(level, t.source(), t.enderOwner());
+				if (c != null && addToContainer(c, held).isEmpty()) {
+					golem.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+					replyTo(golem, level, t, "你不在，东西我先放回箱子了");
+					return;
+				}
 			}
-			golem.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+			replyTo(golem, level, t, "你不在，箱子也放不回去了，东西我帮你拿着");
 			return;
 		}
 		golem.getBrain().setMemory(MemoryModuleType.LOOK_TARGET,
@@ -1185,12 +1217,11 @@ public final class CopperGolemAiService {
 		return null;
 	}
 
-	/** 结束任务：恢复原版状态（清 cooldown memory → 原版运输 AI 恢复），并关掉打开的容器。 */
+	/** 结束任务：恢复原版状态（清 cooldown memory → 原版运输 AI 恢复），并关掉打开的容器（末影箱经 enderOwner）。 */
 	private static void finishTransport(CopperGolem golem, ActiveTransport t) {
 		golem.setState(CopperGolemState.IDLE);
 		if (t.openPos() != null) {
-			BlockEntity be = golem.level().getBlockEntity(t.openPos());
-			if (be instanceof Container c) {
+			if (golem.level() instanceof ServerLevel sl && containerAt(sl, t.openPos(), t.enderOwner()) instanceof Container c) {
 				c.stopOpen(golem);
 			}
 		}
