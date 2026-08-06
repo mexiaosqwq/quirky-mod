@@ -12,6 +12,7 @@
     "ContainerTooltipMixin",
     "CopperGolemTransportMixin",
     "CopperGolemRenameMixin",
+    "CopperGolemLightningMixin",
     "CrossbowItemAmmoMixin",
     "DoubleDoorMixin",
     "EnderChestContainerMixin",

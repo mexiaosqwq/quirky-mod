@@ -68,6 +68,7 @@ public final class CopperGolemAiService {
 	private static final Map<UUID, Long> LAST_CHATTER_TICK = new ConcurrentHashMap<>();
 	private static final Map<UUID, Integer> MOOD_SCORES = new ConcurrentHashMap<>(); // golemId → 心情分数
 	private static final Map<UUID, CopperGolemRename.RenameState> RENAMES = new ConcurrentHashMap<>(); // golemId → 待命名
+	private static final Map<UUID, Long> LAST_LIGHTNING = new ConcurrentHashMap<>(); // golemId → 被劈 tick
 	private static final Map<UUID, ActiveTransport> ACTIVE_TRANSPORTS = new ConcurrentHashMap<>();
 	private static final Map<UUID, UUID> ACTIVE_FOLLOWS = new ConcurrentHashMap<>(); // golemId → playerId
 	private static final Map<UUID, UUID> ACTIVE_APPROACHES = new ConcurrentHashMap<>(); // golemId → entityId
@@ -416,11 +417,21 @@ public final class CopperGolemAiService {
 		return HTTP.send(builder.build(), HttpResponse.BodyHandlers.ofString()).body();
 	}
 
-	// ===== 工具查询（Task 8 替换 lightningInfo）=====
+	// ===== 工具查询 =====
 
-	/** 最近被闪电劈的时间描述（Task 8 接 mixin 后返回真实值）。 */
+	/** 最近被闪电劈的时间（tick）。 */
+	public static void recordLightning(CopperGolem golem) {
+		LAST_LIGHTNING.put(golem.getUUID(), golem.level().getGameTime());
+	}
+
+	/** 闪电感知描述（get_self_status 用）。 */
 	public static String lightningInfo(CopperGolem golem) {
-		return "从未被劈过";
+		Long tick = LAST_LIGHTNING.get(golem.getUUID());
+		if (tick == null) {
+			return "从未被劈过";
+		}
+		long seconds = (golem.level().getGameTime() - tick) / 20L;
+		return seconds < 60 ? seconds + " 秒前被闪电劈过" : (seconds / 60) + " 分钟前被闪电劈过";
 	}
 
 	/** 测试辅助：清空会话状态（防测试间污染）。 */
