@@ -200,6 +200,24 @@ public final class CopperGolemAiService {
 			ItemStack held = golem.getMainHandItem();
 			sb.append("；天气").append(level.isThundering() ? "雷雨" : level.isRaining() ? "下雨" : "晴")
 				.append("；你手里").append(held.isEmpty() ? "空" : held.getHoverName().getString());
+			// 同伴傀儡（名字+坐标）：AI 认识同类、知道去哪找它们
+			List<CopperGolem> pals = level.getEntities(EntityTypeTest.forClass(CopperGolem.class),
+					new AABB(golem.blockPosition()).inflate(CopperGolemHeartbeat.HEARTBEAT_PLAYER_RANGE),
+					e -> !e.isRemoved() && e != golem).stream()
+				.sorted(Comparator.comparingDouble(p -> p.distanceToSqr(golem)))
+				.limit(2)
+				.toList();
+			if (!pals.isEmpty()) {
+				sb.append("；附近的同伴傀儡 ");
+				for (int i = 0; i < pals.size(); i++) {
+					CopperGolem p = pals.get(i);
+					sb.append(p.getDisplayName().getString()).append("(")
+						.append((int) p.getX()).append(",").append((int) p.getY()).append(",").append((int) p.getZ()).append(")");
+					if (i < pals.size() - 1) {
+						sb.append("、");
+					}
+				}
+			}
 			return sb.append("。").toString();
 		} catch (Exception e) {
 			return ""; // 注入失败不影响主流程
