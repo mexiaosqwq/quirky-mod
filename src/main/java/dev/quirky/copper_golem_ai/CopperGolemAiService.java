@@ -374,6 +374,9 @@ public final class CopperGolemAiService {
 	}
 
 	/** 名字分拣：范围内（默认 8 格）名字含于消息的傀儡（大小写不敏感）全部返回；无名字匹配 → 最近者。 */
+	/** 名字分拣：范围内（默认 8 格）名字含于消息的傀儡（大小写不敏感）全部返回；群体称呼（你们/大家/全部/所有/集合）→ 范围内全部；无匹配 → 最近者。 */
+	private static final List<String> GROUP_WORDS = List.of("你们", "大家", "全员", "全部", "所有", "集合");
+
 	private static List<CopperGolem> findTargetGolems(ServerLevel level, ServerPlayer player, int range, String text) {
 		AABB box = new AABB(player.blockPosition()).inflate(range);
 		List<CopperGolem> golems = level.getEntities(EntityTypeTest.forClass(CopperGolem.class), box, e -> !e.isRemoved());
@@ -383,6 +386,10 @@ public final class CopperGolemAiService {
 			.toList();
 		if (!byName.isEmpty()) {
 			return byName;
+		}
+		// 群体称呼（无名字）：范围内全部触发
+		if (GROUP_WORDS.stream().anyMatch(lower::contains)) {
+			return golems;
 		}
 		CopperGolem nearest = golems.stream()
 			.min(Comparator.comparingDouble(g -> g.distanceToSqr(player)))
