@@ -69,6 +69,10 @@ public final class CopperGolemAiService {
 	private static final Map<UUID, Integer> MOOD_SCORES = new ConcurrentHashMap<>(); // golemId → 心情分数
 	private static final Map<UUID, CopperGolemRename.RenameState> RENAMES = new ConcurrentHashMap<>(); // golemId → 待命名
 	private static final Map<UUID, Long> LAST_LIGHTNING = new ConcurrentHashMap<>(); // golemId → 被劈 tick
+	private record HurtInfo(long tick, String attacker) {
+	}
+
+	private static final Map<UUID, HurtInfo> LAST_HURT = new ConcurrentHashMap<>(); // golemId → 最近受伤
 	private static final Map<UUID, ActiveTransport> ACTIVE_TRANSPORTS = new ConcurrentHashMap<>();
 	private static final Map<UUID, UUID> ACTIVE_FOLLOWS = new ConcurrentHashMap<>(); // golemId → playerId
 	private static final Map<UUID, UUID> ACTIVE_APPROACHES = new ConcurrentHashMap<>(); // golemId → entityId
@@ -140,6 +144,12 @@ public final class CopperGolemAiService {
 				SESSIONS.keySet().removeIf(id -> !LAST_REPLY_TICK.containsKey(id));
 				// 注意：LAST_HEARTBEAT_TICK 不清理——删除会让无会话傀儡的心跳状态丢失 → 立即重触发（心跳风暴）
 				GOLEM_MESSAGES.entrySet().removeIf(e -> e.getValue().stream().allMatch(m -> m.expireTick() < server.getTickCount()));
+				MOOD_SCORES.keySet().removeIf(id -> !SESSIONS.containsKey(id));
+				LAST_LIGHTNING.keySet().removeIf(id -> !SESSIONS.containsKey(id));
+				LAST_HURT.keySet().removeIf(id -> {
+					HurtInfo h = LAST_HURT.get(id);
+					return h != null && server.getTickCount() - h.tick() > 12000; // 受伤记录 10 分钟过期
+				});
 				RENAMES.entrySet().removeIf(e -> CopperGolemRename.RenameState.isExpired(e.getValue(), server.getTickCount()));
 			}
 		});
@@ -650,6 +660,33 @@ public final class CopperGolemAiService {
 		return seconds < 60 ? seconds + " 秒前被闪电劈过" : (seconds / 60) + " 分钟前被闪电劈过";
 	}
 
+	/** 受伤感知：tick 轮询最近攻击者，变化才记录（无 mixin，getLastHurtByMob 现成 getter）。 */
+	public static void recordHurtIfAny(CopperGolem golem, ServerLevel level) {
+		var attacker = golem.getLastHurtByMob();
+		if (attacker == null) {
+			return;
+		}
+		String name = attacker.getType().getDescription().getString();
+		HurtInfo cur = LAST_HURT.get(golem.getUUID());
+		if (cur == null || !cur.attacker().equals(name)) {
+			LAST_HURT.put(golem.getUUID(), new HurtInfo(level.getGameTime(), name));
+			LOGGER.info("golem {} hurt by {}", golem.getUUID(), name);
+		}
+	}
+
+	/** get_self_status 用：60 秒内"刚被打"，之后"被打过"；无记录返回 null（不显示字段）。 */
+	public static @Nullable String lastHurtDescription(CopperGolem golem) {
+		HurtInfo h = LAST_HURT.get(golem.getUUID());
+		if (h == null) {
+			return null;
+		}
+		long age = golem.level().getGameTime() - h.tick();
+		if (age < 0) {
+			return null;
+		}
+		return age < 1200 ? "刚被 " + h.attacker() + " 打了" : "之前被 " + h.attacker() + " 打过";
+	}
+
 	/** 测试辅助：清空会话状态（防测试间污染）。 */
 	public static void resetForTest() {
 		SESSIONS.clear();
@@ -669,6 +706,7 @@ public final class CopperGolemAiService {
 		LAST_CHATTER_TICK.clear();
 		MOOD_SCORES.clear();
 		LAST_LIGHTNING.clear();
+		LAST_HURT.clear();
 		RENAMES.clear();
 	}
 
@@ -1043,6 +1081,7 @@ public final class CopperGolemAiService {
 		tickMove(golem, level);
 		tickChatLook(golem, level);
 		tickSpin(golem, level);
+		recordHurtIfAny(golem, level);
 	}
 
 	/** 对话在途：傀儡转头看向说话玩家（原版 LookAtTargetSink 消费 LOOK_TARGET）。 */

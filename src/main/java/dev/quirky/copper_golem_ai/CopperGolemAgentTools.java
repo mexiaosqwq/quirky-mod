@@ -292,6 +292,10 @@ public final class CopperGolemAgentTools {
 		out.addProperty("antenna", antenna.isEmpty() ? "无" : antenna.getHoverName().getString());
 		out.addProperty("task", CopperGolemAiService.currentTaskDescription(golem));
 		out.addProperty("last_lightning", CopperGolemAiService.lightningInfo(golem));
+		String hurt = CopperGolemAiService.lastHurtDescription(golem);
+		if (hurt != null) {
+			out.addProperty("last_hurt", hurt);
+		}
 		return GSON.toJson(out);
 	}
 
