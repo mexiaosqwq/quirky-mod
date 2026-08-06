@@ -128,8 +128,7 @@ public final class CopperGolemAiService {
 				long cutoff = server.getTickCount() - 24000L;
 				LAST_REPLY_TICK.entrySet().removeIf(e -> e.getValue() < cutoff);
 				SESSIONS.keySet().removeIf(id -> !LAST_REPLY_TICK.containsKey(id));
-				LAST_HEARTBEAT_TICK.keySet().removeIf(id -> !SESSIONS.containsKey(id) && !ACTIVE_TRANSPORTS.containsKey(id)
-					&& !ACTIVE_FOLLOWS.containsKey(id) && !ACTIVE_APPROACHES.containsKey(id) && !ACTIVE_COLLECTS.containsKey(id));
+				// 注意：LAST_HEARTBEAT_TICK 不清理——删除会让无会话傀儡的心跳状态丢失 → 立即重触发（心跳风暴）
 				RENAMES.entrySet().removeIf(e -> CopperGolemRename.RenameState.isExpired(e.getValue(), server.getTickCount()));
 			}
 		});
