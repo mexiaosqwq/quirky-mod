@@ -80,7 +80,7 @@ public final class CopperGolemAgentTools {
 			case "transport" -> transport(ctx, args);
 			default -> "{\"error\":\"unknown tool: " + name + "\"}";
 		};
-		LOGGER.debug("golem tool {} args={} -> {}", name, argsJson, result.length() > 200 ? result.substring(0, 200) + "…" : result);
+		LOGGER.info("golem tool {} args={} -> {}", name, argsJson, result.length() > 200 ? result.substring(0, 200) + "…" : result);
 		return result;
 	}
 

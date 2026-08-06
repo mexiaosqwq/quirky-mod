@@ -357,6 +357,7 @@ public final class CopperGolemAiService {
 					body -> post(CopperGolemAiHttp.endpoint(config), config.aiApiKey, body),
 					(name, args) -> CopperGolemAgentTools.execute(name, args, ctx));
 				PENDING_TASKS.add(() -> {
+					LOGGER.info("golem reply: {}", reply);
 					session.addGolemReply(reply);
 					reply(player, golem, reply);
 				});

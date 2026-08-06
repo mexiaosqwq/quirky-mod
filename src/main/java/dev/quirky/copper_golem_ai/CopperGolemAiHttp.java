@@ -187,11 +187,11 @@ public final class CopperGolemAiHttp {
 		}
 	}
 
-	/** 用完整 messages 数组构造请求体（带 tools）。 */
+	/** 用完整 messages 数组构造请求体（带全部 10 工具）。 */
 	public static String buildChatRequestFromMessages(QuirkyConfig c, JsonArray messages) {
 		JsonObject body = baseBody(c);
 		body.add("messages", messages);
-		body.add("tools", JsonParser.parseString(TRANSPORT_TOOL_JSON));
+		body.add("tools", JsonParser.parseString(CopperGolemAgentTools.TOOLS_JSON));
 		body.addProperty("tool_choice", "auto");
 		return GSON.toJson(body);
 	}
