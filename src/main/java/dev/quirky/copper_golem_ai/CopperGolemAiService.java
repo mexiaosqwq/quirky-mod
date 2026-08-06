@@ -64,6 +64,8 @@ public final class CopperGolemAiService {
 	});
 	private static final Map<UUID, CopperGolemAiHistory.GolemSession> SESSIONS = new ConcurrentHashMap<>();
 	private static final Map<UUID, Long> LAST_REPLY_TICK = new ConcurrentHashMap<>();
+	private static final Map<UUID, Long> LAST_HEARTBEAT_TICK = new ConcurrentHashMap<>();
+	private static final Map<UUID, Long> LAST_CHATTER_TICK = new ConcurrentHashMap<>();
 	private static final Map<UUID, ActiveTransport> ACTIVE_TRANSPORTS = new ConcurrentHashMap<>();
 	private static final Map<UUID, UUID> ACTIVE_FOLLOWS = new ConcurrentHashMap<>(); // golemId → playerId
 	private static final Map<UUID, UUID> ACTIVE_APPROACHES = new ConcurrentHashMap<>(); // golemId → entityId
@@ -110,11 +112,77 @@ public final class CopperGolemAiService {
 					LOGGER.error("Copper golem AI task failed", e);
 				}
 			}
+			// 心跳：附近有玩家的铜傀儡自主行动
+			try {
+				tickHeartbeats(server);
+			} catch (RuntimeException e) {
+				LOGGER.error("Copper golem heartbeat failed", e);
+			}
 			// 低频清理：无对话超 20 分钟的傀儡会话（spec：死亡/卸载后清空，防内存增长）
 			if ((server.getTickCount() & 1199) == 0) {
 				long cutoff = server.getTickCount() - 24000L;
 				LAST_REPLY_TICK.entrySet().removeIf(e -> e.getValue() < cutoff);
 				SESSIONS.keySet().removeIf(id -> !LAST_REPLY_TICK.containsKey(id));
+				LAST_HEARTBEAT_TICK.keySet().removeIf(id -> !SESSIONS.containsKey(id) && !ACTIVE_TRANSPORTS.containsKey(id)
+					&& !ACTIVE_FOLLOWS.containsKey(id) && !ACTIVE_APPROACHES.containsKey(id) && !ACTIVE_COLLECTS.containsKey(id));
+			}
+		});
+	}
+
+	private static void tickHeartbeats(net.minecraft.server.MinecraftServer server) {
+		int interval = QuirkyConfigHolder.get().heartbeatIntervalSeconds;
+		if (interval <= 0) {
+			return;
+		}
+		long nowTick = server.getTickCount();
+		for (net.minecraft.server.level.ServerLevel level : server.getAllLevels()) {
+			for (CopperGolem golem : level.getEntities(EntityTypeTest.forClass(CopperGolem.class), e -> !e.isRemoved())) {
+				UUID golemId = golem.getUUID();
+				Long last = LAST_HEARTBEAT_TICK.get(golemId);
+				boolean busy = ACTIVE_TRANSPORTS.containsKey(golemId) || ACTIVE_FOLLOWS.containsKey(golemId)
+					|| ACTIVE_APPROACHES.containsKey(golemId) || ACTIVE_COLLECTS.containsKey(golemId);
+				boolean playerNearby = !level.getEntities(EntityTypeTest.forClass(net.minecraft.server.level.ServerPlayer.class),
+					new AABB(golem.blockPosition()).inflate(CopperGolemHeartbeat.HEARTBEAT_PLAYER_RANGE), e -> !e.isRemoved()).isEmpty();
+				if (!CopperGolemHeartbeat.shouldHeartbeat(interval, nowTick, last == null ? 0 : last, playerNearby, busy)) {
+					continue;
+				}
+				LAST_HEARTBEAT_TICK.put(golemId, nowTick);
+				fireHeartbeat(golem, level, nowTick);
+			}
+		}
+	}
+
+	/** 发起一次心跳：独立上下文（不进长期历史），AI 自主决策；无事静默，有内容搭话（限流）。 */
+	private static void fireHeartbeat(CopperGolem golem, ServerLevel level, long nowTick) {
+		String systemPrompt = CopperGolemAiHttp.SYSTEM_PROMPT
+			+ "\n现在是自主行动时间：你可以查看周围（look_containers/get_player_status/get_world_info），"
+			+ "做点有用的事（捡掉落物/搬东西/跟着玩家/去看看生物）。没有值得做的就回复：无事。"
+			+ "如果看到有趣的事（比如玩家戴了新帽子、箱子里有奇怪的东西），可以主动说出来，但不要编造没看到的东西。";
+		CopperGolemAgentLoop loop = new CopperGolemAgentLoop(QuirkyConfigHolder.get(), systemPrompt, List.of(), "[自主行动时间]");
+		CopperGolemAgentTools.ToolContext ctx = new CopperGolemAgentTools.ToolContext(golem, level, null, new java.util.HashSet<>());
+		IO.submit(() -> {
+			try {
+				String reply = loop.run(
+					body -> post(CopperGolemAiHttp.endpoint(QuirkyConfigHolder.get()), QuirkyConfigHolder.get().aiApiKey, body),
+					(name, args) -> CopperGolemAgentTools.execute(name, args, ctx));
+				PENDING_TASKS.add(() -> {
+					if (reply == null || reply.isBlank() || reply.equals("无事") || reply.contains("无事")) {
+						return; // 静默
+					}
+					Long lastChatter = LAST_CHATTER_TICK.get(golem.getUUID());
+					if (lastChatter != null && nowTick - lastChatter < CopperGolemHeartbeat.CHATTER_COOLDOWN_TICKS) {
+						return; // 搭话限流
+					}
+					LAST_CHATTER_TICK.put(golem.getUUID(), nowTick);
+					Component message = Component.literal("[" + golem.getDisplayName().getString() + "] " + reply)
+						.withStyle(ChatFormatting.DARK_AQUA);
+					for (net.minecraft.server.level.ServerPlayer p : level.getEntities(EntityTypeTest.forClass(net.minecraft.server.level.ServerPlayer.class),
+						new AABB(golem.blockPosition()).inflate(CopperGolemHeartbeat.HEARTBEAT_PLAYER_RANGE), e -> !e.isRemoved())) {
+						p.sendSystemMessage(message);
+					}
+				});
+			} catch (Exception e) {
+				LOGGER.debug("Copper golem heartbeat failed, skipped: {}", e.toString());
 			}
 		});
 	}
