@@ -271,11 +271,18 @@ public final class CopperGolemAiService {
 		if (consumeRename(player, level, text)) {
 			return;
 		}
-		// 名字分拣：消息含某傀儡名字 → 只触发它；否则最近者
-		CopperGolem golem = findTargetGolem(level, player, config.aiListenRange, text);
-		if (golem == null) {
+		// 名字分拣：消息含某傀儡名字（大小写不敏感）→ 全部触发；否则最近者
+		List<CopperGolem> targets = findTargetGolems(level, player, config.aiListenRange, text);
+		if (targets.isEmpty()) {
 			return;
 		}
+		for (CopperGolem golem : targets) {
+			handleGolemMessage(level, player, config, text, golem, gameTime);
+		}
+	}
+
+	/** 单只傀儡的消息处理：冷却 → 会话 → 命令/压缩/对话（每只独立，多名字可同时触发）。 */
+	private static void handleGolemMessage(ServerLevel level, ServerPlayer player, QuirkyConfig config, String text, CopperGolem golem, long gameTime) {
 		UUID golemId = golem.getUUID();
 		Long last = LAST_REPLY_TICK.get(golemId);
 		if (last != null && gameTime - last < config.aiCooldownTicks) {
@@ -327,24 +334,21 @@ public final class CopperGolemAiService {
 			.orElse(null);
 	}
 
-	/** 名字分拣：范围内（默认 8 格）名字含于消息的傀儡优先（只触发它）；否则最近者。 */
-	private static CopperGolem findTargetGolem(ServerLevel level, ServerPlayer player, int range, String text) {
+	/** 名字分拣：范围内（默认 8 格）名字含于消息的傀儡（大小写不敏感）全部返回；无名字匹配 → 最近者。 */
+	private static List<CopperGolem> findTargetGolems(ServerLevel level, ServerPlayer player, int range, String text) {
 		AABB box = new AABB(player.blockPosition()).inflate(range);
 		List<CopperGolem> golems = level.getEntities(EntityTypeTest.forClass(CopperGolem.class), box, e -> !e.isRemoved());
-		CopperGolem byName = null;
-		for (CopperGolem g : golems) {
-			String name = g.getName().getString();
-			if (!name.equals("铜傀儡") && text.contains(name)) {
-				byName = g;
-				break;
-			}
-		}
-		if (byName != null) {
+		String lower = text.toLowerCase();
+		List<CopperGolem> byName = golems.stream()
+			.filter(g -> g.getCustomName() != null && lower.contains(g.getName().getString().toLowerCase()))
+			.toList();
+		if (!byName.isEmpty()) {
 			return byName;
 		}
-		return golems.stream()
+		CopperGolem nearest = golems.stream()
 			.min(Comparator.comparingDouble(g -> g.distanceToSqr(player)))
 			.orElse(null);
+		return nearest == null ? List.of() : List.of(nearest);
 	}
 
 	// ===== 右键改名（聊天栏输入式）=====
