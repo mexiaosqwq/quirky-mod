@@ -161,4 +161,55 @@ public class QuirkyConfig implements ConfigData {
 	@ConfigEntry.BoundedDiscrete(min = 40, max = 100)
 	@ConfigEntry.Gui.Tooltip
 	public int deathCamDuration = 50;
+
+	// ==== AI 组：铜傀儡 AI 对话参数 ====
+
+	@ConfigEntry.Category("ai")
+	@ConfigEntry.Gui.Tooltip
+	public String aiBaseUrl = "https://api.openai.com/v1";
+
+	@ConfigEntry.Category("ai")
+	@ConfigEntry.Gui.Tooltip
+	public String aiApiKey = "";
+
+	@ConfigEntry.Category("ai")
+	@ConfigEntry.Gui.Tooltip
+	public String aiModel = "";
+
+	@ConfigEntry.Category("ai")
+	@ConfigEntry.Gui.Tooltip
+	public float aiTemperature = 0.7F;
+
+	@ConfigEntry.Category("ai")
+	@ConfigEntry.BoundedDiscrete(min = 64, max = 1024)
+	@ConfigEntry.Gui.Tooltip
+	public int aiMaxTokens = 256;
+
+	@ConfigEntry.Category("ai")
+	@ConfigEntry.BoundedDiscrete(min = 2, max = 32)
+	@ConfigEntry.Gui.Tooltip
+	public int aiListenRange = 8;
+
+	@ConfigEntry.Category("ai")
+	@ConfigEntry.BoundedDiscrete(min = 10, max = 600)
+	@ConfigEntry.Gui.Tooltip
+	public int aiCooldownTicks = 40;
+
+	@ConfigEntry.Category("ai")
+	@ConfigEntry.Gui.Tooltip
+	public String aiThinking = "low"; // off/low/medium/high/xhigh/max
+
+	@ConfigEntry.Category("ai")
+	@ConfigEntry.Gui.Tooltip
+	public String aiSummaryModel = "";
+
+	@ConfigEntry.Category("ai")
+	@ConfigEntry.BoundedDiscrete(min = 4, max = 100)
+	@ConfigEntry.Gui.Tooltip
+	public int aiSummaryMessages = 20;
+
+	@ConfigEntry.Category("ai")
+	@ConfigEntry.BoundedDiscrete(min = 256, max = 16000)
+	@ConfigEntry.Gui.Tooltip
+	public int aiSummaryTokens = 4000;
 }
