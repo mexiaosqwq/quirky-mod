@@ -143,14 +143,15 @@ public final class CopperGolemAiService {
 			for (CopperGolem golem : level.getEntities(EntityTypeTest.forClass(CopperGolem.class), e -> !e.isRemoved())) {
 				UUID golemId = golem.getUUID();
 				Long last = LAST_HEARTBEAT_TICK.get(golemId);
-				boolean busy = ACTIVE_TRANSPORTS.containsKey(golemId) || ACTIVE_FOLLOWS.containsKey(golemId)
-					|| ACTIVE_APPROACHES.containsKey(golemId) || ACTIVE_COLLECTS.containsKey(golemId);
+				// busy 只挡"正在干活"的任务（搬运/捡取中）；跟随/接近是自主行动，不挡心跳
+				boolean busy = ACTIVE_TRANSPORTS.containsKey(golemId) || ACTIVE_COLLECTS.containsKey(golemId);
 				boolean playerNearby = !level.getEntities(EntityTypeTest.forClass(net.minecraft.server.level.ServerPlayer.class),
 					new AABB(golem.blockPosition()).inflate(CopperGolemHeartbeat.HEARTBEAT_PLAYER_RANGE), e -> !e.isRemoved()).isEmpty();
 				if (!CopperGolemHeartbeat.shouldHeartbeat(interval, nowTick, last == null ? 0 : last, playerNearby, busy)) {
 					continue;
 				}
 				LAST_HEARTBEAT_TICK.put(golemId, nowTick);
+				LOGGER.info("heartbeat fired for golem {}", golemId);
 				fireHeartbeat(golem, level, nowTick);
 			}
 		}
@@ -176,9 +177,10 @@ public final class CopperGolemAiService {
 	private static void fireHeartbeat(CopperGolem golem, ServerLevel level, long nowTick) {
 		decayMood(golem);
 		String systemPrompt = buildSystemPrompt(golem)
-			+ "\n现在是自主行动时间：你可以查看周围（look_containers/get_player_status/get_world_info），"
-			+ "做点有用的事（捡掉落物/搬东西/跟着玩家/去看看生物）。没有值得做的就回复：无事。"
-			+ "如果看到有趣的事（比如玩家戴了新帽子、箱子里有奇怪的东西），可以主动说出来，但不要编造没看到的东西。";
+			+ "\n现在是自主行动时间：至少做一件事——查看周围（look_containers/get_player_status/get_world_info），"
+			+ "做点有用的事（捡掉落物/搬东西/跟着玩家/去看看生物）。"
+			+ "玩家在旁边时主动打个招呼或汇报你在干什么（比如'我刚捡了 X'），看到有趣的事（玩家戴了新帽子、箱子里有奇怪的东西）可以说出来，"
+			+ "但不要编造没看到的东西；实在没什么可做的才回复：无事。";
 		CopperGolemAgentLoop loop = new CopperGolemAgentLoop(QuirkyConfigHolder.get(), systemPrompt, List.of(), "[自主行动时间]");
 		CopperGolemAgentTools.ToolContext ctx = new CopperGolemAgentTools.ToolContext(golem, level, null, new java.util.HashSet<>());
 		IO.submit(() -> {
@@ -188,13 +190,16 @@ public final class CopperGolemAiService {
 					(name, args) -> CopperGolemAgentTools.execute(name, args, ctx));
 				PENDING_TASKS.add(() -> {
 					if (reply == null || reply.isBlank() || reply.equals("无事") || reply.contains("无事")) {
+						LOGGER.info("heartbeat golem {} silent: {}", golem.getUUID(), reply == null ? "null" : reply);
 						return; // 静默
 					}
 					Long lastChatter = LAST_CHATTER_TICK.get(golem.getUUID());
 					if (lastChatter != null && nowTick - lastChatter < CopperGolemHeartbeat.CHATTER_COOLDOWN_TICKS) {
+						LOGGER.info("heartbeat golem {} chatter throttled: {}", golem.getUUID(), reply);
 						return; // 搭话限流
 					}
 					LAST_CHATTER_TICK.put(golem.getUUID(), nowTick);
+					LOGGER.info("heartbeat golem {} chatters: {}", golem.getUUID(), reply);
 					Component message = Component.literal("[" + golem.getDisplayName().getString() + "] " + reply)
 						.withStyle(ChatFormatting.DARK_AQUA);
 					for (net.minecraft.server.level.ServerPlayer p : level.getEntities(EntityTypeTest.forClass(net.minecraft.server.level.ServerPlayer.class),
@@ -203,7 +208,7 @@ public final class CopperGolemAiService {
 					}
 				});
 			} catch (Exception e) {
-				LOGGER.debug("Copper golem heartbeat failed, skipped: {}", e.toString());
+				LOGGER.info("Copper golem heartbeat failed, skipped: {}", e.toString());
 			}
 		});
 	}
