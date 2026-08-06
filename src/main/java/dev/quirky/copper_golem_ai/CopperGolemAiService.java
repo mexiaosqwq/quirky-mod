@@ -1081,7 +1081,9 @@ public final class CopperGolemAiService {
 		tickMove(golem, level);
 		tickChatLook(golem, level);
 		tickSpin(golem, level);
-		recordHurtIfAny(golem, level);
+		if ((level.getGameTime() & 19) == 0) {
+			recordHurtIfAny(golem, level); // 受伤低频事件：每 20 tick 轮询一次
+		}
 	}
 
 	/** 对话在途：傀儡转头看向说话玩家（原版 LookAtTargetSink 消费 LOOK_TARGET）。 */

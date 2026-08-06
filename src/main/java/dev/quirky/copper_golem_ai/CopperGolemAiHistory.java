@@ -137,8 +137,8 @@ public final class CopperGolemAiHistory {
 		return totalTokens > c.aiSummaryTokens;
 	}
 
-	/** 中文约 1 字 ≈ 1 token 的粗估（英文偏保守，够用于触发判断）。 */
+	/** 中文约 1 字 ≈ 1 token 的粗估（英文按 1 字符 1 token 保守高估；宁可早压缩也不让 token 超限）。 */
 	public static int estimateTokens(String text) {
-		return Math.max(1, text.length() / 2);
+		return Math.max(1, text.length());
 	}
 }
