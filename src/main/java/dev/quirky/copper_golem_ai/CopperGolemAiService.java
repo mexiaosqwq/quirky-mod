@@ -280,6 +280,16 @@ public final class CopperGolemAiService {
 		LAST_REPLY_TICK.put(golemId, gameTime);
 
 		CopperGolemAiHistory.GolemSession session = SESSIONS.computeIfAbsent(golemId, id -> new CopperGolemAiHistory.GolemSession());
+		// 会话管理命令（隔离记忆/提前压缩）：不进 AI 对话
+		if (CopperGolemAiHistory.isResetCommand(text)) {
+			session.clear();
+			reply(player, golem, "好，之前的都忘了，重新认识一下！");
+			return;
+		}
+		if (CopperGolemAiHistory.isCompressCommand(text)) {
+			startCompression(player, golem, session, config, null); // null=手动压缩：命令不进历史、压缩完不重发
+			return;
+		}
 		var result = session.addPlayerMessage(text);
 		switch (result) {
 			case FORGET_ALL -> {
@@ -409,8 +419,10 @@ public final class CopperGolemAiService {
 	}
 
 	private static void startCompression(ServerPlayer player, CopperGolem golem, CopperGolemAiHistory.GolemSession session, QuirkyConfig config, String currentText) {
-		// 当前消息已通过 addPlayerMessage 进历史：先摘出，压缩完成后作为新消息重新发送（防摘要重建后重复）
-		session.removeLastPlayerMessage();
+		// 自动压缩：当前消息已进历史 → 摘出，压缩完成后重发；手动压缩（currentText==null）：命令未进历史，不摘不重发
+		if (currentText != null) {
+			session.removeLastPlayerMessage();
+		}
 		session.markCompressing(true);
 		reply(player, golem, "⌛ 上下文压缩中…");
 		List<String> history = session.messages();
@@ -434,8 +446,10 @@ public final class CopperGolemAiService {
 						session.addPlayerMessage(queued);
 						requestReply(player, golem, session, config, queued);
 					}
-					// 当前消息作为新消息正常回复
-					requestReply(player, golem, session, config, currentText);
+					// 当前消息作为新消息正常回复（手动压缩则无当前消息）
+					if (currentText != null) {
+						requestReply(player, golem, session, config, currentText);
+					}
 				});
 			} catch (Exception e) {
 				LOGGER.warn("Copper golem AI summary failed: {}", e.toString());
@@ -446,7 +460,9 @@ public final class CopperGolemAiService {
 						session.addPlayerMessage(queued);
 						requestReply(player, golem, session, config, queued);
 					}
-					requestReply(player, golem, session, config, currentText);
+					if (currentText != null) {
+						requestReply(player, golem, session, config, currentText);
+					}
 				});
 			}
 		});

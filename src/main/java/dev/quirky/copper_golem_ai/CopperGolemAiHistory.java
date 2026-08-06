@@ -112,6 +112,18 @@ public final class CopperGolemAiHistory {
 			|| text.equals("忘掉上一条") || text.equals("forget last");
 	}
 
+	/** 新会话命令（隔离记忆）：清空历史+摘要，重新认识。 */
+	public static boolean isResetCommand(String text) {
+		return text.equals("换脑子") || text.equals("重新开始") || text.equals("从头开始")
+			|| text.equals("新会话") || text.equals("重置记忆") || text.equals("reset");
+	}
+
+	/** 手动压缩命令（提前压缩上下文，不等阈值）。 */
+	public static boolean isCompressCommand(String text) {
+		return text.equals("压缩") || text.equals("总结一下") || text.equals("记住重点")
+			|| text.equals("提前压缩") || text.equals("compress");
+	}
+
 	/** 压缩触发：历史消息数 > summaryMessages 或 估算 token > summaryTokens，任一达到即触发。 */
 	public static boolean shouldCompress(GolemSession session, QuirkyConfig c) {
 		int msgCount = session.messages().size();

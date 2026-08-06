@@ -23,6 +23,29 @@ class CopperGolemAiHistoryTest {
 	}
 
 	@Test
+	void resetCommandsMatchExactly() {
+		assertTrue(CopperGolemAiHistory.isResetCommand("换脑子"));
+		assertTrue(CopperGolemAiHistory.isResetCommand("重新开始"));
+		assertTrue(CopperGolemAiHistory.isResetCommand("从头开始"));
+		assertTrue(CopperGolemAiHistory.isResetCommand("新会话"));
+		assertTrue(CopperGolemAiHistory.isResetCommand("重置记忆"));
+		assertTrue(CopperGolemAiHistory.isResetCommand("reset"));
+		assertFalse(CopperGolemAiHistory.isResetCommand("重新开始吧")); // 全词匹配
+		assertFalse(CopperGolemAiHistory.isResetCommand("忘掉"));
+	}
+
+	@Test
+	void compressCommandsMatchExactly() {
+		assertTrue(CopperGolemAiHistory.isCompressCommand("压缩"));
+		assertTrue(CopperGolemAiHistory.isCompressCommand("总结一下"));
+		assertTrue(CopperGolemAiHistory.isCompressCommand("记住重点"));
+		assertTrue(CopperGolemAiHistory.isCompressCommand("提前压缩"));
+		assertTrue(CopperGolemAiHistory.isCompressCommand("compress"));
+		assertFalse(CopperGolemAiHistory.isCompressCommand("压缩一下记忆吧")); // 全词匹配
+		assertFalse(CopperGolemAiHistory.isCompressCommand(""));
+	}
+
+	@Test
 	void forgetAllClearsHistory() {
 		GolemSession s = new GolemSession();
 		assertEquals(HandleResult.NORMAL, s.addPlayerMessage("你好"));
