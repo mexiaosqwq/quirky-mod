@@ -9,6 +9,7 @@ import dev.quirky.config.QuirkyConfig;
 import dev.quirky.copper_golem_ai.CopperGolemAiIntent.TransportRequest;
 import org.jspecify.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -111,6 +112,77 @@ public final class CopperGolemAiHttp {
 		m.addProperty("role", role);
 		m.addProperty("content", content);
 		messages.add(m);
+	}
+
+	/** 一次工具调用。 */
+	public record ToolCall(String id, String name, String arguments) {
+	}
+
+	/** 提取 choices[0].message.tool_calls（可多个）；无/畸形 → 空列表。 */
+	public static List<ToolCall> parseToolCalls(String responseJson) {
+		List<ToolCall> calls = new ArrayList<>();
+		try {
+			JsonObject root = JsonParser.parseString(responseJson).getAsJsonObject();
+			JsonArray choices = root.getAsJsonArray("choices");
+			if (choices == null || choices.isEmpty()) {
+				return calls;
+			}
+			JsonObject message = choices.get(0).getAsJsonObject().getAsJsonObject("message");
+			JsonArray toolCalls = message == null ? null : message.getAsJsonArray("tool_calls");
+			if (toolCalls == null) {
+				return calls;
+			}
+			for (JsonElement el : toolCalls) {
+				JsonObject fn = el.getAsJsonObject().getAsJsonObject("function");
+				if (fn == null) {
+					continue;
+				}
+				String id = el.getAsJsonObject().has("id") ? el.getAsJsonObject().get("id").getAsString() : "";
+				String name = fn.has("name") ? fn.get("name").getAsString() : "";
+				String args = fn.has("arguments") ? fn.get("arguments").getAsString() : "{}";
+				calls.add(new ToolCall(id, name, args));
+			}
+		} catch (RuntimeException e) {
+			// 忽略畸形 JSON
+		}
+		return calls;
+	}
+
+	/** 在消息数组末尾追加一轮工具交互：assistant(tool_calls) + 每条 tool 结果。 */
+	public static void appendToolRound(JsonArray messages, List<ToolCall> calls, List<String> results) {
+		JsonObject assistant = new JsonObject();
+		assistant.addProperty("role", "assistant");
+		assistant.addProperty("content", (String) null);
+		JsonArray callsJson = new JsonArray();
+		for (int i = 0; i < calls.size(); i++) {
+			ToolCall call = calls.get(i);
+			JsonObject c = new JsonObject();
+			c.addProperty("id", call.id());
+			c.addProperty("type", "function");
+			JsonObject fn = new JsonObject();
+			fn.addProperty("name", call.name());
+			fn.addProperty("arguments", call.arguments());
+			c.add("function", fn);
+			callsJson.add(c);
+		}
+		assistant.add("tool_calls", callsJson);
+		messages.add(assistant);
+		for (int i = 0; i < calls.size(); i++) {
+			JsonObject tool = new JsonObject();
+			tool.addProperty("role", "tool");
+			tool.addProperty("tool_call_id", calls.get(i).id());
+			tool.addProperty("content", i < results.size() ? results.get(i) : "{\"error\":\"no result\"}");
+			messages.add(tool);
+		}
+	}
+
+	/** 用完整 messages 数组构造请求体（带 tools）。 */
+	public static String buildChatRequestFromMessages(QuirkyConfig c, JsonArray messages) {
+		JsonObject body = baseBody(c);
+		body.add("messages", messages);
+		body.add("tools", JsonParser.parseString(TRANSPORT_TOOL_JSON));
+		body.addProperty("tool_choice", "auto");
+		return GSON.toJson(body);
 	}
 
 	/** 提取 choices[0].message.content；任何缺失/异常返回 null。 */
