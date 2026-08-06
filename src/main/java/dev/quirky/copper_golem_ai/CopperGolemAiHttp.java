@@ -6,6 +6,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import dev.quirky.config.QuirkyConfig;
+import dev.quirky.copper_golem_ai.CopperGolemAiIntent.TransportRequest;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
@@ -22,6 +23,15 @@ public final class CopperGolemAiHttp {
 		"你是一个生活在 Minecraft 世界里的铜傀儡，勤快的物品搬运工。"
 			+ "用中文简短回复（一两句话），可以开轻松的玩笑。"
 			+ "听到玩家的话先回应聊天，搬运用途暂未开放。";
+
+	/** transport 工具声明（OpenAI 兼容 tools 数组）。source/destination 枚举 targeted/copper。 */
+	public static final String TRANSPORT_TOOL_JSON =
+		"[{\"type\":\"function\",\"function\":{\"name\":\"transport\",\"description\":\"把物品在准心指着的箱子(targeted)和最近的铜箱(copper)之间搬运\","
+			+ "\"parameters\":{\"type\":\"object\",\"properties\":{"
+			+ "\"item\":{\"type\":\"string\",\"description\":\"物品 ID，如 minecraft:copper_ingot；不知道就写 any\"},"
+			+ "\"source\":{\"type\":\"string\",\"enum\":[\"targeted\",\"copper\"]},"
+			+ "\"destination\":{\"type\":\"string\",\"enum\":[\"targeted\",\"copper\"]}"
+			+ "},\"required\":[\"item\",\"source\",\"destination\"]}}}]";
 
 	private CopperGolemAiHttp() {
 	}
@@ -45,6 +55,8 @@ public final class CopperGolemAiHttp {
 		}
 		addMessage(messages, "user", userText);
 		body.add("messages", messages);
+		body.add("tools", JsonParser.parseString(TRANSPORT_TOOL_JSON));
+		body.addProperty("tool_choice", "auto");
 		return GSON.toJson(body);
 	}
 
@@ -114,6 +126,30 @@ public final class CopperGolemAiHttp {
 			}
 			String text = content.getAsString();
 			return text.isBlank() ? null : text;
+		} catch (RuntimeException e) {
+			return null;
+		}
+	}
+
+	/** 提取 choices[0].message.tool_calls[0]（name=transport）→ TransportRequest；无/异常返回 null。 */
+	public static @Nullable TransportRequest parseToolCall(String responseJson) {
+		try {
+			JsonObject root = JsonParser.parseString(responseJson).getAsJsonObject();
+			JsonArray choices = root.getAsJsonArray("choices");
+			if (choices == null || choices.isEmpty()) {
+				return null;
+			}
+			JsonObject message = choices.get(0).getAsJsonObject().getAsJsonObject("message");
+			JsonArray toolCalls = message == null ? null : message.getAsJsonArray("tool_calls");
+			if (toolCalls == null || toolCalls.isEmpty()) {
+				return null;
+			}
+			JsonObject fn = toolCalls.get(0).getAsJsonObject().getAsJsonObject("function");
+			if (fn == null || !"transport".equals(fn.get("name").getAsString())) {
+				return null;
+			}
+			String args = fn.get("arguments").getAsString();
+			return CopperGolemAiIntent.parse(args);
 		} catch (RuntimeException e) {
 			return null;
 		}
