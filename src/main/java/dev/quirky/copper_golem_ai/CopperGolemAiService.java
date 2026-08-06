@@ -157,10 +157,10 @@ public final class CopperGolemAiService {
 	}
 
 	/** 发起一次心跳：独立上下文（不进长期历史），AI 自主决策；无事静默，有内容搭话（限流）。 */
-	/** system prompt：人设 + 心情 + 名字 + 天线引导。 */
+	/** system prompt：人设 + 心情 + 名字（仅玩家命名过才有）+ 天线引导。 */
 	private static String buildSystemPrompt(CopperGolem golem) {
-		String name = golem.getName().getString();
-		String nameLine = name.equals("铜傀儡") ? "" : "你叫" + name + "。";
+		Component customName = golem.getCustomName();
+		String nameLine = customName == null ? "" : "你叫" + customName.getString() + "，玩家给你起的名字，要珍惜。";
 		ItemStack antenna = golem.getItemBySlot(EquipmentSlot.SADDLE);
 		String antennaLine = antenna.isEmpty() ? ""
 			: "你头顶戴着" + antenna.getHoverName().getString() + "，可以自然地炫耀或回应关于它的提问。";
@@ -294,11 +294,14 @@ public final class CopperGolemAiService {
 
 	// ===== 右键改名（聊天栏输入式）=====
 
-	/** 右键进入待命名（mixin 调用）：提示 + 音效；返回 true=消费了本次交互。
-	 * 同一玩家同时只能对一个傀儡改名（先移除其旧待命名，防多目标混淆）。 */
+	/** 右键进入待命名（mixin 调用）：仅限未命名的傀儡（首次命名）；已命名只能用命名牌改。
+	 * 同一玩家同时只能对一个傀儡改名。 */
 	public static boolean tryEnterRename(net.minecraft.world.entity.player.Player player, CopperGolem golem) {
 		if (!(player instanceof ServerPlayer sp)) {
 			return false; // 仅服务端
+		}
+		if (golem.getCustomName() != null) {
+			return false; // 已有名字：改名走命名牌（原版），右键不改
 		}
 		RENAMES.entrySet().removeIf(e -> CopperGolemRename.RenameState.isOwner(e.getValue(), player.getUUID()));
 		long expireTick = player.level().getGameTime() + CopperGolemRename.RENAME_TIMEOUT_TICKS;
