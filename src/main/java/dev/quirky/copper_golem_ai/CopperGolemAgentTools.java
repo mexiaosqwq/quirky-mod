@@ -68,7 +68,11 @@ public final class CopperGolemAgentTools {
 			case "get_player_status" -> getPlayerStatus(ctx);
 			case "get_world_info" -> getWorldInfo(ctx);
 			case "get_self_status" -> getSelfStatus(ctx);
-			case "move_to", "follow_player", "approach_entity", "stop", "collect_dropped_items", "transport" ->
+			case "move_to" -> moveTo(ctx, args);
+			case "follow_player" -> followPlayer(ctx, args);
+			case "approach_entity" -> approachEntity(ctx, args);
+			case "stop" -> stop(ctx);
+			case "collect_dropped_items", "transport" ->
 				"{\"error\":\"not implemented yet\"}";
 			default -> "{\"error\":\"unknown tool: " + name + "\"}";
 		};
@@ -187,6 +191,50 @@ public final class CopperGolemAgentTools {
 		return GSON.toJson(out);
 	}
 
+	// ===== 行动工具（服务端执行，复用原版移动机制）=====
+
+	private static String moveTo(@Nullable ToolContext ctx, JsonObject args) {
+		if (ctx == null) {
+			return "{\"error\":\"no context\"}";
+		}
+		BlockPos target = parseCoords(args.has("x") && args.has("y") && args.has("z")
+			? args.get("x").getAsInt() + "," + args.get("y").getAsInt() + "," + args.get("z").getAsInt() : "");
+		if (target == null) {
+			return "{\"error\":\"invalid coords\"}";
+		}
+		return CopperGolemAiService.startMove(ctx.golem(), target);
+	}
+
+	private static String followPlayer(@Nullable ToolContext ctx, JsonObject args) {
+		if (ctx == null) {
+			return "{\"error\":\"no context\"}";
+		}
+		String name = args.has("name") ? args.get("name").getAsString() : "";
+		if (name.isBlank()) {
+			return "{\"error\":\"missing name\"}";
+		}
+		return CopperGolemAiService.startFollow(ctx.golem(), ctx.level(), name);
+	}
+
+	private static String approachEntity(@Nullable ToolContext ctx, JsonObject args) {
+		if (ctx == null) {
+			return "{\"error\":\"no context\"}";
+		}
+		String type = args.has("type") ? args.get("type").getAsString() : "";
+		String id = parseEntityType(type);
+		if (id == null) {
+			return "{\"error\":\"invalid entity type: " + type + "\"}";
+		}
+		return CopperGolemAiService.startApproach(ctx.golem(), ctx.level(), id);
+	}
+
+	private static String stop(@Nullable ToolContext ctx) {
+		if (ctx == null) {
+			return "{\"error\":\"no context\"}";
+		}
+		return CopperGolemAiService.stopAll(ctx.golem());
+	}
+
 	// ===== 纯逻辑（可单测）=====
 
 	/** 时段：0-12000 白天 / 12000-13000 黄昏 / 13000-23000 夜晚 / 23000-24000 黎明。 */
@@ -240,6 +288,36 @@ public final class CopperGolemAgentTools {
 			return args.has("range") ? args.get("range").getAsInt() : def;
 		} catch (RuntimeException e) {
 			return def;
+		}
+	}
+
+	/** 跟随是否应停止：玩家超过 maxDist 格。 */
+	public static boolean shouldStopFollow(double distSqr, int maxDist) {
+		return distSqr > (double) maxDist * maxDist;
+	}
+
+	/** 实体类型解析：接受 "sheep" 或 "minecraft:sheep" → 完整 ID；非法 → null。 */
+	public static @Nullable String parseEntityType(String type) {
+		if (type == null || type.isBlank() || type.contains("/")) {
+			return null;
+		}
+		String id = type.contains(":") ? type : "minecraft:" + type;
+		return id.matches("^[a-z0-9_.-]+:[a-z0-9_./-]+$") ? id : null;
+	}
+
+	/** 坐标字符串解析 "x,y,z" → BlockPos；非法 → null。 */
+	public static @Nullable BlockPos parseCoords(String coords) {
+		if (coords == null || coords.isBlank()) {
+			return null;
+		}
+		try {
+			String[] parts = coords.split(",");
+			if (parts.length != 3) {
+				return null;
+			}
+			return new BlockPos(Integer.parseInt(parts[0].trim()), Integer.parseInt(parts[1].trim()), Integer.parseInt(parts[2].trim()));
+		} catch (NumberFormatException e) {
+			return null;
 		}
 	}
 }

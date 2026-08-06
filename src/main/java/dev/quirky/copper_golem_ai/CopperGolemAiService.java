@@ -65,6 +65,8 @@ public final class CopperGolemAiService {
 	private static final Map<UUID, CopperGolemAiHistory.GolemSession> SESSIONS = new ConcurrentHashMap<>();
 	private static final Map<UUID, Long> LAST_REPLY_TICK = new ConcurrentHashMap<>();
 	private static final Map<UUID, ActiveTransport> ACTIVE_TRANSPORTS = new ConcurrentHashMap<>();
+	private static final Map<UUID, UUID> ACTIVE_FOLLOWS = new ConcurrentHashMap<>(); // golemId → playerId
+	private static final Map<UUID, UUID> ACTIVE_APPROACHES = new ConcurrentHashMap<>(); // golemId → entityId
 	private static final ConcurrentLinkedQueue<Runnable> PENDING_TASKS = new ConcurrentLinkedQueue<>();
 	private static final int MAX_TRANSPORT_DISTANCE = 64;
 	private static final int TARGETED_RAYCAST_DISTANCE = 6;
@@ -176,20 +178,16 @@ public final class CopperGolemAiService {
 	}
 
 	private static void requestReply(ServerPlayer player, CopperGolem golem, CopperGolemAiHistory.GolemSession session, QuirkyConfig config, String text) {
-		String body = CopperGolemAiHttp.buildChatRequest(config, session.messages(), text);
+		CopperGolemAgentLoop loop = new CopperGolemAgentLoop(config, CopperGolemAiHttp.SYSTEM_PROMPT, session.messages(), text);
+		CopperGolemAgentTools.ToolContext ctx = new CopperGolemAgentTools.ToolContext(golem, (ServerLevel) player.level(), player);
 		IO.submit(() -> {
 			try {
-				String response = post(CopperGolemAiHttp.endpoint(config), config.aiApiKey, body);
-				String reply = CopperGolemAiHttp.parseReply(response);
-				CopperGolemAiIntent.TransportRequest toolCall = CopperGolemAiHttp.parseToolCall(response);
+				String reply = loop.run(
+					body -> post(CopperGolemAiHttp.endpoint(config), config.aiApiKey, body),
+					(name, args) -> CopperGolemAgentTools.execute(name, args, ctx));
 				PENDING_TASKS.add(() -> {
-					if (toolCall != null) {
-						handleTransportIntent(player, golem, session, config, toolCall);
-					}
-					if (reply != null) {
-						session.addGolemReply(reply);
-						reply(player, golem, reply);
-					}
+					session.addGolemReply(reply);
+					reply(player, golem, reply);
 				});
 			} catch (Exception e) {
 				LOGGER.warn("Copper golem AI request failed: {}", e.toString());
@@ -256,12 +254,7 @@ public final class CopperGolemAiService {
 		return HTTP.send(builder.build(), HttpResponse.BodyHandlers.ofString()).body();
 	}
 
-	// ===== 工具查询占位（Task 3/8 替换）=====
-
-	/** 傀儡当前任务描述（Task 3 接任务表后返回真实描述）。 */
-	public static String currentTaskDescription(CopperGolem golem) {
-		return "无";
-	}
+	// ===== 工具查询（Task 8 替换 lightningInfo）=====
 
 	/** 最近被闪电劈的时间描述（Task 8 接 mixin 后返回真实值）。 */
 	public static String lightningInfo(CopperGolem golem) {
@@ -274,6 +267,8 @@ public final class CopperGolemAiService {
 		LAST_REPLY_TICK.clear();
 		PENDING_TASKS.clear();
 		ACTIVE_TRANSPORTS.clear();
+		ACTIVE_FOLLOWS.clear();
+		ACTIVE_APPROACHES.clear();
 	}
 
 	// ===== V1 搬运执行 =====
@@ -350,10 +345,121 @@ public final class CopperGolemAiService {
 		return best != null && bestDist <= (double) maxDist * maxDist ? best : null;
 	}
 
-	/** mixin 每 tick 调用：推进搬运状态机；无活跃任务立即返回。
-	 * 执行层直接推进（WALK_SOURCE 到达→取货成功→WALK_DEST；WALK_DEST 到达→放货→结束），
-	 * 不经过 TAKE/PUT 的 decide（其输入在执行层无法可靠取得，曾导致取完货即中止）。 */
+	/** 开始移动：设 WALK_TARGET（一次性）。返回确认文本。 */
+	public static String startMove(CopperGolem golem, BlockPos target) {
+		BehaviorUtils.setWalkAndLookTargetMemories(golem, target, 1.0F, 1);
+		return "{\"ok\":\"正在前往 " + target.getX() + "," + target.getY() + "," + target.getZ() + "\"}";
+	}
+
+	/** 开始跟随玩家：注册 FOLLOW 任务（tick 持续刷新目标）。 */
+	public static String startFollow(CopperGolem golem, ServerLevel level, String playerName) {
+		ServerPlayer target = level.players().stream()
+			.filter(p -> p.getName().getString().equals(playerName))
+			.findFirst().orElse(null);
+		if (target == null) {
+			return "{\"error\":\"找不到玩家 " + playerName + "\"}";
+		}
+		ACTIVE_FOLLOWS.put(golem.getUUID(), target.getUUID());
+		return "{\"ok\":\"开始跟着 " + playerName + "\"}";
+	}
+
+	/** 开始接近指定类型生物：找最近同类 → 注册 APPROACH 任务。 */
+	public static String startApproach(CopperGolem golem, ServerLevel level, String entityTypeId) {
+		var holder = BuiltInRegistries.ENTITY_TYPE.getValue(net.minecraft.resources.Identifier.parse(entityTypeId));
+		if (holder == null) {
+			return "{\"error\":\"未知生物类型 " + entityTypeId + "\"}";
+		}
+		AABB box = new AABB(golem.blockPosition()).inflate(32);
+		var found = level.getEntities(EntityTypeTest.forClass(net.minecraft.world.entity.Entity.class), box, e -> !e.isRemoved()).stream()
+			.filter(e -> e.getType() == holder)
+			.min(Comparator.comparingDouble(e -> e.distanceToSqr(golem)));
+		if (found.isEmpty()) {
+			return "{\"error\":\"附近没有 " + entityTypeId + "\"}";
+		}
+		ACTIVE_APPROACHES.put(golem.getUUID(), found.get().getUUID());
+		return "{\"ok\":\"去看 " + entityTypeId + "\"}";
+	}
+
+	/** 停止全部行动（移动/跟随/接近/搬运），恢复待机。 */
+	public static String stopAll(CopperGolem golem) {
+		ACTIVE_FOLLOWS.remove(golem.getUUID());
+		ACTIVE_APPROACHES.remove(golem.getUUID());
+		ActiveTransport t = ACTIVE_TRANSPORTS.remove(golem.getUUID());
+		if (t != null && t.openPos() != null) {
+			BlockEntity be = golem.level().getBlockEntity(t.openPos());
+			if (be instanceof Container c) {
+				c.stopOpen(golem);
+			}
+		}
+		golem.getBrain().eraseMemory(MemoryModuleType.WALK_TARGET);
+		golem.getBrain().eraseMemory(MemoryModuleType.TRANSPORT_ITEMS_COOLDOWN_TICKS);
+		golem.setState(CopperGolemState.IDLE);
+		golem.clearOpenedChestPos();
+		return "{\"ok\":\"好，我停下了\"}";
+	}
+
+	/** 傀儡当前任务描述（供 get_self_status）。 */
+	public static String currentTaskDescription(CopperGolem golem) {
+		UUID id = golem.getUUID();
+		if (ACTIVE_FOLLOWS.containsKey(id)) {
+			return "正在跟随玩家";
+		}
+		if (ACTIVE_APPROACHES.containsKey(id)) {
+			return "正在去看某个生物";
+		}
+		ActiveTransport t = ACTIVE_TRANSPORTS.get(id);
+		if (t != null) {
+			return "正在搬运物品";
+		}
+		return "无";
+	}
+
+	/** mixin 每 tick 调用：推进全部任务（搬运/跟随/接近）。 */
 	public static void tickTransport(CopperGolem golem, ServerLevel level) {
+		if (golem.isRemoved()) {
+			ACTIVE_TRANSPORTS.remove(golem.getUUID());
+			ACTIVE_FOLLOWS.remove(golem.getUUID());
+			ACTIVE_APPROACHES.remove(golem.getUUID());
+			return;
+		}
+		tickFollow(golem, level);
+		tickApproach(golem, level);
+		tickTransportTask(golem, level);
+	}
+
+	private static void tickFollow(CopperGolem golem, ServerLevel level) {
+		UUID playerId = ACTIVE_FOLLOWS.get(golem.getUUID());
+		if (playerId == null) {
+			return;
+		}
+		ServerPlayer player = level.getServer().getPlayerList().getPlayer(playerId);
+		if (player == null || !player.isAlive()) {
+			ACTIVE_FOLLOWS.remove(golem.getUUID());
+			return;
+		}
+		double distSqr = player.distanceToSqr(golem);
+		if (CopperGolemAgentTools.shouldStopFollow(distSqr, 64)) {
+			ACTIVE_FOLLOWS.remove(golem.getUUID());
+			return;
+		}
+		// 保持 2-3 格距离：目标 = 玩家位置，closeEnough=2（每 tick 刷新，到达后仍贴着）
+		BehaviorUtils.setWalkAndLookTargetMemories(golem, player.blockPosition(), 1.0F, 2);
+	}
+
+	private static void tickApproach(CopperGolem golem, ServerLevel level) {
+		UUID entityId = ACTIVE_APPROACHES.get(golem.getUUID());
+		if (entityId == null) {
+			return;
+		}
+		var entity = level.getEntity(entityId);
+		if (entity == null || !entity.isAlive()) {
+			ACTIVE_APPROACHES.remove(golem.getUUID());
+			return;
+		}
+		BehaviorUtils.setWalkAndLookTargetMemories(golem, entity.blockPosition(), 1.0F, 2);
+	}
+
+	private static void tickTransportTask(CopperGolem golem, ServerLevel level) {
 		ActiveTransport t = ACTIVE_TRANSPORTS.get(golem.getUUID());
 		if (t == null || t.state() == CopperGolemTransportTask.State.DONE || t.state() == CopperGolemTransportTask.State.FAIL) {
 			return;
