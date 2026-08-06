@@ -256,6 +256,18 @@ public final class CopperGolemAiService {
 		return HTTP.send(builder.build(), HttpResponse.BodyHandlers.ofString()).body();
 	}
 
+	// ===== 工具查询占位（Task 3/8 替换）=====
+
+	/** 傀儡当前任务描述（Task 3 接任务表后返回真实描述）。 */
+	public static String currentTaskDescription(CopperGolem golem) {
+		return "无";
+	}
+
+	/** 最近被闪电劈的时间描述（Task 8 接 mixin 后返回真实值）。 */
+	public static String lightningInfo(CopperGolem golem) {
+		return "从未被劈过";
+	}
+
 	/** 测试辅助：清空会话状态（防测试间污染）。 */
 	public static void resetForTest() {
 		SESSIONS.clear();
