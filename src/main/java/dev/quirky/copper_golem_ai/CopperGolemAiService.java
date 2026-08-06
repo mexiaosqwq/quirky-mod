@@ -639,6 +639,7 @@ public final class CopperGolemAiService {
 		ACTIVE_COLLECTS.remove(golem.getUUID());
 		var entity = level.getEntity(task.itemEntityId());
 		if (!(entity instanceof net.minecraft.world.entity.item.ItemEntity item) || item.isRemoved()) {
+			continueCollect(golem, task.queue()); // 目标消失：跳过它，批量链继续
 			return;
 		}
 		ItemStack stack = item.getItem();
@@ -717,10 +718,11 @@ public final class CopperGolemAiService {
 			}
 		}
 	}
-	/** 停止全部行动（移动/跟随/接近/搬运），恢复待机。 */
+	/** 停止全部行动（移动/跟随/接近/搬运/捡取），恢复待机。 */
 	public static String stopAll(CopperGolem golem) {
 		ACTIVE_FOLLOWS.remove(golem.getUUID());
 		ACTIVE_APPROACHES.remove(golem.getUUID());
+		ACTIVE_COLLECTS.remove(golem.getUUID());
 		ActiveTransport t = ACTIVE_TRANSPORTS.remove(golem.getUUID());
 		if (t != null && t.openPos() != null) {
 			BlockEntity be = golem.level().getBlockEntity(t.openPos());
