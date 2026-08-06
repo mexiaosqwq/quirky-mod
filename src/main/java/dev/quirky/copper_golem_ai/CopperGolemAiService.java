@@ -78,7 +78,7 @@ public final class CopperGolemAiService {
 	private static final int TARGETED_RAYCAST_DISTANCE = 6;
 	private static volatile boolean initialized = false;
 
-	/** 进行中的搬运任务（每傀儡一个）。givePlayerId=give 目标玩家（非 give 为 null）；openPos=当前打开的容器。 */
+	/** 进行中的搬运任务（每傀儡一个）。givePlayerId=give 目标玩家（非 give 为 null）；openPos=当前打开的容器；collectQueue=collect 批量链的剩余目标（非 collect 为 null）。 */
 	private record ActiveTransport(
 		CopperGolemAiIntent.TransportRequest request,
 		CopperGolemTransportTask.State state,
@@ -86,14 +86,15 @@ public final class CopperGolemAiService {
 		@Nullable BlockPos destination,
 		String itemId,
 		@Nullable UUID givePlayerId,
-		@Nullable BlockPos openPos
+		@Nullable BlockPos openPos,
+		@Nullable List<UUID> collectQueue
 	) {
 		ActiveTransport withState(CopperGolemTransportTask.State s) {
-			return new ActiveTransport(request, s, source, destination, itemId, givePlayerId, openPos);
+			return new ActiveTransport(request, s, source, destination, itemId, givePlayerId, openPos, collectQueue);
 		}
 
 		ActiveTransport withOpenPos(BlockPos p) {
-			return new ActiveTransport(request, state, source, destination, itemId, givePlayerId, p);
+			return new ActiveTransport(request, state, source, destination, itemId, givePlayerId, p, collectQueue);
 		}
 	}
 
@@ -158,7 +159,7 @@ public final class CopperGolemAiService {
 	}
 
 	/** 发起一次心跳：独立上下文（不进长期历史），AI 自主决策；无事静默，有内容搭话（限流）。 */
-	/** system prompt：{NAME} 占位符替换为玩家命名的名字（未命名用占位默认）+ 心情 + 天线引导。 */
+	/** system prompt：{NAME} 占位符替换为玩家命名的名字（未命名用占位默认）+ 实时感知注入 + 心情 + 天线引导。 */
 	private static String buildSystemPrompt(CopperGolem golem) {
 		Component customName = golem.getCustomName();
 		String name = customName == null ? "无名的小铜傀儡" : customName.getString();
@@ -166,7 +167,42 @@ public final class CopperGolemAiService {
 		String antennaLine = antenna.isEmpty() ? ""
 			: "你头顶戴着" + antenna.getHoverName().getString() + "，可以自然地炫耀或回应关于它的提问。";
 		CopperGolemAgentMood.Mood mood = CopperGolemAgentMood.moodFor(MOOD_SCORES.getOrDefault(golem.getUUID(), 0));
-		return CopperGolemAiHttp.SYSTEM_PROMPT.replace("{NAME}", name) + "\n" + antennaLine + CopperGolemAgentMood.toPrompt(mood);
+		return CopperGolemAiHttp.SYSTEM_PROMPT.replace("{NAME}", name) + "\n"
+			+ realtimeContext(golem) + antennaLine + CopperGolemAgentMood.toPrompt(mood);
+	}
+
+	/** 实时感知注入：附近玩家（最近 2 个：名字/距离/手持）+ 天气时间 + 自身手持。一行内，AI 无需调工具即有临场感。 */
+	private static String realtimeContext(CopperGolem golem) {
+		try {
+			ServerLevel level = (ServerLevel) golem.level();
+			StringBuilder sb = new StringBuilder("[此刻]");
+			List<ServerPlayer> nearby = level.getEntities(EntityTypeTest.forClass(ServerPlayer.class),
+				new AABB(golem.blockPosition()).inflate(CopperGolemHeartbeat.HEARTBEAT_PLAYER_RANGE), e -> !e.isRemoved()).stream()
+				.sorted(Comparator.comparingDouble(p -> p.distanceToSqr(golem)))
+				.limit(2)
+				.toList();
+			if (nearby.isEmpty()) {
+				sb.append("附近没有玩家");
+			} else {
+				sb.append("玩家 ");
+				for (int i = 0; i < nearby.size(); i++) {
+					ServerPlayer p = nearby.get(i);
+					ItemStack held = p.getMainHandItem();
+					sb.append(p.getName().getString()).append("(")
+						.append((int) Math.round(Math.sqrt(p.distanceToSqr(golem)))).append("格")
+						.append("，手持").append(held.isEmpty() ? "空手" : held.getHoverName().getString()).append(")");
+					if (i < nearby.size() - 1) {
+						sb.append("、");
+					}
+				}
+			}
+			ItemStack held = golem.getMainHandItem();
+			sb.append("；天气").append(level.isThundering() ? "雷雨" : level.isRaining() ? "下雨" : "晴")
+				.append("；你手里").append(held.isEmpty() ? "空" : held.getHoverName().getString());
+			return sb.append("。").toString();
+		} catch (Exception e) {
+			return ""; // 注入失败不影响主流程
+		}
 	}
 
 	/** 心跳里心情衰减（每心跳 -1 向平静回归）。 */
@@ -508,7 +544,7 @@ public final class CopperGolemAiService {
 		clearOtherTasks(golem, "transport");
 		ACTIVE_TRANSPORTS.put(golem.getUUID(),
 			new ActiveTransport(req, CopperGolemTransportTask.State.WALK_SOURCE, source, destination, req.item(),
-				toPlayer ? player.getUUID() : null, null));
+				toPlayer ? player.getUUID() : null, null, null));
 		return "{\"ok\":\"开始搬运 " + req.item() + "\"}";
 	}
 
@@ -550,23 +586,28 @@ public final class CopperGolemAiService {
 	}
 
 	/** 捡掉落物任务：走到掉落物旁 → 捡起 → 转入 TRANSPORT（带回最近铜箱）。 */
-	private record CollectTask(BlockPos pos, UUID itemEntityId, String itemId) {
+	/** 拾取任务：pos=当前目标位置；itemEntityId=当前目标实体；itemId=当前物品；queue=剩余批量目标（前 5 个，按距离排序）。 */
+	private record CollectTask(BlockPos pos, UUID itemEntityId, String itemId, List<UUID> queue) {
 	}
 
 	/** 开始捡掉落物：找 range 内最近 ItemEntity → 注册 COLLECT 任务。 */
+	/** 批量捡掉落物：找最近 5 个（含当前），逐个捡并自动放铜箱；队列延续到捡完为止。 */
 	public static String startCollect(CopperGolem golem, ServerLevel level, int range) {
 		clearOtherTasks(golem, "collect");
 		AABB box = new AABB(golem.blockPosition()).inflate(range);
-		var found = level.getEntities(EntityTypeTest.forClass(net.minecraft.world.entity.item.ItemEntity.class), box, e -> !e.isRemoved())
-			.stream()
-			.min(Comparator.comparingDouble(e -> e.distanceToSqr(golem)));
-		if (found.isEmpty()) {
+		List<net.minecraft.world.entity.item.ItemEntity> items = level.getEntities(EntityTypeTest.forClass(net.minecraft.world.entity.item.ItemEntity.class),
+				box, e -> !e.isRemoved()).stream()
+			.sorted(Comparator.comparingDouble(e -> e.distanceToSqr(golem)))
+			.limit(5)
+			.toList();
+		if (items.isEmpty()) {
 			return "{\"ok\":\"附近没有掉落物\"}";
 		}
-		net.minecraft.world.entity.item.ItemEntity item = found.get();
-		ACTIVE_COLLECTS.put(golem.getUUID(), new CollectTask(item.blockPosition(), item.getUUID(),
-			BuiltInRegistries.ITEM.getKey(item.getItem().getItem()).toString()));
-		return "{\"ok\":\"去捡 " + ACTIVE_COLLECTS.get(golem.getUUID()).itemId() + "\"}";
+		net.minecraft.world.entity.item.ItemEntity first = items.get(0);
+		List<UUID> queue = items.subList(1, items.size()).stream().map(net.minecraft.world.entity.Entity::getUUID).toList();
+		ACTIVE_COLLECTS.put(golem.getUUID(), new CollectTask(first.blockPosition(), first.getUUID(),
+			BuiltInRegistries.ITEM.getKey(first.getItem().getItem()).toString(), queue));
+		return "{\"ok\":\"发现 " + items.size() + " 个掉落物，开始逐个捡\"}";
 	}
 
 	private static void tickCollect(CopperGolem golem, ServerLevel level) {
@@ -589,7 +630,7 @@ public final class CopperGolemAiService {
 		golem.setGuaranteedDrop(EquipmentSlot.MAINHAND);
 		golem.setState(CopperGolemState.GETTING_ITEM);
 		level.playSound(null, golem.getX(), golem.getY(), golem.getZ(), SoundEvents.COPPER_GOLEM_ITEM_GET, SoundSource.PLAYERS, 1.0F, 1.0F);
-		// 转入 TRANSPORT：带回最近铜箱（跳过取货，直接放货）
+		// 转入 TRANSPORT：带回最近铜箱（跳过取货，直接放货）；批量链剩余目标随任务传递
 		BlockPos copper = findNearestCopperChest(golem, level, MAX_TRANSPORT_DISTANCE);
 		if (copper == null) {
 			return;
@@ -598,7 +639,7 @@ public final class CopperGolemAiService {
 		CopperGolemAiIntent.TransportRequest req = new CopperGolemAiIntent.TransportRequest(
 			BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(), "copper", copper.getX() + "," + copper.getY() + "," + copper.getZ());
 		ACTIVE_TRANSPORTS.put(golem.getUUID(),
-			new ActiveTransport(req, CopperGolemTransportTask.State.WALK_DEST, task.pos(), copper, req.item(), null, null));
+			new ActiveTransport(req, CopperGolemTransportTask.State.WALK_DEST, task.pos(), copper, req.item(), null, null, task.queue()));
 	}
 
 	/** 开始移动：设 WALK_TARGET（一次性）。返回确认文本。 */
@@ -921,6 +962,26 @@ public final class CopperGolemAiService {
 		golem.clearOpenedChestPos();
 		golem.getBrain().eraseMemory(MemoryModuleType.TRANSPORT_ITEMS_COOLDOWN_TICKS);
 		ACTIVE_TRANSPORTS.remove(golem.getUUID());
+		// collect 批量链：剩余目标 → 自动继续捡
+		if (t.collectQueue() != null && !t.collectQueue().isEmpty()) {
+			continueCollect(golem, t.collectQueue());
+		}
+	}
+
+	/** collect 批量链延续：取队列下一个目标实体 → 注册新 COLLECT。 */
+	private static void continueCollect(CopperGolem golem, List<UUID> queue) {
+		if (queue.isEmpty()) {
+			return;
+		}
+		ServerLevel level = (ServerLevel) golem.level();
+		UUID nextId = queue.get(0);
+		List<UUID> rest = queue.size() > 1 ? queue.subList(1, queue.size()) : List.of();
+		if (!(level.getEntity(nextId) instanceof net.minecraft.world.entity.item.ItemEntity item) || item.isRemoved()) {
+			continueCollect(golem, rest); // 目标消失，跳过继续
+			return;
+		}
+		ACTIVE_COLLECTS.put(golem.getUUID(), new CollectTask(item.blockPosition(), item.getUUID(),
+			BuiltInRegistries.ITEM.getKey(item.getItem().getItem()).toString(), rest));
 	}
 
 	/** 任务提示只发给发起者（不走全局广播，避免泄露对话/刷屏）。 */

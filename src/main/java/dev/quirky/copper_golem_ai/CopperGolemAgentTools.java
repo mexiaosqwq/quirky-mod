@@ -86,6 +86,12 @@ public final class CopperGolemAgentTools {
 
 	// ===== 感知工具 =====
 
+	/** 玩家视线是否朝向傀儡（点积判定）。 */
+	private static boolean lookingAt(net.minecraft.world.entity.Entity golem, ServerPlayer player) {
+		net.minecraft.world.phys.Vec3 toGolem = golem.position().subtract(player.position()).normalize();
+		return toGolem.dot(player.getLookAngle()) > 0.6;
+	}
+
 	/** 附近储物容器（箱子/木桶/潜影盒）内容。copper_only 只看铜箱。 */
 	private static String lookContainers(@Nullable ToolContext ctx, JsonObject args) {
 		if (ctx == null) {
@@ -157,8 +163,10 @@ public final class CopperGolemAgentTools {
 		for (ServerPlayer p : players) {
 			ItemStack held = p.getMainHandItem();
 			String heldName = held.isEmpty() ? "空手" : held.getHoverName().getString();
+			int dist = (int) Math.round(Math.sqrt(p.distanceToSqr(ctx.golem())));
+			String looking = lookingAt(ctx.golem(), p) ? "看着你" : "没看你";
 			out.add(p.getName().getString() + "@(" + (int) p.getX() + "," + (int) p.getY() + "," + (int) p.getZ()
-				+ ") 手持" + heldName + " 血量" + (int) Math.ceil(p.getHealth()));
+				+ ") 距你" + dist + "格 手持" + heldName + " 血量" + (int) Math.ceil(p.getHealth()) + " " + looking);
 		}
 		return "{\"players\":" + GSON.toJson(out) + "}";
 	}
