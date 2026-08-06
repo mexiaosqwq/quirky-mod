@@ -178,7 +178,7 @@ public final class CopperGolemAgentTools {
 							continue; // 末影箱不是铜箱
 						}
 						// 末影箱是玩家绑定容器：内容 = 对话玩家的末影箱数据；无玩家上下文 → 只看得到存在
-						String ownerName = ctx.player() == null ? "?" : ctx.player().getName().getString();
+						String ownerName = ctx.player() == null ? "未知玩家" : ctx.player().getName().getString();
 						net.minecraft.world.Container ec = ctx.player() == null ? null : ctx.player().getEnderChestInventory();
 						List<String> items = new ArrayList<>();
 						int total = 0;

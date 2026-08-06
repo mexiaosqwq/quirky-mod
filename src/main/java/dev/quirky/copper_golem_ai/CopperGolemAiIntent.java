@@ -18,7 +18,7 @@ public final class CopperGolemAiIntent {
 	public record TransportRequest(String item, String source, String destination) {
 	}
 
-	private static final Pattern ITEM_ID = Pattern.compile("^[a-z0-9_.-]+:[a-z0-9_./-]+$");
+	private static final Pattern ITEM_ID = Pattern.compile("^[a-z0-9_.-]+:[a-z0-9_./-]+(×\\d+)?$");
 	private static final Pattern COORDS = Pattern.compile("^-?\\d+,-?\\d+,-?\\d+$");
 
 	private CopperGolemAiIntent() {
@@ -54,6 +54,15 @@ public final class CopperGolemAiIntent {
 	/** 搬运目标合法：copper / give / 坐标 x,y,z。 */
 	public static boolean isPlausibleTarget(String t) {
 		return t != null && (t.equals("copper") || t.equals("give") || COORDS.matcher(t).matches());
+	}
+
+	/** 标准化物品名：剥离 ×N 数量后缀（AI 可能从感知结果带上数量）。 */
+	public static String normalizeItem(String item) {
+		if (item == null) {
+			return "";
+		}
+		int idx = item.indexOf('×');
+		return idx > 0 ? item.substring(0, idx) : item;
 	}
 
 	/** item 必须来自感知结果（knownItems）；"any" 放行。 */

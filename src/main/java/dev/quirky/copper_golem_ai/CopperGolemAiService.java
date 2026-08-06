@@ -628,14 +628,16 @@ public final class CopperGolemAiService {
 	// ===== V1 搬运执行 =====
 
 	/** 处理 transport 意图：白名单 + 准心射线 + 启动搬运；任一不满足 → 提示并放弃。 */
-	/** transport 工具执行：白名单 + knownItems 校验 + 定位 + 注册任务；返回工具结果 JSON（给 AI）。 */
+	/** transport 工具执行：格式校验 + 定位 + 注册任务；返回工具结果 JSON（给 AI）。 */
 	public static String handleTransportRequest(CopperGolem golem, ServerLevel level, @Nullable ServerPlayer player,
 		java.util.Set<String> knownItems, CopperGolemAiIntent.TransportRequest req) {
-		if (!CopperGolemAiIntent.isPlausibleItem(req.item())) {
+		String itemId = CopperGolemAiIntent.normalizeItem(req.item());
+		if (!CopperGolemAiIntent.isPlausibleItem(itemId)) {
 			return "{\"error\":\"物品名不合法\"}";
 		}
-		if (!CopperGolemAiIntent.isKnownItem(req.item(), knownItems)) {
-			return "{\"error\":\"我看不到这个物品（" + req.item() + "），请先 look_containers 查看容器内容\"}";
+		// 放宽白名单：AI 可能凭心跳/之前对话的感知搬物品（knownItems 只收当次 look），找不到会如实报"没找到"
+		if (!CopperGolemAiIntent.isKnownItem(itemId, knownItems)) {
+			LOGGER.info("golem transport item {} not seen this turn, attempting anyway", itemId);
 		}
 		if (!CopperGolemAiIntent.isPlausibleTarget(req.source()) || !CopperGolemAiIntent.isPlausibleTarget(req.destination())) {
 			return "{\"error\":\"搬运目标不合法\"}";
@@ -676,9 +678,9 @@ public final class CopperGolemAiService {
 		golem.getBrain().setMemory(MemoryModuleType.TRANSPORT_ITEMS_COOLDOWN_TICKS, 6000);
 		clearOtherTasks(golem, "transport");
 		ACTIVE_TRANSPORTS.put(golem.getUUID(),
-			new ActiveTransport(req, CopperGolemTransportTask.State.WALK_SOURCE, source, destination, req.item(),
+			new ActiveTransport(req, CopperGolemTransportTask.State.WALK_SOURCE, source, destination, itemId,
 				toPlayer ? player.getUUID() : null, null, null, enderOwner));
-		return "{\"ok\":\"开始搬运 " + req.item() + "\"}";
+		return "{\"ok\":\"开始搬运 " + itemId + "\"}";
 	}
 
 	/** 该位置是否为末影箱方块 → 归属玩家 UUID（无玩家上下文 → null）。 */
