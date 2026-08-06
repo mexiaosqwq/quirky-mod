@@ -500,6 +500,7 @@ public final class CopperGolemAiService {
 		}
 		// 暂停原版运输 AI（调度枢纽：有 cooldown memory 则原版运输行为不启动）
 		golem.getBrain().setMemory(MemoryModuleType.TRANSPORT_ITEMS_COOLDOWN_TICKS, 6000);
+		clearOtherTasks(golem, "transport");
 		ACTIVE_TRANSPORTS.put(golem.getUUID(),
 			new ActiveTransport(req, CopperGolemTransportTask.State.WALK_SOURCE, source, destination, req.item(),
 				toPlayer ? player.getUUID() : null, null));
@@ -549,6 +550,7 @@ public final class CopperGolemAiService {
 
 	/** 开始捡掉落物：找 range 内最近 ItemEntity → 注册 COLLECT 任务。 */
 	public static String startCollect(CopperGolem golem, ServerLevel level, int range) {
+		clearOtherTasks(golem, "collect");
 		AABB box = new AABB(golem.blockPosition()).inflate(range);
 		var found = level.getEntities(EntityTypeTest.forClass(net.minecraft.world.entity.item.ItemEntity.class), box, e -> !e.isRemoved())
 			.stream()
@@ -602,6 +604,7 @@ public final class CopperGolemAiService {
 
 	/** 开始跟随玩家：注册 FOLLOW 任务（tick 持续刷新目标）。 */
 	public static String startFollow(CopperGolem golem, ServerLevel level, String playerName) {
+		clearOtherTasks(golem, "follow");
 		ServerPlayer target = level.players().stream()
 			.filter(p -> p.getName().getString().equals(playerName))
 			.findFirst().orElse(null);
@@ -612,8 +615,8 @@ public final class CopperGolemAiService {
 		return "{\"ok\":\"开始跟着 " + playerName + "\"}";
 	}
 
-	/** 开始接近指定类型生物：找最近同类 → 注册 APPROACH 任务。 */
 	public static String startApproach(CopperGolem golem, ServerLevel level, String entityTypeId) {
+		clearOtherTasks(golem, "approach");
 		var holder = BuiltInRegistries.ENTITY_TYPE.getValue(net.minecraft.resources.Identifier.parse(entityTypeId));
 		if (holder == null) {
 			return "{\"error\":\"未知生物类型 " + entityTypeId + "\"}";
@@ -629,6 +632,28 @@ public final class CopperGolemAiService {
 		return "{\"ok\":\"去看 " + entityTypeId + "\"}";
 	}
 
+	/** 新任务互斥：注册新任务时清掉其他任务（collect 顶 follow、follow 顶 collect……）；except 当前类型保留。 */
+	private static void clearOtherTasks(CopperGolem golem, String keep) {
+		UUID golemId = golem.getUUID();
+		if (!"follow".equals(keep)) {
+			ACTIVE_FOLLOWS.remove(golemId);
+		}
+		if (!"approach".equals(keep)) {
+			ACTIVE_APPROACHES.remove(golemId);
+		}
+		if (!"collect".equals(keep)) {
+			ACTIVE_COLLECTS.remove(golemId);
+		}
+		if (!"transport".equals(keep)) {
+			ActiveTransport t = ACTIVE_TRANSPORTS.remove(golemId);
+			if (t != null && t.openPos() != null) {
+				// 打开中的箱子关闭（放回物品由 doPut 已处理；仅关动画）
+				if (golem.level().getBlockEntity(t.openPos()) instanceof Container c) {
+					c.stopOpen(golem);
+				}
+			}
+		}
+	}
 	/** 停止全部行动（移动/跟随/接近/搬运），恢复待机。 */
 	public static String stopAll(CopperGolem golem) {
 		ACTIVE_FOLLOWS.remove(golem.getUUID());

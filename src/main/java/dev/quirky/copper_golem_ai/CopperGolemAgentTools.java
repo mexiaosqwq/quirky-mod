@@ -37,7 +37,7 @@ public final class CopperGolemAgentTools {
 	/** 10 工具声明（OpenAI 兼容 tools 数组）。感知 4 + 行动 5 + transport。 */
 	public static final String TOOLS_JSON =
 		"["
-			+ "{\"type\":\"function\",\"function\":{\"name\":\"look_containers\",\"description\":\"查看附近容器里的物品（箱子/木桶/潜影盒），返回位置+物品清单\",\"parameters\":{\"type\":\"object\",\"properties\":{\"range\":{\"type\":\"integer\",\"description\":\"搜索半径格，默认16\"},\"copper_only\":{\"type\":\"boolean\",\"description\":\"只看铜箱\"}},\"required\":[]}}},"
+			+ "{\"type\":\"function\",\"function\":{\"name\":\"look_containers\",\"description\":\"查看附近容器里的物品（箱子/木桶/潜影盒），返回位置+物品清单；物品ID必须从这里获取才能搬运\",\"parameters\":{\"type\":\"object\",\"properties\":{\"range\":{\"type\":\"integer\",\"description\":\"搜索半径格，默认32\"},\"copper_only\":{\"type\":\"boolean\",\"description\":\"只看铜箱\"}},\"required\":[]}}},"
 			+ "{\"type\":\"function\",\"function\":{\"name\":\"get_player_status\",\"description\":\"查看附近的玩家：名字/位置/手持物品/血量\",\"parameters\":{\"type\":\"object\",\"properties\":{},\"required\":[]}}},"
 			+ "{\"type\":\"function\",\"function\":{\"name\":\"get_world_info\",\"description\":\"查看世界状态：时间/天气/生物群系\",\"parameters\":{\"type\":\"object\",\"properties\":{},\"required\":[]}}},"
 			+ "{\"type\":\"function\",\"function\":{\"name\":\"get_self_status\",\"description\":\"查看自己的状态：位置/手持物品/头顶天线/当前任务\",\"parameters\":{\"type\":\"object\",\"properties\":{},\"required\":[]}}},"
@@ -45,7 +45,7 @@ public final class CopperGolemAgentTools {
 			+ "{\"type\":\"function\",\"function\":{\"name\":\"follow_player\",\"description\":\"跟随玩家（保持2-3格距离），说停下/stop 取消\",\"parameters\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"玩家名字\"}},\"required\":[\"name\"]}}},"
 			+ "{\"type\":\"function\",\"function\":{\"name\":\"approach_entity\",\"description\":\"走到附近指定类型的生物旁\",\"parameters\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"description\":\"生物类型，如 sheep/zombie/player\"}},\"required\":[\"type\"]}}},"
 			+ "{\"type\":\"function\",\"function\":{\"name\":\"stop\",\"description\":\"停止所有行动（移动/跟随/搬运），恢复待机\",\"parameters\":{\"type\":\"object\",\"properties\":{},\"required\":[]}}},"
-			+ "{\"type\":\"function\",\"function\":{\"name\":\"collect_dropped_items\",\"description\":\"捡起附近地上的掉落物并放进最近的铜箱\",\"parameters\":{\"type\":\"object\",\"properties\":{\"range\":{\"type\":\"integer\",\"description\":\"搜索半径格，默认16\"}},\"required\":[]}}},"
+			+ "{\"type\":\"function\",\"function\":{\"name\":\"collect_dropped_items\",\"description\":\"捡起附近地上的掉落物并自动放进64格内最近的铜箱；一次捡一个，可重复调用捡多个\",\"parameters\":{\"type\":\"object\",\"properties\":{\"range\":{\"type\":\"integer\",\"description\":\"搜索半径格，默认16\"}},\"required\":[]}}},"
 			+ "{\"type\":\"function\",\"function\":{\"name\":\"transport\",\"description\":\"把物品在容器之间搬运；item 必须引用 look_containers 返回的真实物品ID；source/destination 用 look_containers 返回的坐标(如 12,64,-8)或 copper；destination 可为 give=直接给玩家\",\"parameters\":{\"type\":\"object\",\"properties\":{\"item\":{\"type\":\"string\",\"description\":\"物品ID，必须来自 look_containers 结果\"},\"source\":{\"type\":\"string\",\"description\":\"取货来源：坐标或 copper\"},\"destination\":{\"type\":\"string\",\"description\":\"放货目标：坐标/copper/give\"}},\"required\":[\"item\",\"source\",\"destination\"]}}}]";
 
 	/** 工具执行上下文。knownItems=本回合 look_containers 已感知的物品 ID（transport 引用校验用）。 */
@@ -91,7 +91,7 @@ public final class CopperGolemAgentTools {
 		if (ctx == null) {
 			return "{\"error\":\"no context\"}";
 		}
-		int range = rangeOf(args, 16);
+		int range = rangeOf(args, 32);
 		boolean copperOnly = args.has("copper_only") && args.get("copper_only").getAsBoolean();
 		BlockPos golemPos = ctx.golem().blockPosition();
 		List<ContainerInfo> found = new ArrayList<>();
