@@ -75,6 +75,7 @@ public final class CopperGolemAiService {
 	private static final Map<UUID, CollectTask> ACTIVE_COLLECTS = new ConcurrentHashMap<>(); // golemId → 掉落物
 	private static final ConcurrentLinkedQueue<Runnable> PENDING_TASKS = new ConcurrentLinkedQueue<>();
 	private static final Map<UUID, Boolean> PENDING_REPLIES = new ConcurrentHashMap<>(); // golemId → 对话请求在途（心跳 busy 检查用）
+	private static final Map<UUID, UUID> CHAT_PLAYERS = new ConcurrentHashMap<>(); // golemId → 对话玩家（在途时傀儡转头看着他）
 
 	/** 傀儡间留言（tell_golem）：A 传给 B 的话，B 下次心跳/对话时注入并消费。 */
 	private record GolemMessage(String fromName, String text, long expireTick) {
@@ -433,13 +434,13 @@ public final class CopperGolemAiService {
 			return true;
 		}
 		golem.setCustomName(Component.literal(CopperGolemRename.truncate(text)));
+		triggerSpin(golem); // 命名成功 → 转圈庆祝
 		level.playSound(null, golem.getX(), golem.getY(), golem.getZ(), SoundEvents.COPPER_GOLEM_ITEM_GET, SoundSource.PLAYERS, 1.0F, 1.0F);
 		player.sendSystemMessage(Component.literal("[" + golem.getDisplayName().getString() + "] 记住了，以后叫我 " + CopperGolemRename.truncate(text) + "！")
 			.withStyle(ChatFormatting.DARK_AQUA));
 		return true;
 	}
 
-	/** 工具执行 dispatch 到服务端 tick 线程：副作用（Brain 记忆/entityData/容器）必须在游戏线程；IO 线程阻塞等待结果。 */
 	/** 工具执行 dispatch 到服务端 tick 线程：副作用（Brain 记忆/entityData/容器）必须在游戏线程；IO 线程阻塞等待结果。
 	 *  ctx 由 loop 级创建（一次对话/心跳共享）：knownItems 在工具间累积（look → transport 同一轮有效）。 */
 	private static String executeOnServerThread(@Nullable ServerPlayer player, CopperGolem golem,
@@ -527,12 +528,16 @@ public final class CopperGolemAiService {
 		int delta = CopperGolemAgentMood.processWord(text);
 		if (delta != 0) {
 			MOOD_SCORES.merge(golem.getUUID(), delta, Integer::sum);
+			if (delta > 0) {
+				triggerSpin(golem); // 被夸 → 开心转圈
+			}
 		}
 		String systemPrompt = buildSystemPrompt(golem, player);
 		CopperGolemAgentLoop loop = new CopperGolemAgentLoop(config, systemPrompt, session.messages(), text);
 		CopperGolemAgentTools.ToolContext ctx = new CopperGolemAgentTools.ToolContext(golem,
 			(ServerLevel) player.level(), player, new java.util.HashSet<>());
 		PENDING_REPLIES.put(golem.getUUID(), true); // 对话在途（心跳 busy 检查）
+		CHAT_PLAYERS.put(golem.getUUID(), player.getUUID()); // 转头看向说话者
 		IO.submit(() -> {
 			try {
 				String reply = loop.run(
@@ -540,6 +545,7 @@ public final class CopperGolemAiService {
 					(name, args) -> executeOnServerThread(player, golem, ctx, name, args));
 				PENDING_TASKS.add(() -> {
 					PENDING_REPLIES.remove(golem.getUUID());
+					CHAT_PLAYERS.remove(golem.getUUID());
 					GOLEM_MESSAGE_REPLYING.remove(golem.getUUID()); // 对话可能消费过留言，防下次心跳误放行
 					LOGGER.info("golem reply: {}", reply);
 					session.addGolemReply(reply);
@@ -547,6 +553,7 @@ public final class CopperGolemAiService {
 				});
 			} catch (Exception e) {
 				PENDING_REPLIES.remove(golem.getUUID());
+				CHAT_PLAYERS.remove(golem.getUUID());
 				GOLEM_MESSAGE_REPLYING.remove(golem.getUUID());
 				LOGGER.warn("Copper golem AI request failed: {}", e.toString());
 			}
@@ -623,6 +630,7 @@ public final class CopperGolemAiService {
 	/** 最近被闪电劈的时间（tick）。 */
 	public static void recordLightning(CopperGolem golem) {
 		LAST_LIGHTNING.put(golem.getUUID(), golem.level().getGameTime());
+		triggerSpin(golem); // 被雷劈（除锈）→ 兴奋转圈
 	}
 
 	/** 闪电感知描述（get_self_status 用）。 */
@@ -648,6 +656,8 @@ public final class CopperGolemAiService {
 		GOLEM_MESSAGES.clear();
 		GOLEM_MESSAGE_REPLYING.clear();
 		PENDING_REPLIES.clear();
+		CHAT_PLAYERS.clear();
+		SPIN_TICKS.clear();
 		LAST_HEARTBEAT_TICK.clear();
 		LAST_CHATTER_TICK.clear();
 		MOOD_SCORES.clear();
@@ -1024,6 +1034,52 @@ public final class CopperGolemAiService {
 		tickCollect(golem, level);
 		tickTransportTask(golem, level);
 		tickMove(golem, level);
+		tickChatLook(golem, level);
+		tickSpin(golem, level);
+	}
+
+	/** 对话在途：傀儡转头看向说话玩家（原版 LookAtTargetSink 消费 LOOK_TARGET）。 */
+	private static void tickChatLook(CopperGolem golem, ServerLevel level) {
+		UUID playerId = CHAT_PLAYERS.get(golem.getUUID());
+		if (playerId == null) {
+			return;
+		}
+		ServerPlayer player = level.getServer().getPlayerList().getPlayer(playerId);
+		if (player == null || !player.isAlive() || player.level() != level) {
+			CHAT_PLAYERS.remove(golem.getUUID());
+			return;
+		}
+		golem.getBrain().setMemory(MemoryModuleType.LOOK_TARGET,
+			new net.minecraft.world.entity.ai.behavior.EntityTracker(player, true));
+	}
+
+	/** 情绪转圈：yRot 服务端推进 360°/2 秒（40 tick × 9°）+ 开始播 COPPER_GOLEM_SPIN。 */
+	private static final int SPIN_TICKS_TOTAL = 40;
+	private static final Map<UUID, Integer> SPIN_TICKS = new ConcurrentHashMap<>(); // golemId → 剩余 tick
+
+	/** 触发转圈（幂等：转圈中不重置）。 */
+	public static void triggerSpin(CopperGolem golem) {
+		if (SPIN_TICKS.containsKey(golem.getUUID())) {
+			return;
+		}
+		SPIN_TICKS.put(golem.getUUID(), SPIN_TICKS_TOTAL);
+		if (golem.level() instanceof ServerLevel level) {
+			level.playSound(null, golem.getX(), golem.getY(), golem.getZ(), SoundEvents.COPPER_GOLEM_SPIN,
+				SoundSource.PLAYERS, 1.0F, 1.0F);
+		}
+	}
+
+	private static void tickSpin(CopperGolem golem, ServerLevel level) {
+		Integer left = SPIN_TICKS.get(golem.getUUID());
+		if (left == null) {
+			return;
+		}
+		if (left <= 0) {
+			SPIN_TICKS.remove(golem.getUUID());
+			return;
+		}
+		golem.setYRot(golem.getYRot() + 9.0F);
+		SPIN_TICKS.put(golem.getUUID(), left - 1);
 	}
 
 	private static void tickFollow(CopperGolem golem, ServerLevel level) {
@@ -1206,7 +1262,9 @@ public final class CopperGolemAiService {
 		level.playSound(null, golem.getX(), golem.getY(), golem.getZ(), SoundEvents.COPPER_GOLEM_ITEM_DROP, SoundSource.PLAYERS, 1.0F, 1.0F);
 		if (!left.isEmpty()) {
 			replyTo(golem, level, t, "箱子放不下了，剩下的我先拿着");
+			return;
 		}
+		triggerSpin(golem); // 搬完 → 小转圈
 	}
 
 	/** 取指定物品（≤16）："any" 取第一个非空槽，否则按注册表解析的 Item 匹配。 */
