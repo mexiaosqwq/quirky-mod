@@ -236,6 +236,7 @@ public final class CopperGolemAgentTools {
 		if (target == null) {
 			return "{\"error\":\"invalid coords\"}";
 		}
+		CopperGolemAiService.clearOtherTasks(ctx.golem(), "move"); // 新目标顶掉旧任务（与其余行动工具一致）
 		return CopperGolemAiService.startMove(ctx.golem(), target);
 	}
 

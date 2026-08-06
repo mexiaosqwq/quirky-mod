@@ -74,6 +74,7 @@ public final class CopperGolemAiService {
 	private static final Map<UUID, UUID> ACTIVE_APPROACHES = new ConcurrentHashMap<>(); // golemId → entityId
 	private static final Map<UUID, CollectTask> ACTIVE_COLLECTS = new ConcurrentHashMap<>(); // golemId → 掉落物
 	private static final ConcurrentLinkedQueue<Runnable> PENDING_TASKS = new ConcurrentLinkedQueue<>();
+	private static final Map<UUID, Boolean> PENDING_REPLIES = new ConcurrentHashMap<>(); // golemId → 对话请求在途（心跳 busy 检查用）
 	private static final int MAX_TRANSPORT_DISTANCE = 64;
 	private static final int TARGETED_RAYCAST_DISTANCE = 6;
 	private static volatile boolean initialized = false;
@@ -144,8 +145,9 @@ public final class CopperGolemAiService {
 			for (CopperGolem golem : level.getEntities(EntityTypeTest.forClass(CopperGolem.class), e -> !e.isRemoved())) {
 				UUID golemId = golem.getUUID();
 				Long last = LAST_HEARTBEAT_TICK.get(golemId);
-				// busy 只挡"正在干活"的任务（搬运/捡取中）；跟随/接近是自主行动，不挡心跳
-				boolean busy = ACTIVE_TRANSPORTS.containsKey(golemId) || ACTIVE_COLLECTS.containsKey(golemId);
+				// busy 只挡"正在干活"的任务（搬运/捡取中）+ 对话在途；跟随/接近是自主行动，不挡心跳
+				boolean busy = ACTIVE_TRANSPORTS.containsKey(golemId) || ACTIVE_COLLECTS.containsKey(golemId)
+					|| PENDING_REPLIES.containsKey(golemId);
 				boolean playerNearby = !level.getEntities(EntityTypeTest.forClass(net.minecraft.server.level.ServerPlayer.class),
 					new AABB(golem.blockPosition()).inflate(CopperGolemHeartbeat.HEARTBEAT_PLAYER_RANGE), e -> !e.isRemoved()).isEmpty();
 				if (!CopperGolemHeartbeat.shouldHeartbeat(interval, nowTick, last == null ? 0 : last, playerNearby, busy)) {
@@ -223,8 +225,11 @@ public final class CopperGolemAiService {
 			try {
 				String reply = loop.run(
 					body -> post(CopperGolemAiHttp.endpoint(QuirkyConfigHolder.get()), QuirkyConfigHolder.get().aiApiKey, body),
-					(name, args) -> CopperGolemAgentTools.execute(name, args, ctx));
+					(name, args) -> executeOnServerThread(null, golem, name, args));
 				PENDING_TASKS.add(() -> {
+					if (golem.isRemoved()) {
+						return; // 傀儡已死/消失：不广播
+					}
 					if (reply == null || reply.isBlank() || reply.equals("无事") || reply.contains("无事")) {
 						LOGGER.info("heartbeat golem {} silent: {}", golem.getUUID(), reply == null ? "null" : reply);
 						return; // 静默
@@ -394,6 +399,27 @@ public final class CopperGolemAiService {
 		return true;
 	}
 
+	/** 工具执行 dispatch 到服务端 tick 线程：副作用（Brain 记忆/entityData/容器）必须在游戏线程；IO 线程阻塞等待结果。 */
+	private static String executeOnServerThread(@Nullable ServerPlayer player, CopperGolem golem, String name, String args) {
+		if (!(golem.level() instanceof ServerLevel level)) {
+			return "{\"error\":\"no server level\"}";
+		}
+		CopperGolemAgentTools.ToolContext ctx = new CopperGolemAgentTools.ToolContext(golem, level, player, new java.util.HashSet<>());
+		java.util.concurrent.CompletableFuture<String> future = new java.util.concurrent.CompletableFuture<>();
+		level.getServer().execute(() -> {
+			try {
+				future.complete(CopperGolemAgentTools.execute(name, args, ctx));
+			} catch (Throwable t) {
+				future.complete("{\"error\":\"" + t.getClass().getSimpleName() + "\"}");
+			}
+		});
+		try {
+			return future.get(30, java.util.concurrent.TimeUnit.SECONDS);
+		} catch (Exception e) {
+			return "{\"error\":\"tool timeout\"}";
+		}
+	}
+
 	private static void requestReply(ServerPlayer player, CopperGolem golem, CopperGolemAiHistory.GolemSession session, QuirkyConfig config, String text) {
 		int delta = CopperGolemAgentMood.processWord(text);
 		if (delta != 0) {
@@ -401,18 +427,20 @@ public final class CopperGolemAiService {
 		}
 		String systemPrompt = buildSystemPrompt(golem);
 		CopperGolemAgentLoop loop = new CopperGolemAgentLoop(config, systemPrompt, session.messages(), text);
-		CopperGolemAgentTools.ToolContext ctx = new CopperGolemAgentTools.ToolContext(golem, (ServerLevel) player.level(), player, new java.util.HashSet<>());
+		PENDING_REPLIES.put(golem.getUUID(), true); // 对话在途（心跳 busy 检查）
 		IO.submit(() -> {
 			try {
 				String reply = loop.run(
 					body -> post(CopperGolemAiHttp.endpoint(config), config.aiApiKey, body),
-					(name, args) -> CopperGolemAgentTools.execute(name, args, ctx));
+					(name, args) -> executeOnServerThread(player, golem, name, args));
 				PENDING_TASKS.add(() -> {
+					PENDING_REPLIES.remove(golem.getUUID());
 					LOGGER.info("golem reply: {}", reply);
 					session.addGolemReply(reply);
 					reply(player, golem, reply);
 				});
 			} catch (Exception e) {
+				PENDING_REPLIES.remove(golem.getUUID());
 				LOGGER.warn("Copper golem AI request failed: {}", e.toString());
 			}
 		});
@@ -609,7 +637,6 @@ public final class CopperGolemAiService {
 	/** 开始捡掉落物：找 range 内最近 ItemEntity → 注册 COLLECT 任务。 */
 	/** 清扫掉落物：找附近全部掉落物（最多 64 个安全上限），逐个捡并自动放铜箱；队列自动延续到捡完或被打断。 */
 	public static String startCollect(CopperGolem golem, ServerLevel level, int range) {
-		clearOtherTasks(golem, "collect");
 		AABB box = new AABB(golem.blockPosition()).inflate(range);
 		List<net.minecraft.world.entity.item.ItemEntity> all = level.getEntities(EntityTypeTest.forClass(net.minecraft.world.entity.item.ItemEntity.class),
 				box, e -> !e.isRemoved()).stream()
@@ -618,6 +645,7 @@ public final class CopperGolemAiService {
 		if (all.isEmpty()) {
 			return "{\"ok\":\"附近没有掉落物\"}";
 		}
+		clearOtherTasks(golem, "collect"); // 确认有活干才顶掉其他任务（防空操作误杀）
 		boolean truncated = all.size() > 64;
 		List<net.minecraft.world.entity.item.ItemEntity> items = all.subList(0, Math.min(all.size(), 64));
 		net.minecraft.world.entity.item.ItemEntity first = items.get(0);
@@ -640,6 +668,23 @@ public final class CopperGolemAiService {
 		var entity = level.getEntity(task.itemEntityId());
 		if (!(entity instanceof net.minecraft.world.entity.item.ItemEntity item) || item.isRemoved()) {
 			continueCollect(golem, task.queue()); // 目标消失：跳过它，批量链继续
+			return;
+		}
+		// 主手非空（搬运中/放不下残留/铜箱缺失滞留）：先把手里的放回铜箱，再回来捡当前目标（防 setItemSlot 静默销毁旧物品）
+		if (!golem.getMainHandItem().isEmpty()) {
+			BlockPos copper = findNearestCopperChest(golem, level, MAX_TRANSPORT_DISTANCE);
+			if (copper == null) {
+				return; // 无铜箱可放：保留手里物品，放弃本次捡取（不销毁任何东西）
+			}
+			List<UUID> newQueue = new java.util.ArrayList<>();
+			newQueue.add(task.itemEntityId()); // 队列头 = 当前没捡成的目标
+			newQueue.addAll(task.queue());
+			golem.getBrain().setMemory(MemoryModuleType.TRANSPORT_ITEMS_COOLDOWN_TICKS, 6000);
+			CopperGolemAiIntent.TransportRequest req = new CopperGolemAiIntent.TransportRequest(
+				BuiltInRegistries.ITEM.getKey(golem.getMainHandItem().getItem()).toString(), "copper",
+				copper.getX() + "," + copper.getY() + "," + copper.getZ());
+			ACTIVE_TRANSPORTS.put(golem.getUUID(),
+				new ActiveTransport(req, CopperGolemTransportTask.State.WALK_DEST, golem.blockPosition(), copper, req.item(), null, null, newQueue));
 			return;
 		}
 		ItemStack stack = item.getItem();
@@ -697,7 +742,7 @@ public final class CopperGolemAiService {
 	}
 
 	/** 新任务互斥：注册新任务时清掉其他任务（collect 顶 follow、follow 顶 collect……）；except 当前类型保留。 */
-	private static void clearOtherTasks(CopperGolem golem, String keep) {
+	static void clearOtherTasks(CopperGolem golem, String keep) {
 		UUID golemId = golem.getUUID();
 		if (!"follow".equals(keep)) {
 			ACTIVE_FOLLOWS.remove(golemId);
@@ -774,7 +819,7 @@ public final class CopperGolemAiService {
 			return;
 		}
 		ServerPlayer player = level.getServer().getPlayerList().getPlayer(playerId);
-		if (player == null || !player.isAlive()) {
+		if (player == null || !player.isAlive() || player.level() != level) {
 			ACTIVE_FOLLOWS.remove(golem.getUUID());
 			return;
 		}
@@ -815,7 +860,13 @@ public final class CopperGolemAiService {
 				? t.source()
 				: (t.givePlayerId() != null ? giveTarget(level, t) : t.destination());
 			if (target == null) {
-				// give 且玩家不在 → 中止
+				// give 且玩家不在/跨维度 → 中止；手里物品放回源容器（防滞留后塞错箱子）
+				if (t.givePlayerId() != null && !golem.getMainHandItem().isEmpty() && t.source() != null) {
+					if (level.getBlockEntity(t.source()) instanceof Container c) {
+						addToContainer(c, golem.getMainHandItem());
+						golem.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+					}
+				}
 				finishTransport(golem, t);
 				return;
 			}
@@ -847,13 +898,13 @@ public final class CopperGolemAiService {
 			return null;
 		}
 		ServerPlayer player = level.getServer().getPlayerList().getPlayer(t.givePlayerId());
-		return player != null && player.isAlive() ? player.blockPosition() : null;
+		return player != null && player.isAlive() && player.level() == level ? player.blockPosition() : null;
 	}
 
 	/** 递物品给玩家：走到面前 → 面朝玩家 → 掉落物交付 + 音效。 */
 	private static void doGive(CopperGolem golem, ServerLevel level, ActiveTransport t) {
 		ServerPlayer player = level.getServer().getPlayerList().getPlayer(t.givePlayerId());
-		if (player == null || !player.isAlive()) {
+		if (player == null || !player.isAlive() || player.level() != level) {
 			replyTo(golem, level, t, "你不在，东西我先放回箱子了");
 			if (t.source() != null && containerAt(level, t.source()) != null) {
 				addToContainer(containerAt(level, t.source()), golem.getMainHandItem());

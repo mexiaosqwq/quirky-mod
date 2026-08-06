@@ -165,7 +165,7 @@ public class QuirkyConfig implements ConfigData {
 	// ==== AI 组：铜傀儡 AI 对话参数 ====
 
 	@ConfigEntry.Category("ai")
-	@ConfigEntry.BoundedDiscrete(min = 10, max = 300)
+	@ConfigEntry.BoundedDiscrete(min = 0, max = 300)
 	@ConfigEntry.Gui.Tooltip
 	public int heartbeatIntervalSeconds = 30;
 
