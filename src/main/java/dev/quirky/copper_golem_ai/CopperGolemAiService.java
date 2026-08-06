@@ -178,7 +178,7 @@ public final class CopperGolemAiService {
 			: "你头顶戴着" + antenna.getHoverName().getString() + "，可以自然地炫耀或回应关于它的提问。";
 		CopperGolemAgentMood.Mood mood = CopperGolemAgentMood.moodFor(MOOD_SCORES.getOrDefault(golem.getUUID(), 0));
 		String chatter = chatPlayer == null ? ""
-			: "[对话者]" + chatPlayer.getName().getString() + " 正在跟你说话——直接回应它，称它" + chatPlayer.getName().getString() + "。";
+			: "[玩家]" + chatPlayer.getName().getString() + " 正在跟你说话——直接回应它，称它" + chatPlayer.getName().getString() + "。";
 		return CopperGolemAiHttp.SYSTEM_PROMPT.replace("{NAME}", name) + "\n"
 			+ chatter + realtimeContext(golem) + consumeGolemMessages(golem) + antennaLine + CopperGolemAgentMood.toPrompt(mood);
 	}
