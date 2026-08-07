@@ -19,7 +19,8 @@ public final class CopperGolemAgentLoop {
 	public static final int MAX_ROUNDS = 20;
 	/** 动作指令零工具的强制重试上限（仍零工具 → 放弃，AI 如实说）。 */
 	public static final int MAX_ACTION_RETRIES = 2;
-	private static final String FALLBACK_REPLY = "我有点走神了";
+	/** 20 轮硬停/空回复的兜底文本（心跳轮须静默，不播报）。 */
+	public static final String FALLBACK_REPLY = "我有点走神了";
 
 	@FunctionalInterface
 	public interface Api {
@@ -84,12 +85,14 @@ public final class CopperGolemAgentLoop {
 				}
 				return finalReply;
 			}
-			anyToolCalled = true;
 			if (reply != null) {
 				lastReply = reply;
 			}
 			List<String> results = new ArrayList<>();
 			for (CopperGolemAiHttp.ToolCall call : calls) {
+				if (CopperGolemAgentTools.isActionTool(call.name())) {
+					anyToolCalled = true; // 调过行动工具（含失败）= 已动手；纯感知不算（防"说停下只 look 不 stop"漏检）
+				}
 				try {
 					results.add(executor.execute(call.name(), call.arguments()));
 				} catch (Exception e) {

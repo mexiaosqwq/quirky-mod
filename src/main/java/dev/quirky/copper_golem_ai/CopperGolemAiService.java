@@ -317,7 +317,13 @@ public final class CopperGolemAiService {
 			+ "看一圈（最多两次感知工具）就动手干，别反复查看；搬箱子里东西时 transport 的 destination 直接写 copper（最近的铜箱）或末影箱坐标，不用等玩家指定目标。"
 			+ "说话纪律（防刷屏）：纯巡逻结果（天气/时间/箱子盘点/地上没东西）一律不播报，回：无事；只有三种情况才说话——①干完了实事（捡了/搬了/走到了）②玩家主动看你或问你③发现危险或玩家相关的重要事。";
 		CopperGolemAgentLoop loop = new CopperGolemAgentLoop(QuirkyConfigHolder.get(), systemPrompt, List.of(), "[自主行动时间]");
-		CopperGolemAgentTools.ToolContext ctx = new CopperGolemAgentTools.ToolContext(golem, level, null, new java.util.HashSet<>());
+		// 心跳轮把附近最近玩家传入工具上下文：末影箱访问/内容显示需要归属玩家（player=null 时 containerAt 拒绝末影箱，
+		// 实锤：AI 搬末影箱连续 4 次报"末影箱需玩家在场"，只能反复重试）
+		ServerPlayer nearby = level.getEntities(EntityTypeTest.forClass(ServerPlayer.class),
+				new AABB(golem.blockPosition()).inflate(CopperGolemHeartbeat.HEARTBEAT_PLAYER_RANGE), e -> !e.isRemoved()).stream()
+			.min(Comparator.comparingDouble(p -> p.distanceToSqr(golem)))
+			.orElse(null);
+		CopperGolemAgentTools.ToolContext ctx = new CopperGolemAgentTools.ToolContext(golem, level, nearby, new java.util.HashSet<>());
 		IO.submit(() -> {
 			try {
 				String reply = loop.run(
@@ -335,9 +341,10 @@ public final class CopperGolemAiService {
 					if (CopperGolemAiIntent.isDoneStatement(reply)) {
 						PENDING_GOALS.remove(golem.getUUID()); // AI 宣布办完 → 不再接力
 					}
-					if (reply == null || reply.isBlank() || reply.equals("无事") || reply.contains("无事")) {
+					if (reply == null || reply.isBlank() || reply.equals("无事") || reply.contains("无事")
+						|| CopperGolemAgentLoop.FALLBACK_REPLY.equals(reply)) {
 						LOGGER.info("heartbeat golem {} silent: {}", golem.getUUID(), reply == null ? "null" : reply);
-						return; // 静默
+						return; // 静默（含 20 轮硬停兜底——卡循环不播报）
 					}
 					Long lastChatter = LAST_CHATTER_TICK.get(golem.getUUID());
 					if (lastChatter != null && nowTick - lastChatter < CopperGolemHeartbeat.CHATTER_COOLDOWN_TICKS

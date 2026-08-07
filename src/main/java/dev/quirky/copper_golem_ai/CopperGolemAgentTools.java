@@ -478,4 +478,12 @@ public final class CopperGolemAgentTools {
 			return null;
 		}
 	}
+
+	/** 行动工具（执行即"已动手"）：对话硬校验跨轮判定用——纯感知不算，防"说停下只 look 不 stop"漏检。 */
+	public static boolean isActionTool(String name) {
+		return switch (name) {
+			case "move_to", "follow_player", "approach_entity", "stop", "transport", "collect_dropped_items" -> true;
+			default -> false;
+		};
+	}
 }

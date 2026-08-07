@@ -156,4 +156,25 @@ class CopperGolemLoopTest {
 		assertEquals("东西放好了", reply);
 		assertEquals(2, calls.get());
 	}
+
+	@Test
+	void perceptionOnlyStillForcesActionRetry() throws Exception {
+		// 只调过感知工具（look_containers）不算"已动手"——说"搬"却只 look 不 transport 仍触发硬校验
+		java.util.concurrent.atomic.AtomicInteger calls = new java.util.concurrent.atomic.AtomicInteger();
+		var loop = new CopperGolemAgentLoop(new QuirkyConfig(), "你是铜傀儡", List.of(), "把黑曜石搬到末影箱");
+		String reply = loop.run(body -> {
+			calls.incrementAndGet();
+			if (calls.get() == 1) {
+				return "{\"choices\":[{\"message\":{\"content\":null,\"tool_calls\":[{\"id\":\"a\",\"function\":{\"name\":\"look_containers\","
+					+ "\"arguments\":\"{\\\"range\\\":32}\"}}]}}]}";
+			}
+			String all = JsonParser.parseString(body).getAsJsonObject().getAsJsonArray("messages").toString();
+			if (calls.get() == 3) {
+				assertTrue(all.contains("光说不做"), "只调感知工具后纯文本仍应硬校验: " + all);
+			}
+			return "{\"choices\":[{\"message\":{\"content\":\"好\"}}]}";
+		}, (name, args) -> "{\"ok\":true}");
+		assertEquals("好", reply);
+		assertEquals(4, calls.get()); // 1 轮感知 + 2 次硬校验重试 + 1 次最终
+	}
 }

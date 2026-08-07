@@ -76,4 +76,22 @@ class CopperGolemAgentToolsTest {
 		args.addProperty("range", 0);
 		assertEquals(16, CopperGolemAgentTools.rangeOf(args, 16, 64));
 	}
+
+	@Test
+	void actionToolClassification() {
+		// 行动工具 = 执行玩家指令（含失败也算已动手）；纯感知不算（防"说停下只 look 不 stop"漏过硬校验）
+		assertTrue(CopperGolemAgentTools.isActionTool("transport"));
+		assertTrue(CopperGolemAgentTools.isActionTool("stop"));
+		assertTrue(CopperGolemAgentTools.isActionTool("follow_player"));
+		assertTrue(CopperGolemAgentTools.isActionTool("move_to"));
+		assertTrue(CopperGolemAgentTools.isActionTool("approach_entity"));
+		assertTrue(CopperGolemAgentTools.isActionTool("collect_dropped_items"));
+		assertFalse(CopperGolemAgentTools.isActionTool("look_containers"));
+		assertFalse(CopperGolemAgentTools.isActionTool("get_player_status"));
+		assertFalse(CopperGolemAgentTools.isActionTool("get_world_info"));
+		assertFalse(CopperGolemAgentTools.isActionTool("get_self_status"));
+		assertFalse(CopperGolemAgentTools.isActionTool("scan_mobs"));
+		assertFalse(CopperGolemAgentTools.isActionTool("tell_golem"));
+		assertFalse(CopperGolemAgentTools.isActionTool("unknown_tool"));
+	}
 }
