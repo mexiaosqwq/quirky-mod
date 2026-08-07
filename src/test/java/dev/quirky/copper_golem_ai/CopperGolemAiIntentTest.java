@@ -71,4 +71,20 @@ class CopperGolemAiIntentTest {
 		assertTrue(CopperGolemAiIntent.isKnownItem("any", known));
 		assertFalse(CopperGolemAiIntent.isKnownItem("minecraft:diamond", known));
 	}
+
+	@Test
+	void actionIntentWords() {
+		assertTrue(CopperGolemAiIntent.hasActionIntent("把黑曜石搬到末影箱"));
+		assertTrue(CopperGolemAiIntent.hasActionIntent("帮我捡一下地上的东西"));
+		assertTrue(CopperGolemAiIntent.hasActionIntent("跟着我"));
+		assertFalse(CopperGolemAiIntent.hasActionIntent("附近有什么"));
+		assertFalse(CopperGolemAiIntent.hasActionIntent("你真棒"));
+	}
+
+	@Test
+	void doneStatementWords() {
+		assertTrue(CopperGolemAiIntent.isDoneStatement("搬完了，放好了"));
+		assertTrue(CopperGolemAiIntent.isDoneStatement("搞定！"));
+		assertFalse(CopperGolemAiIntent.isDoneStatement("我这就去搬"));
+	}
 }

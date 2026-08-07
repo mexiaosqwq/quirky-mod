@@ -67,6 +67,10 @@ public final class CopperGolemAiService {
 	private static final Map<UUID, Long> LAST_HEARTBEAT_TICK = new ConcurrentHashMap<>(); // golemId → 下次触发 tick（含随机抖动相位）
 	private static final Map<UUID, Long> LAST_CHATTER_TICK = new ConcurrentHashMap<>();
 	private static final Map<UUID, String> LAST_HEARTBEAT_SUMMARY = new ConcurrentHashMap<>(); // golemId → 上轮心跳结论（注入下轮，防重复 look）
+	private record GoalEntry(long tick, String text) {
+	}
+
+	private static final Map<UUID, GoalEntry> PENDING_GOALS = new ConcurrentHashMap<>(); // golemId → 玩家未完成指令（对话→心跳接力）
 	private static final Map<UUID, Integer> MOOD_SCORES = new ConcurrentHashMap<>(); // golemId → 心情分数
 	private static final Map<UUID, CopperGolemRename.RenameState> RENAMES = new ConcurrentHashMap<>(); // golemId → 待命名
 	private static final Map<UUID, Long> LAST_LIGHTNING = new ConcurrentHashMap<>(); // golemId → 被劈 tick
@@ -152,6 +156,8 @@ public final class CopperGolemAiService {
 					HurtInfo h = LAST_HURT.get(id);
 					return h != null && server.getTickCount() - h.tick() > 12000; // 受伤记录 10 分钟过期
 				});
+				PENDING_GOALS.entrySet().removeIf(e -> server.getTickCount() - e.getValue().tick() > 12000); // 意图 10 分钟无进展
+				PENDING_GOALS.keySet().removeIf(id -> !SESSIONS.containsKey(id));
 				RENAMES.entrySet().removeIf(e -> CopperGolemRename.RenameState.isExpired(e.getValue(), server.getTickCount()));
 			}
 		});
@@ -193,6 +199,12 @@ public final class CopperGolemAiService {
 				fireHeartbeat(golem, level, nowTick);
 			}
 		}
+	}
+
+	/** 记录玩家指令摘要（截断 80 字符），覆盖旧 goal。 */
+	private static void putPendingGoal(CopperGolem golem, ServerLevel level, String text) {
+		PENDING_GOALS.put(golem.getUUID(),
+			new GoalEntry(level.getGameTime(), text.length() > 80 ? text.substring(0, 80) + "…" : text));
 	}
 
 	/** 发起一次心跳：独立上下文（不进长期历史），AI 自主决策；无事静默，有内容搭话（限流）。 */
@@ -270,9 +282,11 @@ public final class CopperGolemAiService {
 	private static void fireHeartbeat(CopperGolem golem, ServerLevel level, long nowTick) {
 		decayMood(golem);
 		String prevSummary = LAST_HEARTBEAT_SUMMARY.get(golem.getUUID());
+		GoalEntry goal = PENDING_GOALS.get(golem.getUUID());
 		String actionLog = CopperGolemActionLog.summary(golem.getUUID());
 		String systemPrompt = buildSystemPrompt(golem, null)
 			+ (actionLog == null ? "" : "\n你最近做过：" + actionLog)
+			+ (goal == null ? "" : "\n玩家在等你办：" + goal.text() + "（还没办完就接着办；办完说一声“办好了”）")
 			+ (prevSummary == null ? "" : "\n你上一轮心跳的结论：" + prevSummary + "（接着干就行，别重复查看已经看过的东西）。")
 			+ "\n现在是自主行动时间：至少做一件事——查看周围（look_containers/get_player_status/get_world_info），"
 			+ "做点有用的事（捡掉落物/搬东西/跟着玩家/去看看生物）。"
@@ -292,6 +306,9 @@ public final class CopperGolemAiService {
 					LAST_HEARTBEAT_SUMMARY.put(golem.getUUID(),
 						reply == null || reply.isBlank() ? "无事" : (reply.length() > 80 ? reply.substring(0, 80) + "…" : reply));
 					boolean replyingToGolem = GOLEM_MESSAGE_REPLYING.remove(golem.getUUID()); // 标记只服务这一次回复（先取后判）
+					if (CopperGolemAiIntent.isDoneStatement(reply)) {
+						PENDING_GOALS.remove(golem.getUUID()); // AI 宣布办完 → 不再接力
+					}
 					if (reply == null || reply.isBlank() || reply.equals("无事") || reply.contains("无事")) {
 						LOGGER.info("heartbeat golem {} silent: {}", golem.getUUID(), reply == null ? "null" : reply);
 						return; // 静默
@@ -591,6 +608,12 @@ public final class CopperGolemAiService {
 					GOLEM_MESSAGE_REPLYING.remove(golem.getUUID()); // 对话可能消费过留言，防下次心跳误放行
 					LOGGER.info("golem reply: {}", reply);
 					session.addGolemReply(reply);
+					// 意图接力：AI 宣布完成 → 清 goal；玩家含动作意图且未宣布完成 → 存（覆盖旧，心跳接力执行）
+					if (CopperGolemAiIntent.isDoneStatement(reply)) {
+						PENDING_GOALS.remove(golem.getUUID());
+					} else if (CopperGolemAiIntent.hasActionIntent(text)) {
+						putPendingGoal(golem, player.level(), text);
+					}
 					reply(player, golem, reply);
 				});
 			} catch (Exception e) {
@@ -729,6 +752,7 @@ public final class CopperGolemAiService {
 		SPIN_TICKS.clear();
 		LAST_HEARTBEAT_TICK.clear();
 		LAST_HEARTBEAT_SUMMARY.clear();
+		PENDING_GOALS.clear();
 		CopperGolemActionLog.resetForTest();
 		LAST_CHATTER_TICK.clear();
 		MOOD_SCORES.clear();

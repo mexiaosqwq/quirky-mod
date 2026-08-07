@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.jspecify.annotations.Nullable;
 
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -68,5 +69,19 @@ public final class CopperGolemAiIntent {
 	/** item 必须来自感知结果（knownItems）；"any" 放行。 */
 	public static boolean isKnownItem(String item, Set<String> knownItems) {
 		return item.equals("any") || knownItems.contains(item);
+	}
+
+	/** 动作意图词（对话硬校验 + PENDING_GOAL 写入判定共用）。 */
+	public static final List<String> ACTION_WORDS = List.of("搬", "拿", "捡", "跟", "找", "去", "给", "放", "收集", "打扫", "带", "取", "清理");
+
+	/** 完成语（心跳/对话回复判定：AI 宣布任务达成 → 清 PENDING_GOAL）。 */
+	public static final List<String> DONE_WORDS = List.of("办好了", "搬完了", "捡完了", "搞定了", "做好了", "完成了", "弄完了", "搬好", "捡好", "搞定", "收拾完了");
+
+	public static boolean hasActionIntent(String text) {
+		return ACTION_WORDS.stream().anyMatch(text::contains);
+	}
+
+	public static boolean isDoneStatement(String text) {
+		return DONE_WORDS.stream().anyMatch(text::contains);
 	}
 }
