@@ -957,7 +957,7 @@ public final class CopperGolemAiService {
 		TRANSPORT_START_TICK.put(golem.getUUID(), level.getGameTime());
 		ACTIVE_TRANSPORTS.put(golem.getUUID(),
 			new ActiveTransport(req, fromHand ? CopperGolemTransportTask.State.WALK_DEST : CopperGolemTransportTask.State.WALK_SOURCE,
-				fromHand ? golem.blockPosition() : source, destination, itemId,
+				fromHand ? null : source, destination, itemId,
 				toPlayer ? player.getUUID() : null, null, null, enderOwner, null, 0));
 		return "{\"ok\":\"开始搬运 " + itemId + "\"}";
 	}
@@ -1081,7 +1081,7 @@ public final class CopperGolemAiService {
 		if (r.merged() == 0) {
 			return "{\"ok\":\"这个箱子已经很整齐了，没有需要合并的物品（共 " + r.kinds() + " 种）\"}";
 		}
-		return "{\"ok\":\"整理完成：合并 " + r.merged() + " 组同类物品，现在共有 " + r.kinds() + " 种物品\"}";
+		return "{\"ok\":\"整理完成：合并 " + r.merged() + " 次同类物品，现在共有 " + r.kinds() + " 种物品\"}";
 	}
 
 	/** 捡掉落物任务：走到掉落物旁 → 捡起 → 转入 TRANSPORT（带回最近铜箱）。 */
@@ -1520,9 +1520,10 @@ public final class CopperGolemAiService {
 			}
 			boolean atTarget = golem.blockPosition().distSqr(target) <= 4.0;
 			if (!atTarget) {
-				// 卡住检测：2 秒没换格 = 目标不可达（悬崖/墙/地下箱子），快速中止，不再等 60 秒超时白耗
+				// 卡住检测：5 秒没换格 = 目标不可达（悬崖/墙/地下箱子），快速中止，不再等 60 秒超时白耗
+				// （阈值 100 tick：爬梯/游泳/绕障时寻路重算可能原地 1-2 秒，40 tick 过激进会误杀）
 				int stuck = golem.blockPosition().equals(t.lastPos()) ? t.stuckTicks() + 1 : 0;
-				if (stuck >= 40) {
+				if (stuck >= 100) {
 					finishTransport(golem, t);
 					broadcastMoveAbort(golem, level, "路被挡住了，这次搬运先算了（目标过不去）");
 					return;

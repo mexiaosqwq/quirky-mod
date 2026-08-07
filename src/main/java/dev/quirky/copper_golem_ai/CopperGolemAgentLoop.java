@@ -125,7 +125,8 @@ public final class CopperGolemAgentLoop {
 
 	/** 动作词 → 应调用的工具指引。 */
 	private static String toolHintFor(String userText) {
-		if (userText.contains("整理") || userText.contains("归类") || userText.contains("收拾")) {
+		if (userText.contains("整理") || userText.contains("归类") || userText.contains("收拾")
+			|| userText.contains("分类") || userText.contains("合并")) {
 			return "organize_container（参数 container=容器坐标或 copper）";
 		}
 		if (userText.contains("捡") || userText.contains("收集") || userText.contains("打扫") || userText.contains("清理")) {
