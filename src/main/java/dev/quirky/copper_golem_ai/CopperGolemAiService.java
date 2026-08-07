@@ -262,7 +262,8 @@ public final class CopperGolemAiService {
 				for (int i = 0; i < pals.size(); i++) {
 					CopperGolem p = pals.get(i);
 					sb.append(p.getDisplayName().getString()).append("(")
-						.append((int) p.getX()).append(",").append((int) p.getY()).append(",").append((int) p.getZ()).append(")");
+						.append((int) p.getX()).append(",").append((int) p.getY()).append(",").append((int) p.getZ()).append(")")
+						.append("正在做").append(currentTaskDescription(p));
 					if (i < pals.size() - 1) {
 						sb.append("、");
 					}
