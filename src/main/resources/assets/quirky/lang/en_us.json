@@ -141,5 +141,7 @@
   "text.autoconfig.quirky.option.aiSummaryMessages": "Summary Trigger (messages)",
   "text.autoconfig.quirky.option.aiSummaryMessages.@Tooltip": "Compress history when it exceeds this many messages.",
   "text.autoconfig.quirky.option.aiSummaryTokens": "Summary Trigger (tokens)",
-  "text.autoconfig.quirky.option.aiSummaryTokens.@Tooltip": "Compress history when estimated context exceeds this many tokens. Either trigger starts compression."
+  "text.autoconfig.quirky.option.aiSummaryTokens.@Tooltip": "Compress history when estimated context exceeds this many tokens. Either trigger starts compression.",
+  "text.autoconfig.quirky.option.maxTransportRange": "Transport Range (blocks)",
+  "text.autoconfig.quirky.option.maxTransportRange.@Tooltip": "Max distance to containers for transport/collect/auto-return. Targets beyond it are rejected immediately; lower it if golems keep failing to reach far chests."
 }

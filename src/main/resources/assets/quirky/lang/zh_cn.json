@@ -141,5 +141,7 @@
   "text.autoconfig.quirky.option.aiSummaryMessages": "压缩触发（消息数）",
   "text.autoconfig.quirky.option.aiSummaryMessages.@Tooltip": "聊天记录超过该消息数时压缩历史。",
   "text.autoconfig.quirky.option.aiSummaryTokens": "压缩触发（token 数）",
-  "text.autoconfig.quirky.option.aiSummaryTokens.@Tooltip": "预估上下文超过该 token 数时压缩历史。任一触发条件满足即开始压缩。"
+  "text.autoconfig.quirky.option.aiSummaryTokens.@Tooltip": "预估上下文超过该 token 数时压缩历史。任一触发条件满足即开始压缩。",
+  "text.autoconfig.quirky.option.maxTransportRange": "搬运距离（格）",
+  "text.autoconfig.quirky.option.maxTransportRange.@Tooltip": "搬运/捡取/自动归位允许的最远容器距离，超过直接拒绝。傀儡频繁因远处箱子过不去而放弃时可调小。"
 }
