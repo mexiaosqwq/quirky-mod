@@ -41,6 +41,8 @@ public final class CopperGolemAgentLoop {
 	private int actionRetries;
 	private int emptyRetries; // 空响应（无 content 无 tool_calls）重试计数——模型抽风 ≠ 光说不做，先重试一次
 	private int perceptionCalls; // 本轮感知工具调用计数（防反复 look 不行动）
+	private @Nullable String lastFailedTool; // 连续失败的工具名（同工具连续失败 ≥3 → 中断，防失败循环刷屏）
+	private int sameToolFailCount;
 	private boolean anyToolCalled; // 跨轮跟踪：是否调过任何行动工具（含失败）——调过 = 已动手，不算光说不做
 	private @Nullable String lastReply;
 
@@ -113,7 +115,23 @@ public final class CopperGolemAgentLoop {
 					}
 				}
 				try {
-					results.add(executor.execute(call.name(), call.arguments()));
+					String result = executor.execute(call.name(), call.arguments());
+					if (result != null && result.startsWith("{\"error\"")) {
+						if (call.name().equals(lastFailedTool)) {
+							sameToolFailCount++;
+							if (sameToolFailCount >= 3) {
+								// 同工具连续失败 3 次：条件不满足（目标消失/距离超限/参数错），AI 反复重试只会浪费轮次刷屏
+								return lastReply != null ? lastReply : "我反复试了几次都不行（" + call.name() + " 不成功），先不折腾了，你换个说法或帮我看看？";
+							}
+						} else {
+							lastFailedTool = call.name();
+							sameToolFailCount = 1;
+						}
+					} else {
+						lastFailedTool = null;
+						sameToolFailCount = 0;
+					}
+					results.add(result);
 				} catch (Exception e) {
 					results.add("{\"error\":\"" + e.getMessage() + "\"}");
 				}

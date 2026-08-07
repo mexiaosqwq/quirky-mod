@@ -18,6 +18,10 @@ class CopperGolemLoopTest {
 		+ "{\"id\":\"call_2\",\"type\":\"function\",\"function\":{\"name\":\"get_self_status\",\"arguments\":\"{}\"}}"
 		+ "]}}]}";
 
+	private static final String TOOL_RESPONSE_SINGLE = "{\"choices\":[{\"message\":{\"content\":null,\"tool_calls\":["
+		+ "{\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"get_world_info\",\"arguments\":\"{}\"}}"
+		+ "]}}]}";
+
 	private static final String REPLY_RESPONSE = "{\"choices\":[{\"message\":{\"content\":\"好了，我去看看\"}}]}";
 
 	@Test
@@ -86,6 +90,29 @@ class CopperGolemLoopTest {
 		);
 		assertEquals("好了，我去看看", reply);
 		assertEquals(1, loop.rounds());
+	}
+
+	@Test
+	void sameToolFailingThreeTimesBreaksLoop() throws Exception {
+		// 满箱/目标消失等场景：AI 反复调同一工具失败 → 连续 3 次中断，不再烧 20 轮刷屏
+		var loop = new CopperGolemAgentLoop(new QuirkyConfig(), "你是铜傀儡", List.of(), "搬一下");
+		String reply = loop.run(body -> TOOL_RESPONSE_SINGLE, (name, args) -> "{\"error\":\"目标太远了\"}");
+		assertTrue(reply.contains("反复试了几次"), "应返回中断说明，实际: " + reply);
+		assertEquals(2, loop.rounds()); // 第 3 次失败在第三轮中断（rounds 未 ++）
+	}
+
+	@Test
+	void toolSuccessResetsFailureCounter() throws Exception {
+		// 失败→成功→失败→失败：成功重置计数，第三次失败才中断
+		java.util.concurrent.atomic.AtomicInteger calls = new java.util.concurrent.atomic.AtomicInteger();
+		java.util.concurrent.atomic.AtomicInteger apiCalls = new java.util.concurrent.atomic.AtomicInteger();
+		var loop = new CopperGolemAgentLoop(new QuirkyConfig(), "你是铜傀儡", List.of(), "看看周围");
+		String reply = loop.run(
+			body -> apiCalls.getAndIncrement() == 0 ? TOOL_RESPONSE_SINGLE : REPLY_RESPONSE,
+			(name, args) -> calls.getAndIncrement() == 0 ? "{\"error\":\"目标太远了\"}" : "{}"
+		);
+		assertEquals("好了，我去看看", reply);
+		assertEquals(1, loop.rounds()); // 成功路径未被误中断
 	}
 
 	@Test

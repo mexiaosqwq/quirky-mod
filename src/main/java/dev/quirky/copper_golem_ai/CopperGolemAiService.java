@@ -68,6 +68,10 @@ public final class CopperGolemAiService {
 	private static final Map<UUID, Long> LAST_REPLY_TICK = new ConcurrentHashMap<>();
 	private static final Map<UUID, Long> LAST_HEARTBEAT_TICK = new ConcurrentHashMap<>(); // golemId → 下次触发 tick（含随机抖动相位）
 	private static final Map<UUID, Long> LAST_CHATTER_TICK = new ConcurrentHashMap<>();
+	/** 铜箱满放不下滞留标记（傀儡 → tick）：prompt 注入"别反复尝试放回铜箱"，防心跳循环刷屏。 */
+	private static final Map<UUID, Long> HAND_FULL_TICK = new ConcurrentHashMap<>();
+	/** collect 批量链"放不下"广播限流（傀儡 → tick）：5 分钟只广播一次，防满箱场景每心跳刷屏。 */
+	private static final Map<UUID, Long> COLLECT_FULL_BROADCAST_TICK = new ConcurrentHashMap<>();
 	private static final Map<UUID, String> LAST_HEARTBEAT_SUMMARY = new ConcurrentHashMap<>(); // golemId → 上轮心跳结论（注入下轮，防重复 look）
 	private record GoalEntry(long tick, String text) {
 	}
@@ -169,6 +173,8 @@ public final class CopperGolemAiService {
 				MOOD_SCORES.keySet().removeIf(id -> !SESSIONS.containsKey(id));
 				LAST_HEARTBEAT_SUMMARY.keySet().removeIf(id -> !SESSIONS.containsKey(id));
 				LAST_CHATTER_TICK.keySet().removeIf(id -> !SESSIONS.containsKey(id));
+				HAND_FULL_TICK.keySet().removeIf(id -> !SESSIONS.containsKey(id));
+				COLLECT_FULL_BROADCAST_TICK.keySet().removeIf(id -> !SESSIONS.containsKey(id));
 				LAST_LIGHTNING.keySet().removeIf(id -> !SESSIONS.containsKey(id));
 				LAST_HURT.keySet().removeIf(id -> {
 					HurtInfo h = LAST_HURT.get(id);
@@ -258,8 +264,18 @@ public final class CopperGolemAiService {
 		CopperGolemAgentMood.Mood mood = CopperGolemAgentMood.moodFor(MOOD_SCORES.getOrDefault(golem.getUUID(), 0));
 		String chatter = chatPlayer == null ? ""
 			: "[玩家]" + chatPlayer.getName().getString() + " 正在跟你说话——直接回应它，称它" + chatPlayer.getName().getString() + "。";
+		// 满箱滞留提示：铜箱放不下时 AI 会反复发起 transport（刷屏根因），注入明确指引打断循环
+		String fullLine = "";
+		if (HAND_FULL_TICK.containsKey(golem.getUUID())) {
+			ItemStack held = golem.getMainHandItem();
+			if (!held.isEmpty()) {
+				fullLine = "【重要】你手里拿着" + held.getHoverName().getString() + "×" + held.getCount()
+					+ "放不进铜箱（铜箱已满）。不要反复尝试 transport 放回铜箱——不会成功。"
+					+ "把它递给玩家（transport destination=give）或直接告诉玩家铜箱满了，等玩家腾出空间。";
+			}
+		}
 		return CopperGolemAiHttp.SYSTEM_PROMPT.replace("{NAME}", name) + "\n"
-			+ chatter + realtimeContext(golem) + consumeGolemMessages(golem) + antennaLine + CopperGolemAgentMood.toPrompt(mood);
+			+ chatter + realtimeContext(golem) + consumeGolemMessages(golem) + antennaLine + CopperGolemAgentMood.toPrompt(mood) + fullLine;
 	}
 
 	/** 实时感知注入：附近玩家（最近 2 个：名字/距离/手持）+ 天气时间 + 自身手持。一行内，AI 无需调工具即有临场感。 */
@@ -1614,6 +1630,7 @@ public final class CopperGolemAiService {
 				Container c = containerAt(level, t.source(), t.enderOwner());
 				if (c != null && addToContainer(c, held).isEmpty()) {
 					golem.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+					HAND_FULL_TICK.remove(golem.getUUID());
 					replyTo(golem, level, t, "你不在，东西我先放回箱子了");
 					return;
 				}
@@ -1626,6 +1643,7 @@ public final class CopperGolemAiService {
 		ItemStack held = golem.getMainHandItem();
 		golem.spawnAtLocation(level, held);
 		golem.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+		HAND_FULL_TICK.remove(golem.getUUID());
 		golem.setState(CopperGolemState.DROPPING_ITEM);
 		level.playSound(null, golem.getX(), golem.getY(), golem.getZ(), SoundEvents.COPPER_GOLEM_ITEM_DROP, SoundSource.PLAYERS, 1.0F, 1.0F);
 		replyTo(golem, level, t, "给你，接好咯");
@@ -1678,17 +1696,24 @@ public final class CopperGolemAiService {
 		ACTIVE_TRANSPORTS.put(golem.getUUID(), t.withOpenPos(t.destination()));
 		level.playSound(null, golem.getX(), golem.getY(), golem.getZ(), SoundEvents.COPPER_GOLEM_ITEM_DROP, SoundSource.PLAYERS, 1.0F, 1.0F);
 		if (!left.isEmpty()) {
+			HAND_FULL_TICK.put(golem.getUUID(), level.getGameTime()); // 满箱滞留标记：prompt 注入防 AI 循环尝试
 			replyTo(golem, level, t, "箱子放不下了，剩下的我先拿着");
 			if (t.collectQueue() != null) {
-				// collect 批量链（无发起玩家）：广播给附近玩家，别静默拿着到处走
-				for (net.minecraft.server.level.ServerPlayer p : level.getEntities(EntityTypeTest.forClass(net.minecraft.server.level.ServerPlayer.class),
-					new AABB(golem.blockPosition()).inflate(CopperGolemHeartbeat.HEARTBEAT_PLAYER_RANGE), e -> !e.isRemoved())) {
-					p.sendSystemMessage(Component.literal("[" + golem.getDisplayName().getString() + "] 铜箱放不下了，我先拿着" + left.getHoverName().getString() + "×" + left.getCount())
-						.withStyle(ChatFormatting.DARK_AQUA));
+				// collect 批量链（无发起玩家）：广播给附近玩家，别静默拿着到处走；
+				// 5 分钟限流——满箱时 AI 每心跳都会重新发起 collect/transport，无限制广播会刷屏
+				Long lastFull = COLLECT_FULL_BROADCAST_TICK.get(golem.getUUID());
+				if (lastFull == null || level.getGameTime() - lastFull >= 6000) {
+					COLLECT_FULL_BROADCAST_TICK.put(golem.getUUID(), level.getGameTime());
+					for (net.minecraft.server.level.ServerPlayer p : level.getEntities(EntityTypeTest.forClass(net.minecraft.server.level.ServerPlayer.class),
+						new AABB(golem.blockPosition()).inflate(CopperGolemHeartbeat.HEARTBEAT_PLAYER_RANGE), e -> !e.isRemoved())) {
+						p.sendSystemMessage(Component.literal("[" + golem.getDisplayName().getString() + "] 铜箱放不下了，我先拿着" + left.getHoverName().getString() + "×" + left.getCount())
+							.withStyle(ChatFormatting.DARK_AQUA));
+					}
 				}
 			}
 			return;
 		}
+		HAND_FULL_TICK.remove(golem.getUUID()); // 放完了：滞留解除
 		triggerSpin(golem); // 搬完 → 小转圈
 	}
 
