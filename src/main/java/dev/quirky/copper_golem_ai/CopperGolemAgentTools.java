@@ -37,7 +37,7 @@ public final class CopperGolemAgentTools {
 	private static final Gson GSON = new Gson();
 	private static final Logger LOGGER = LoggerFactory.getLogger("quirky-copper-golem-ai");
 
-	/** 12 工具声明（OpenAI 兼容 tools 数组）。感知 5 + 行动 5 + tell_golem + transport。 */
+	/** 13 工具声明（OpenAI 兼容 tools 数组）。感知 5 + 行动 5 + tell_golem + transport + organize_container。 */
 	public static final String TOOLS_JSON =
 		"["
 			+ "{\"type\":\"function\",\"function\":{\"name\":\"look_containers\",\"description\":\"查看附近容器里的物品（箱子/木桶/潜影盒/末影箱），返回位置+物品清单；物品ID必须从这里获取才能搬运\",\"parameters\":{\"type\":\"object\",\"properties\":{\"range\":{\"type\":\"integer\",\"description\":\"搜索半径格，默认32\"},\"copper_only\":{\"type\":\"boolean\",\"description\":\"只看铜箱\"}},\"required\":[]}}},"
