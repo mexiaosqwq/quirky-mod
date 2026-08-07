@@ -36,6 +36,16 @@ class CopperGolemAiConfigTest {
 	}
 
 	@Test
+	void masterSwitchDisablesEvenWhenConfigured() {
+		QuirkyConfig c = new QuirkyConfig();
+		c.aiApiKey = "sk-123";
+		c.aiModel = "deepseek-chat";
+		assertTrue(CopperGolemAiConfig.enabled(c));
+		c.golemAiEnabled = false;
+		assertFalse(CopperGolemAiConfig.enabled(c));
+	}
+
+	@Test
 	void thinkingMapping() {
 		QuirkyConfig c = new QuirkyConfig();
 		// null level → null (no reasoning param)

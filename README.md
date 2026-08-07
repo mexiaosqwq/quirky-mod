@@ -50,9 +50,9 @@
 
 ### 配置
 
-各机制恒开（无开关），数值参数在 ModMenu → Quirky（或 `config/quirky.json5`）中可调：物品参数（箭袋容量、绳延伸上限、回旋镖射程/伤害、播种袋范围、鱼饵时长/半径、口哨半径等）、图腾手感参数、客户端 QoL 参数、**AI 参数**（接口地址 baseUrl、API Key、模型名、回复上限、听到距离、冷却、思考等级、总结模型与压缩阈值）。专用服务器改配置后执行 `/quirky reload` 热重载（权限等级 2）。
+各机制恒开（无开关），数值参数在 ModMenu → Quirky（或 `config/quirky.json5`）中可调：物品参数（箭袋容量、绳延伸上限、回旋镖射程/伤害、播种袋范围、鱼饵时长/半径、口哨半径等）、图腾手感参数、客户端 QoL 参数、**铜傀儡参数**（总开关、接口地址 baseUrl、API Key、模型名、回复上限、听到距离、冷却、思考等级、搬运距离、总结模型与压缩阈值）。专用服务器改配置后执行 `/quirky reload` 热重载（权限等级 2）。
 
-> ⚠️ AI 对话：API Key 明文存于本地 `config/quirky.json5`，仅填 baseUrl/apiKey/model 三项即启用（不填保持原版行为）。非流式调用、单次回复有 token 上限、按傀儡有冷却，控制成本；`config/quirky.json5` 中可配思考等级（off/low/medium/high/xhigh/max）。若使用 qwen 系模型，注意其 thinking_budget 与 max_tokens 参数约束需按模型文档配置。
+> ⚠️ AI 对话：API Key 明文存于本地 `config/quirky.json5`，启用需勾选"启用铜傀儡 AI"并填 baseUrl/apiKey/model（关闭开关或不填均保持原版行为）。非流式调用、单次回复有 token 上限、按傀儡有冷却，控制成本；`config/quirky.json5` 中可配思考等级（off/low/medium/high/xhigh/max）。若使用 qwen 系模型，注意其 thinking_budget 与 max_tokens 参数约束需按模型文档配置。
 
 ## 运行要求
 

@@ -11,9 +11,10 @@ public final class CopperGolemAiConfig {
 	private CopperGolemAiConfig() {
 	}
 
-	/** 未配置 apiKey 或 model → AI 静默禁用（傀儡保持原版行为）。 */
+	/** 开关关闭或未配置 apiKey/model → AI 静默禁用（傀儡保持原版行为）。 */
 	public static boolean enabled(QuirkyConfig c) {
-		return c.aiApiKey != null && !c.aiApiKey.isBlank()
+		return c.golemAiEnabled
+			&& c.aiApiKey != null && !c.aiApiKey.isBlank()
 			&& c.aiModel != null && !c.aiModel.isBlank();
 	}
 

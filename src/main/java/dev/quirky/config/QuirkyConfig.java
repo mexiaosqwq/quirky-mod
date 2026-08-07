@@ -162,68 +162,72 @@ public class QuirkyConfig implements ConfigData {
 	@ConfigEntry.Gui.Tooltip
 	public int deathCamDuration = 50;
 
-	// ==== AI 组：铜傀儡 AI 对话参数 ====
+	// ==== 铜傀儡组：铜傀儡 AI 行为参数 ====
 
-	@ConfigEntry.Category("ai")
+	@ConfigEntry.Category("copper_golem")
+	@ConfigEntry.Gui.Tooltip
+	public boolean golemAiEnabled = true;
+
+	@ConfigEntry.Category("copper_golem")
 	@ConfigEntry.BoundedDiscrete(min = 0, max = 300)
 	@ConfigEntry.Gui.Tooltip
 	public int heartbeatIntervalSeconds = 30;
 
-	@ConfigEntry.Category("ai")
+	@ConfigEntry.Category("copper_golem")
 	@ConfigEntry.BoundedDiscrete(min = 4, max = 32)
 	@ConfigEntry.Gui.Tooltip
 	public int droppedPickupRange = 16;
 
-	@ConfigEntry.Category("ai")
+	@ConfigEntry.Category("copper_golem")
 	@ConfigEntry.Gui.Tooltip
 	public String aiBaseUrl = "https://api.openai.com/v1";
 
-	@ConfigEntry.Category("ai")
+	@ConfigEntry.Category("copper_golem")
 	@ConfigEntry.Gui.Tooltip
 	public String aiApiKey = "";
 
-	@ConfigEntry.Category("ai")
+	@ConfigEntry.Category("copper_golem")
 	@ConfigEntry.Gui.Tooltip
 	public String aiModel = "";
 
-	@ConfigEntry.Category("ai")
+	@ConfigEntry.Category("copper_golem")
 	@ConfigEntry.Gui.Tooltip
 	public float aiTemperature = 0.7F;
 
-	@ConfigEntry.Category("ai")
+	@ConfigEntry.Category("copper_golem")
 	@ConfigEntry.BoundedDiscrete(min = 16, max = 128)
 	@ConfigEntry.Gui.Tooltip
 	public int maxTransportRange = 64;
 
-	@ConfigEntry.Category("ai")
+	@ConfigEntry.Category("copper_golem")
 	@ConfigEntry.BoundedDiscrete(min = 64, max = 4096)
 	@ConfigEntry.Gui.Tooltip
 	public int aiMaxTokens = 256;
 
-	@ConfigEntry.Category("ai")
+	@ConfigEntry.Category("copper_golem")
 	@ConfigEntry.BoundedDiscrete(min = 2, max = 32)
 	@ConfigEntry.Gui.Tooltip
 	public int aiListenRange = 16;
 
-	@ConfigEntry.Category("ai")
+	@ConfigEntry.Category("copper_golem")
 	@ConfigEntry.BoundedDiscrete(min = 10, max = 600)
 	@ConfigEntry.Gui.Tooltip
 	public int aiCooldownTicks = 40;
 
-	@ConfigEntry.Category("ai")
+	@ConfigEntry.Category("copper_golem")
 	@ConfigEntry.Gui.Tooltip
 	public String aiThinking = "low"; // off/low/medium/high/xhigh/max
 
-	@ConfigEntry.Category("ai")
+	@ConfigEntry.Category("copper_golem")
 	@ConfigEntry.Gui.Tooltip
 	public String aiSummaryModel = "";
 
-	@ConfigEntry.Category("ai")
+	@ConfigEntry.Category("copper_golem")
 	@ConfigEntry.BoundedDiscrete(min = 4, max = 100)
 	@ConfigEntry.Gui.Tooltip
 	public int aiSummaryMessages = 20;
 
-	@ConfigEntry.Category("ai")
+	@ConfigEntry.Category("copper_golem")
 	@ConfigEntry.BoundedDiscrete(min = 256, max = 16000)
 	@ConfigEntry.Gui.Tooltip
 	public int aiSummaryTokens = 4000;

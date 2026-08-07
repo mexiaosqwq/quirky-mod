@@ -114,7 +114,6 @@
   "text.autoconfig.quirky.category.totem": "保留图腾",
   "text.autoconfig.quirky.category.mechanics": "机制",
   "text.autoconfig.quirky.category.client": "客户端",
-  "text.autoconfig.quirky.category.ai": "AI",
   "tooltip.quirky.pet_whistle": "右键吹哨：半径内宠物寻路走来，更远的直接传送到身边\n潜行+右键：切换坐定/站起\n夜晚吹哨：嘲讽幻翼锁定你 30 秒",
   "text.autoconfig.quirky.option.aiBaseUrl": "AI 接口地址",
   "text.autoconfig.quirky.option.aiBaseUrl.@Tooltip": "OpenAI 兼容的 API 端点（如 https://api.openai.com/v1）",
@@ -143,5 +142,8 @@
   "text.autoconfig.quirky.option.aiSummaryTokens": "压缩触发（token 数）",
   "text.autoconfig.quirky.option.aiSummaryTokens.@Tooltip": "预估上下文超过该 token 数时压缩历史。任一触发条件满足即开始压缩。",
   "text.autoconfig.quirky.option.maxTransportRange": "搬运距离（格）",
-  "text.autoconfig.quirky.option.maxTransportRange.@Tooltip": "搬运/捡取/自动归位允许的最远容器距离，超过直接拒绝。傀儡频繁因远处箱子过不去而放弃时可调小。"
+  "text.autoconfig.quirky.option.maxTransportRange.@Tooltip": "搬运/捡取/自动归位允许的最远容器距离，超过直接拒绝。傀儡频繁因远处箱子过不去而放弃时可调小。",
+  "text.autoconfig.quirky.category.copper_golem": "铜傀儡",
+  "text.autoconfig.quirky.option.golemAiEnabled": "启用铜傀儡 AI",
+  "text.autoconfig.quirky.option.golemAiEnabled.@Tooltip": "铜傀儡 AI 总开关（对话/自主心跳/工具）。关闭后傀儡保持原版行为。仍需下方配置 API Key 与模型。"
 }
