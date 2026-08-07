@@ -270,7 +270,9 @@ public final class CopperGolemAiService {
 	private static void fireHeartbeat(CopperGolem golem, ServerLevel level, long nowTick) {
 		decayMood(golem);
 		String prevSummary = LAST_HEARTBEAT_SUMMARY.get(golem.getUUID());
+		String actionLog = CopperGolemActionLog.summary(golem.getUUID());
 		String systemPrompt = buildSystemPrompt(golem, null)
+			+ (actionLog == null ? "" : "\n你最近做过：" + actionLog)
 			+ (prevSummary == null ? "" : "\n你上一轮心跳的结论：" + prevSummary + "（接着干就行，别重复查看已经看过的东西）。")
 			+ "\n现在是自主行动时间：至少做一件事——查看周围（look_containers/get_player_status/get_world_info），"
 			+ "做点有用的事（捡掉落物/搬东西/跟着玩家/去看看生物）。"
@@ -483,7 +485,15 @@ public final class CopperGolemAiService {
 		java.util.concurrent.CompletableFuture<String> future = new java.util.concurrent.CompletableFuture<>();
 		level.getServer().execute(() -> {
 			try {
-				future.complete(CopperGolemAgentTools.execute(name, args, ctx));
+				String result = CopperGolemAgentTools.execute(name, args, ctx);
+				// 行为流水：成功记动作、失败记最后一条（AI 心跳注入用，防重复劳动）
+				String brief = args.length() > 60 ? args.substring(0, 60) + "…" : args;
+				if (result != null && !result.contains("\"error\"")) {
+					CopperGolemActionLog.recordAction(golem.getUUID(), name + " " + brief);
+				} else if (result != null) {
+					CopperGolemActionLog.recordFailure(golem.getUUID(), name + " " + brief);
+				}
+				future.complete(result);
 			} catch (Throwable t) {
 				future.complete("{\"error\":\"" + t.getClass().getSimpleName() + "\"}");
 			}
@@ -719,6 +729,7 @@ public final class CopperGolemAiService {
 		SPIN_TICKS.clear();
 		LAST_HEARTBEAT_TICK.clear();
 		LAST_HEARTBEAT_SUMMARY.clear();
+		CopperGolemActionLog.resetForTest();
 		LAST_CHATTER_TICK.clear();
 		MOOD_SCORES.clear();
 		LAST_LIGHTNING.clear();
