@@ -66,6 +66,7 @@ public final class CopperGolemAiService {
 	private static final Map<UUID, Long> LAST_REPLY_TICK = new ConcurrentHashMap<>();
 	private static final Map<UUID, Long> LAST_HEARTBEAT_TICK = new ConcurrentHashMap<>(); // golemId → 下次触发 tick（含随机抖动相位）
 	private static final Map<UUID, Long> LAST_CHATTER_TICK = new ConcurrentHashMap<>();
+	private static final Map<UUID, String> LAST_HEARTBEAT_SUMMARY = new ConcurrentHashMap<>(); // golemId → 上轮心跳结论（注入下轮，防重复 look）
 	private static final Map<UUID, Integer> MOOD_SCORES = new ConcurrentHashMap<>(); // golemId → 心情分数
 	private static final Map<UUID, CopperGolemRename.RenameState> RENAMES = new ConcurrentHashMap<>(); // golemId → 待命名
 	private static final Map<UUID, Long> LAST_LIGHTNING = new ConcurrentHashMap<>(); // golemId → 被劈 tick
@@ -145,6 +146,7 @@ public final class CopperGolemAiService {
 				// 注意：LAST_HEARTBEAT_TICK 不清理——删除会让无会话傀儡的心跳状态丢失 → 立即重触发（心跳风暴）
 				GOLEM_MESSAGES.entrySet().removeIf(e -> e.getValue().stream().allMatch(m -> m.expireTick() < server.getTickCount()));
 				MOOD_SCORES.keySet().removeIf(id -> !SESSIONS.containsKey(id));
+				LAST_HEARTBEAT_SUMMARY.keySet().removeIf(id -> !SESSIONS.containsKey(id));
 				LAST_LIGHTNING.keySet().removeIf(id -> !SESSIONS.containsKey(id));
 				LAST_HURT.keySet().removeIf(id -> {
 					HurtInfo h = LAST_HURT.get(id);
@@ -267,7 +269,9 @@ public final class CopperGolemAiService {
 
 	private static void fireHeartbeat(CopperGolem golem, ServerLevel level, long nowTick) {
 		decayMood(golem);
+		String prevSummary = LAST_HEARTBEAT_SUMMARY.get(golem.getUUID());
 		String systemPrompt = buildSystemPrompt(golem, null)
+			+ (prevSummary == null ? "" : "\n你上一轮心跳的结论：" + prevSummary + "（接着干就行，别重复查看已经看过的东西）。")
 			+ "\n现在是自主行动时间：至少做一件事——查看周围（look_containers/get_player_status/get_world_info），"
 			+ "做点有用的事（捡掉落物/搬东西/跟着玩家/去看看生物）。"
 			+ "看一圈（最多两次感知工具）就动手干，别反复查看；搬箱子里东西时 transport 的 destination 直接写 copper（最近的铜箱）或末影箱坐标，不用等玩家指定目标。"
@@ -283,6 +287,8 @@ public final class CopperGolemAiService {
 					if (golem.isRemoved()) {
 						return; // 傀儡已死/消失：不广播
 					}
+					LAST_HEARTBEAT_SUMMARY.put(golem.getUUID(),
+						reply == null || reply.isBlank() ? "无事" : (reply.length() > 80 ? reply.substring(0, 80) + "…" : reply));
 					boolean replyingToGolem = GOLEM_MESSAGE_REPLYING.remove(golem.getUUID()); // 标记只服务这一次回复（先取后判）
 					if (reply == null || reply.isBlank() || reply.equals("无事") || reply.contains("无事")) {
 						LOGGER.info("heartbeat golem {} silent: {}", golem.getUUID(), reply == null ? "null" : reply);
@@ -712,6 +718,7 @@ public final class CopperGolemAiService {
 		CHAT_PLAYERS.clear();
 		SPIN_TICKS.clear();
 		LAST_HEARTBEAT_TICK.clear();
+		LAST_HEARTBEAT_SUMMARY.clear();
 		LAST_CHATTER_TICK.clear();
 		MOOD_SCORES.clear();
 		LAST_LIGHTNING.clear();
@@ -763,7 +770,7 @@ public final class CopperGolemAiService {
 				return "{\"error\":\"目标位置无效\"}";
 			}
 			if (destination.equals(source)) {
-				return "{\"error\":\"来源和目标相同\"}";
+				return "{\"error\":\"来源和目标相同——你已经在最近的铜箱这里了，destination 改写 give（递给我）或末影箱/其他容器的坐标\"}";
 			}
 			if (enderOwner == null) {
 				enderOwner = enderOwnerOf(level, destination, player);
@@ -1323,6 +1330,14 @@ public final class CopperGolemAiService {
 		level.playSound(null, golem.getX(), golem.getY(), golem.getZ(), SoundEvents.COPPER_GOLEM_ITEM_DROP, SoundSource.PLAYERS, 1.0F, 1.0F);
 		if (!left.isEmpty()) {
 			replyTo(golem, level, t, "箱子放不下了，剩下的我先拿着");
+			if (t.collectQueue() != null) {
+				// collect 批量链（无发起玩家）：广播给附近玩家，别静默拿着到处走
+				for (net.minecraft.server.level.ServerPlayer p : level.getEntities(EntityTypeTest.forClass(net.minecraft.server.level.ServerPlayer.class),
+					new AABB(golem.blockPosition()).inflate(CopperGolemHeartbeat.HEARTBEAT_PLAYER_RANGE), e -> !e.isRemoved())) {
+					p.sendSystemMessage(Component.literal("[" + golem.getDisplayName().getString() + "] 铜箱放不下了，我先拿着" + left.getHoverName().getString() + "×" + left.getCount())
+						.withStyle(ChatFormatting.DARK_AQUA));
+				}
+			}
 			return;
 		}
 		triggerSpin(golem); // 搬完 → 小转圈
