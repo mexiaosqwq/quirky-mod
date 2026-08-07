@@ -223,21 +223,25 @@ public final class CopperGolemAgentTools {
 						items.add(id + "(" + stack.getHoverName().getString() + ")×" + stack.getCount());
 						ctx.knownItems().add(id);
 					}
-					found.add(new ContainerInfo(typeOf(be), pos.getX() + "," + pos.getY() + "," + pos.getZ(), items, total));
+					found.add(new ContainerInfo(typeOf(ctx, be, pos), pos.getX() + "," + pos.getY() + "," + pos.getZ(), items, total));
 				}
 			}
 		}
 		return "{\"containers\":" + GSON.toJson(formatContainers(found, 20, 10)) + "}";
 	}
 
-	private static String typeOf(BlockEntity be) {
-		if (be instanceof ChestBlockEntity) {
-			return "chest";
-		}
+	private static String typeOf(ToolContext ctx, BlockEntity be, BlockPos pos) {
 		if (be instanceof BarrelBlockEntity) {
 			return "barrel";
 		}
-		return "shulker";
+		if (be instanceof ShulkerBoxBlockEntity) {
+			return "shulker";
+		}
+		// 铜箱也是 ChestBlockEntity——必须按方块 tag 区分，否则 AI 看到 "chest" 以为不是铜箱（找不到铜箱的根因）
+		if (ctx.level().getBlockState(pos).is(net.minecraft.tags.BlockTags.COPPER_CHESTS)) {
+			return BuiltInRegistries.BLOCK.getKey(ctx.level().getBlockState(pos).getBlock()).getPath(); // copper_chest / weathered_copper_chest / oxidized_copper_chest
+		}
+		return "chest";
 	}
 
 	/** 附近玩家（≤32 格）：名字/坐标/手持/血量。 */

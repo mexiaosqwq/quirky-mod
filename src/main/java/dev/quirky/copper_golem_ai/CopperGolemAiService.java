@@ -179,7 +179,11 @@ public final class CopperGolemAiService {
 				boolean playerNearby = !level.getEntities(EntityTypeTest.forClass(net.minecraft.server.level.ServerPlayer.class),
 					new AABB(golem.blockPosition()).inflate(CopperGolemHeartbeat.HEARTBEAT_PLAYER_RANGE), e -> !e.isRemoved()).isEmpty();
 				if (!CopperGolemHeartbeat.shouldHeartbeat(interval, nowTick, next == null ? 0 : next, playerNearby, busy)) {
-					continue; // busy/玩家不在：不更新 next——忙完/玩家回来立即触发（补偿语义）
+					// busy：不更新 next——忙完立即触发（补偿语义）；玩家不在场：顺延下一轮（防玩家回场时所有傀儡同时过期齐射）
+					if (!playerNearby && !busy) {
+						LAST_HEARTBEAT_TICK.put(golemId, CopperGolemHeartbeat.nextHeartbeatTick(level.getRandom(), interval, nowTick));
+					}
+					continue;
 				}
 				// 触发：写下一轮带抖动的触发 tick（0.75x~1.25x 间隔），多傀儡天然错开
 				LAST_HEARTBEAT_TICK.put(golemId, CopperGolemHeartbeat.nextHeartbeatTick(level.getRandom(), interval, nowTick));
