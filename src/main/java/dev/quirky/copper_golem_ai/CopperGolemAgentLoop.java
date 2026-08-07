@@ -37,7 +37,8 @@ public final class CopperGolemAgentLoop {
 	private final String userText;
 	private int rounds;
 	private int actionRetries;
-	private boolean anyToolCalled; // 跨轮跟踪：本轮对话是否调过任何工具（含失败）——调过 = 已动手，不算光说不做
+	private int emptyRetries; // 空响应（无 content 无 tool_calls）重试计数——模型抽风 ≠ 光说不做，先重试一次
+	private boolean anyToolCalled; // 跨轮跟踪：是否调过任何行动工具（含失败）——调过 = 已动手，不算光说不做
 	private @Nullable String lastReply;
 
 	/** 初始化消息：system + 历史 + 本次用户输入。 */
@@ -71,6 +72,12 @@ public final class CopperGolemAgentLoop {
 			List<CopperGolemAiHttp.ToolCall> calls = CopperGolemAiHttp.parseToolCalls(response);
 			String reply = CopperGolemAiHttp.parseReply(response);
 			if (calls.isEmpty()) {
+				// 空响应兜底：模型返回既无 content 也无 tool_calls（异常/抽风）→ 重试一次再兜底，别让玩家看到"我有点走神了"
+				if (reply == null && lastReply == null && emptyRetries < 1) {
+					emptyRetries++;
+					rounds++;
+					continue;
+				}
 				String finalReply = reply != null ? reply : (lastReply != null ? lastReply : FALLBACK_REPLY);
 				// 硬校验：玩家含动作意图 + 整个循环零工具（跨轮跟踪）+ 未宣布完成 → 追加重试轮（带工具指引），防"光说不做"
 				// 调过工具（含失败）= 已动手，如实报告即可，不算光说不做（deep-fix 条款）

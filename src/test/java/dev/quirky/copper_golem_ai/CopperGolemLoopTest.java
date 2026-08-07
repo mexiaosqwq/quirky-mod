@@ -89,10 +89,16 @@ class CopperGolemLoopTest {
 	}
 
 	@Test
-	void emptyReplyAndNoToolsUsesFallback() throws Exception {
+	void emptyReplyRetriesOnceThenFallsBack() throws Exception {
+		java.util.concurrent.atomic.AtomicInteger calls = new java.util.concurrent.atomic.AtomicInteger();
 		var loop = new CopperGolemAgentLoop(new QuirkyConfig(), "你是铜傀儡", List.of(), "说话");
-		String reply = loop.run(body -> "{\"choices\":[{\"message\":{\"content\":null}}]}", (name, args) -> "{}");
-		assertFalse(reply.isBlank());
+		String reply = loop.run(body -> {
+			calls.incrementAndGet();
+			return "{\"choices\":[{\"message\":{\"content\":null}}]}";
+		}, (name, args) -> "{}");
+		// 空响应（无 content 无 tool_calls）重试一次仍空 → 兜底文案
+		assertEquals("我有点走神了", reply);
+		assertEquals(2, calls.get());
 	}
 	@Test
 	void actionIntentWithNoToolsForcesRetryWithToolHint() throws Exception {
