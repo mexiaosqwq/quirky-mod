@@ -161,4 +161,122 @@ public class QuirkyConfig implements ConfigData {
 	@ConfigEntry.BoundedDiscrete(min = 40, max = 100)
 	@ConfigEntry.Gui.Tooltip
 	public int deathCamDuration = 50;
+
+	// ==== 铜傀儡组：铜傀儡 AI 行为参数 ====
+
+	@ConfigEntry.Category("copper_golem")
+	@ConfigEntry.Gui.Tooltip
+	public boolean golemAiEnabled = true;
+
+	@ConfigEntry.Category("copper_golem")
+	@ConfigEntry.BoundedDiscrete(min = 0, max = 300)
+	@ConfigEntry.Gui.Tooltip
+	public int heartbeatIntervalSeconds = 30;
+
+	@ConfigEntry.Category("copper_golem")
+	@ConfigEntry.BoundedDiscrete(min = 4, max = 32)
+	@ConfigEntry.Gui.Tooltip
+	public int droppedPickupRange = 16;
+
+	@ConfigEntry.Category("copper_golem")
+	@ConfigEntry.Gui.Tooltip
+	public String aiBaseUrl = "https://api.openai.com/v1";
+
+	@ConfigEntry.Category("copper_golem")
+	@ConfigEntry.Gui.Tooltip
+	public String aiApiKey = "";
+
+	@ConfigEntry.Category("copper_golem")
+	@ConfigEntry.Gui.Tooltip
+	public String aiModel = "";
+
+	@ConfigEntry.Category("copper_golem")
+	@ConfigEntry.Gui.Tooltip
+	public float aiTemperature = 0.7F;
+
+	@ConfigEntry.Category("copper_golem")
+	@ConfigEntry.BoundedDiscrete(min = 16, max = 128)
+	@ConfigEntry.Gui.Tooltip
+	public int maxTransportRange = 64;
+
+	@ConfigEntry.Category("copper_golem")
+	@ConfigEntry.BoundedDiscrete(min = 64, max = 4096)
+	@ConfigEntry.Gui.Tooltip
+	public int aiMaxTokens = 256;
+
+	@ConfigEntry.Category("copper_golem")
+	@ConfigEntry.BoundedDiscrete(min = 2, max = 32)
+	@ConfigEntry.Gui.Tooltip
+	public int aiListenRange = 16;
+
+	@ConfigEntry.Category("copper_golem")
+	@ConfigEntry.BoundedDiscrete(min = 10, max = 600)
+	@ConfigEntry.Gui.Tooltip
+	public int aiCooldownTicks = 40;
+
+	@ConfigEntry.Category("copper_golem")
+	@ConfigEntry.Gui.Tooltip
+	public String aiThinking = "low"; // off/low/medium/high/xhigh/max
+
+	@ConfigEntry.Category("copper_golem")
+	@ConfigEntry.Gui.Tooltip
+	public String aiSummaryModel = "";
+
+	@ConfigEntry.Category("copper_golem")
+	@ConfigEntry.BoundedDiscrete(min = 4, max = 100)
+	@ConfigEntry.Gui.Tooltip
+	public int aiSummaryMessages = 20;
+
+	@ConfigEntry.Category("copper_golem")
+	@ConfigEntry.BoundedDiscrete(min = 256, max = 16000)
+	@ConfigEntry.Gui.Tooltip
+	public int aiSummaryTokens = 4000;
+
+	/**
+	 * 运行时自 clamp：GUI 的 BoundedDiscrete 只约束界面操作，json5 手改可越界；
+	 * float 字段 GUI 无范围约束。越界值会导致 API 报错/渲染异常，统一在此兜底。
+	 */
+	@Override
+	public void validatePostLoad() throws ValidationException {
+		quiverCapacity = Math.clamp(quiverCapacity, 1, 8);
+		ropeMaxExtendPerUse = Math.clamp(ropeMaxExtendPerUse, 1, 64);
+		boomerangRange = Math.clamp(boomerangRange, 4, 24);
+		boomerangBreakChance = Math.clamp(boomerangBreakChance, 0F, 1F);
+		seedPouchRadius = Math.clamp(seedPouchRadius, 0, 2);
+		fishBaitDurationSeconds = Math.clamp(fishBaitDurationSeconds, 10, 300);
+		fishBaitRadius = Math.clamp(fishBaitRadius, 2, 8);
+		petWhistleRadius = Math.clamp(petWhistleRadius, 8, 64);
+		petWhistlePhantomMax = Math.clamp(petWhistlePhantomMax, 1, 5);
+		spawnHeightOffset = Math.clamp(spawnHeightOffset, 1, 2);
+		hitsToRetrieve = Math.clamp(hitsToRetrieve, 1, 10);
+		hitSoundVolume = Math.clamp(hitSoundVolume, 0F, 2F);
+		hitSoundPitch = Math.clamp(hitSoundPitch, 0F, 2F);
+		retrieveSoundVolume = Math.clamp(retrieveSoundVolume, 0F, 2F);
+		enchantParticleChance = Math.clamp(enchantParticleChance, 1, 100);
+		endRodParticleChance = Math.clamp(endRodParticleChance, 1, 100);
+		endRodParticleXzSpread = Math.clamp(endRodParticleXzSpread, 0F, 10F);
+		endRodParticleYSpread = Math.clamp(endRodParticleYSpread, 0F, 10F);
+		particleXzSpread = Math.clamp(particleXzSpread, 0F, 10F);
+		particleYSpread = Math.clamp(particleYSpread, 0F, 10F);
+		modelScale = Math.clamp(modelScale, 0.1F, 10F);
+		bobAmplitude = Math.clamp(bobAmplitude, 0F, 2F);
+		bobPeriod = Math.clamp(bobPeriod, 4, 60);
+		spinPeriod = Math.clamp(spinPeriod, 4, 60);
+		swayAmplitude = Math.clamp(swayAmplitude, 0F, 2F);
+		swayPeriod = Math.clamp(swayPeriod, 4, 60);
+		arrowDingVolume = Math.clamp(arrowDingVolume, 0F, 2F);
+		wakeUpSlowFallingSeconds = Math.clamp(wakeUpSlowFallingSeconds, 0, 60);
+		tickerHoldTicks = Math.clamp(tickerHoldTicks, 20, 200);
+		tickerAnimTicks = Math.clamp(tickerAnimTicks, 2, 20);
+		deathCamDuration = Math.clamp(deathCamDuration, 40, 100);
+		heartbeatIntervalSeconds = Math.clamp(heartbeatIntervalSeconds, 0, 300);
+		droppedPickupRange = Math.clamp(droppedPickupRange, 4, 32);
+		maxTransportRange = Math.clamp(maxTransportRange, 16, 128);
+		aiMaxTokens = Math.clamp(aiMaxTokens, 64, 4096);
+		aiListenRange = Math.clamp(aiListenRange, 2, 32);
+		aiCooldownTicks = Math.clamp(aiCooldownTicks, 10, 600);
+		aiSummaryMessages = Math.clamp(aiSummaryMessages, 4, 100);
+		aiSummaryTokens = Math.clamp(aiSummaryTokens, 256, 16000);
+		aiTemperature = Math.clamp(aiTemperature, 0F, 2F);
+	}
 }
