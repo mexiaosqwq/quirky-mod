@@ -164,6 +164,21 @@ class CopperGolemLoopTest {
 	}
 
 	@Test
+	void perceptionCallsBeyondLimitAreBlocked() throws Exception {
+		// AI 无限循环调 look_containers：前 MAX_PERCEPTION_CALLS 次执行，之后被拦截（不调执行器，回传提示）
+		java.util.concurrent.atomic.AtomicInteger executed = new java.util.concurrent.atomic.AtomicInteger();
+		var loop = new CopperGolemAgentLoop(new QuirkyConfig(), "你是铜傀儡", List.of(), "看看周围");
+		String reply = loop.run(body ->
+			"{\"choices\":[{\"message\":{\"content\":null,\"tool_calls\":[{\"id\":\"p\",\"function\":{\"name\":\"look_containers\",\"arguments\":\"{}\"}}]}}]}",
+			(name, args) -> {
+				executed.incrementAndGet();
+				return "{\"ok\":true}";
+			});
+		assertEquals(CopperGolemAgentLoop.MAX_PERCEPTION_CALLS, executed.get()); // 只执行 4 次，第 5 次起拦截
+		assertFalse(reply.isBlank());
+	}
+
+	@Test
 	void perceptionOnlyStillForcesActionRetry() throws Exception {
 		// 只调过感知工具（look_containers）不算"已动手"——说"搬"却只 look 不 transport 仍触发硬校验
 		java.util.concurrent.atomic.AtomicInteger calls = new java.util.concurrent.atomic.AtomicInteger();

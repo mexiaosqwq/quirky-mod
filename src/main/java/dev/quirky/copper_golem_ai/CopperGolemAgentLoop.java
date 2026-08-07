@@ -19,6 +19,8 @@ public final class CopperGolemAgentLoop {
 	public static final int MAX_ROUNDS = 20;
 	/** 动作指令零工具的强制重试上限（仍零工具 → 放弃，AI 如实说）。 */
 	public static final int MAX_ACTION_RETRIES = 2;
+	/** 单轮对话感知工具调用上限（防反复 look 不行动；日志实锤一轮 look 18 次）。 */
+	public static final int MAX_PERCEPTION_CALLS = 4;
 	/** 20 轮硬停/空回复的兜底文本（心跳轮须静默，不播报）。 */
 	public static final String FALLBACK_REPLY = "我有点走神了";
 
@@ -38,6 +40,7 @@ public final class CopperGolemAgentLoop {
 	private int rounds;
 	private int actionRetries;
 	private int emptyRetries; // 空响应（无 content 无 tool_calls）重试计数——模型抽风 ≠ 光说不做，先重试一次
+	private int perceptionCalls; // 本轮感知工具调用计数（防反复 look 不行动）
 	private boolean anyToolCalled; // 跨轮跟踪：是否调过任何行动工具（含失败）——调过 = 已动手，不算光说不做
 	private @Nullable String lastReply;
 
@@ -99,6 +102,15 @@ public final class CopperGolemAgentLoop {
 			for (CopperGolemAiHttp.ToolCall call : calls) {
 				if (CopperGolemAgentTools.isActionTool(call.name())) {
 					anyToolCalled = true; // 调过行动工具（含失败）= 已动手；纯感知不算（防"说停下只 look 不 stop"漏检）
+				}
+				if (CopperGolemAgentTools.isPerceptionTool(call.name())) {
+					perceptionCalls++;
+					if (perceptionCalls > MAX_PERCEPTION_CALLS) {
+						// 感知限次：重复看不会变结果，直接拦截（日志实锤：一轮 look 18 次不行动）
+						results.add("{\"error\":\"你本轮已查看 " + MAX_PERCEPTION_CALLS + " 次（" + call.name()
+							+ "），结果不会变——直接行动，或告诉玩家你看到了什么\"}");
+						continue;
+					}
 				}
 				try {
 					results.add(executor.execute(call.name(), call.arguments()));

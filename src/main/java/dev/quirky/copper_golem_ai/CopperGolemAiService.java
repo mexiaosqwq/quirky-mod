@@ -94,6 +94,8 @@ public final class CopperGolemAiService {
 	/** 已注入 prompt 待确认的留言（ack=回复发出后删除；release=请求失败回填，防静默丢失）。 */
 	private static final Map<UUID, List<GolemMessage>> MESSAGE_HOLD = new ConcurrentHashMap<>();
 	private static final java.util.Set<UUID> GOLEM_MESSAGE_REPLYING = ConcurrentHashMap.newKeySet(); // 本轮回应对同伴留言，限流放行
+	private static final Map<UUID, Long> LAST_TELL_TICK = new ConcurrentHashMap<>(); // 傀儡 → 最近一次 tell_golem tick（60s 限流防刷屏）
+	private static final int TELL_COOLDOWN_TICKS = 1200;
 	private static final int GOLEM_MESSAGE_TTL_TICKS = 6000; // 5 分钟：心跳 30s，两轮内必被看到
 	private static final int MAX_TRANSPORT_DISTANCE = 64;
 	private static final int TARGETED_RAYCAST_DISTANCE = 6;
@@ -165,6 +167,7 @@ public final class CopperGolemAiService {
 				// 动作流水随会话清（spec：无会话傀儡不保留）
 				CopperGolemActionLog.clearWithoutSession(SESSIONS.keySet());
 				MESSAGE_HOLD.keySet().removeIf(id -> !SESSIONS.containsKey(id));
+				LAST_TELL_TICK.keySet().removeIf(id -> !SESSIONS.containsKey(id));
 				// 已卸载/已死傀儡的任务表回收（tick 回调只在实体被 tick 时触发，区块卸载会残留）
 				java.util.Set<UUID> aliveGolems = new java.util.HashSet<>();
 				for (net.minecraft.server.level.ServerLevel lv : server.getAllLevels()) {
@@ -567,7 +570,7 @@ public final class CopperGolemAiService {
 		}
 	}
 
-	/** tell_golem：给 32 格内名字匹配的同伴傀儡留言（大小写不敏感）。返回 ok 或 error。 */
+	/** tell_golem：给 32 格内名字匹配的同伴傀儡留言（大小写不敏感）。返回 ok 或 error。60 秒限流（防心跳轮互相喊话刷屏）。 */
 	public static String tellGolem(CopperGolem from, ServerLevel level, String targetName, String message) {
 		if (targetName == null || targetName.isBlank()) {
 			return "{\"error\":\"需要目标名字\"}";
@@ -575,6 +578,12 @@ public final class CopperGolemAiService {
 		if (message == null || message.isBlank()) {
 			return "{\"error\":\"消息不能为空\"}";
 		}
+		// 限流：日志实锤 11 次 tell（小R/小K 喊"来了来了"但没人真搬）——传话代替行动
+		Long lastTell = LAST_TELL_TICK.get(from.getUUID());
+		if (lastTell != null && level.getGameTime() - lastTell < TELL_COOLDOWN_TICKS) {
+			return "{\"error\":\"你 60 秒前刚传过话——先自己动手干，别光喊同伴\"}";
+		}
+		LAST_TELL_TICK.put(from.getUUID(), level.getGameTime());
 		AABB box = new AABB(from.blockPosition()).inflate(32);
 		String lower = targetName.toLowerCase();
 		CopperGolem target = level.getEntities(EntityTypeTest.forClass(CopperGolem.class), box, e -> !e.isRemoved() && e != from).stream()
@@ -838,6 +847,7 @@ public final class CopperGolemAiService {
 		GOLEM_MESSAGES.clear();
 		MESSAGE_HOLD.clear();
 		GOLEM_MESSAGE_REPLYING.clear();
+		LAST_TELL_TICK.clear();
 		PENDING_REPLIES.clear();
 		CHAT_PLAYERS.clear();
 		SPIN_TICKS.clear();

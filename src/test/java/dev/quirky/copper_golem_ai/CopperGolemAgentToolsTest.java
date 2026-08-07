@@ -94,4 +94,17 @@ class CopperGolemAgentToolsTest {
 		assertFalse(CopperGolemAgentTools.isActionTool("tell_golem"));
 		assertFalse(CopperGolemAgentTools.isActionTool("unknown_tool"));
 	}
+
+	@Test
+	void perceptionToolClassification() {
+		assertTrue(CopperGolemAgentTools.isPerceptionTool("look_containers"));
+		assertTrue(CopperGolemAgentTools.isPerceptionTool("scan_mobs"));
+		assertTrue(CopperGolemAgentTools.isPerceptionTool("get_player_status"));
+		assertTrue(CopperGolemAgentTools.isPerceptionTool("get_world_info"));
+		assertTrue(CopperGolemAgentTools.isPerceptionTool("get_self_status"));
+		assertFalse(CopperGolemAgentTools.isPerceptionTool("transport"));
+		assertFalse(CopperGolemAgentTools.isPerceptionTool("stop"));
+		assertFalse(CopperGolemAgentTools.isPerceptionTool("follow_player"));
+		assertFalse(CopperGolemAgentTools.isPerceptionTool("tell_golem"));
+	}
 }

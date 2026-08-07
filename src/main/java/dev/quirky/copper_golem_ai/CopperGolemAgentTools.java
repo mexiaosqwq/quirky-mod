@@ -486,4 +486,12 @@ public final class CopperGolemAgentTools {
 			default -> false;
 		};
 	}
+
+	/** 感知工具（只读查询）：本轮调用限次（防 AI 反复 look 不行动）。 */
+	public static boolean isPerceptionTool(String name) {
+		return switch (name) {
+			case "look_containers", "scan_mobs", "get_player_status", "get_world_info", "get_self_status" -> true;
+			default -> false;
+		};
+	}
 }
