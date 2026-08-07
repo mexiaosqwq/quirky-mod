@@ -184,6 +184,7 @@ public final class CopperGolemAiService {
 				SPIN_TICKS.keySet().removeIf(id -> !aliveGolems.contains(id));
 				CHAT_PLAYERS.keySet().removeIf(id -> !aliveGolems.contains(id));
 				PENDING_REPLIES.keySet().removeIf(id -> !aliveGolems.contains(id));
+				LAST_STRAY_RETURN.keySet().removeIf(id -> !aliveGolems.contains(id));
 			}
 		});
 	}
@@ -853,6 +854,7 @@ public final class CopperGolemAiService {
 		SPIN_TICKS.clear();
 		LAST_HEARTBEAT_TICK.clear();
 		LAST_HEARTBEAT_SUMMARY.clear();
+		LAST_STRAY_RETURN.clear();
 		PENDING_GOALS.clear();
 		CopperGolemActionLog.resetForTest();
 		LAST_CHATTER_TICK.clear();
@@ -994,6 +996,11 @@ public final class CopperGolemAiService {
 			int remaining = active.queue().size() + 1; // 当前目标 + 队列剩余
 			return "{\"ok\":\"正在捡掉落物（还剩 " + remaining + " 个）——别重复发起，等捡完再说\"}";
 		}
+		// 在途保护 2：collect 链正转 TRANSPORT 放货（手里拿着刚捡的）——再调 collect 会 clearOtherTasks 顶掉放货任务 → 物品滞留
+		ActiveTransport carrying = ACTIVE_TRANSPORTS.get(golem.getUUID());
+		if (carrying != null && carrying.collectQueue() != null) {
+			return "{\"ok\":\"正在把捡到的物品放回铜箱（队列还剩 " + carrying.collectQueue().size() + " 个）——别重复发起\"}";
+		}
 		AABB box = new AABB(golem.blockPosition()).inflate(range);
 		List<net.minecraft.world.entity.item.ItemEntity> all = level.getEntities(EntityTypeTest.forClass(net.minecraft.world.entity.item.ItemEntity.class),
 				box, e -> !e.isRemoved()).stream()
@@ -1067,6 +1074,45 @@ public final class CopperGolemAiService {
 	}
 
 	private static final Map<UUID, ActiveMove> ACTIVE_MOVES = new ConcurrentHashMap<>();
+	/** 滞留物品自动归位：归位失败（铜箱满等）冷却，防每 2 秒死循环重试。 */
+	private static final Map<UUID, Long> LAST_STRAY_RETURN = new ConcurrentHashMap<>();
+	private static final int STRAY_RETRY_TICKS = 6000; // 5 分钟
+
+	/** 滞留物品归位：任务被顶/中断后手里残留（无任务、无搬运冷却）→ 自动放回最近铜箱。
+	 *  修复"捡起来放进箱子又被拿手上"：collect 链转 TRANSPORT 后任务被新 collect 顶掉 → 物品滞留手里。 */
+	private static void tickStrayReturn(CopperGolem golem, ServerLevel level) {
+		if ((level.getGameTime() & 39) != 0) {
+			return; // 每 40 tick（2 秒）一次
+		}
+		ItemStack held = golem.getMainHandItem();
+		if (held.isEmpty()) {
+			return;
+		}
+		UUID id = golem.getUUID();
+		if (ACTIVE_TRANSPORTS.containsKey(id) || ACTIVE_COLLECTS.containsKey(id) || ACTIVE_MOVES.containsKey(id)
+			|| ACTIVE_FOLLOWS.containsKey(id) || ACTIVE_APPROACHES.containsKey(id)) {
+			return; // 有任务在身：正在处理，不打扰
+		}
+		if (golem.getBrain().hasMemoryValue(MemoryModuleType.TRANSPORT_ITEMS_COOLDOWN_TICKS)) {
+			return; // 原版搬运/放货中：不抢原版任务
+		}
+		Long last = LAST_STRAY_RETURN.get(id);
+		if (last != null && level.getGameTime() - last < STRAY_RETRY_TICKS) {
+			return; // 归位失败冷却中（铜箱满等场景）
+		}
+		BlockPos copper = findNearestCopperChest(golem, level, MAX_TRANSPORT_DISTANCE);
+		if (copper == null) {
+			return; // 无铜箱可放：保留手里物品（绝不销毁）
+		}
+		LAST_STRAY_RETURN.put(id, level.getGameTime());
+		golem.getBrain().setMemory(MemoryModuleType.TRANSPORT_ITEMS_COOLDOWN_TICKS, 6000);
+		String itemId = BuiltInRegistries.ITEM.getKey(held.getItem()).toString();
+		CopperGolemAiIntent.TransportRequest req = new CopperGolemAiIntent.TransportRequest(itemId, "copper",
+			copper.getX() + "," + copper.getY() + "," + copper.getZ());
+		ACTIVE_TRANSPORTS.put(id, new ActiveTransport(req, CopperGolemTransportTask.State.WALK_DEST,
+			golem.blockPosition(), copper, itemId, null, null, null, null));
+		LOGGER.info("golem {} stray item {} auto-returning to copper chest", id, itemId);
+	}
 
 	/** 开始移动：注册 MOVING 任务（tick 每帧重设目标，到达≤1.5格完成；卡住重试一次后中止；60 秒超时中止）。 */
 	public static String startMove(CopperGolem golem, BlockPos target) {
@@ -1230,6 +1276,7 @@ public final class CopperGolemAiService {
 			ACTIVE_APPROACHES.remove(golem.getUUID());
 			ACTIVE_COLLECTS.remove(golem.getUUID());
 			LAST_HEARTBEAT_TICK.remove(golem.getUUID()); // 实体已消失：回收心跳记录（不会复现风暴）
+			LAST_STRAY_RETURN.remove(golem.getUUID());
 			return;
 		}
 		tickFollow(golem, level);
@@ -1239,6 +1286,7 @@ public final class CopperGolemAiService {
 		tickMove(golem, level);
 		tickChatLook(golem, level);
 		tickSpin(golem, level);
+		tickStrayReturn(golem, level);
 		if ((level.getGameTime() & 19) == 0) {
 			recordHurtIfAny(golem, level); // 受伤低频事件：每 20 tick 轮询一次
 		}
