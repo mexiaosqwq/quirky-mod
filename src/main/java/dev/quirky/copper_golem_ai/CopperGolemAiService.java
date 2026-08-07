@@ -1014,6 +1014,11 @@ public final class CopperGolemAiService {
 		return best != null && bestDist <= (double) maxDist * maxDist ? best : null;
 	}
 
+	/** 卡住计数：与上一 tick 位置相同 → +1；移动或首次记录（lastPos=null）→ 归零。 */
+	static int nextStuckTicks(BlockPos pos, @Nullable BlockPos lastPos, int stuckTicks) {
+		return lastPos != null && pos.equals(lastPos) ? stuckTicks + 1 : 0;
+	}
+
 	/** 整理结果：merged=合并次数（每次并入计 1），kinds=整理后物品种类数，reordered=槽位顺序发生变化。 */
 	public record OrganizeResult(int merged, int kinds, boolean reordered) {
 	}
@@ -1562,7 +1567,7 @@ public final class CopperGolemAiService {
 			if (!atTarget) {
 				// 卡住检测：5 秒没换格 = 目标不可达（悬崖/墙/地下箱子），快速中止，不再等 60 秒超时白耗
 				// （阈值 100 tick：爬梯/游泳/绕障时寻路重算可能原地 1-2 秒，40 tick 过激进会误杀）
-				int stuck = golem.blockPosition().equals(t.lastPos()) ? t.stuckTicks() + 1 : 0;
+				int stuck = nextStuckTicks(golem.blockPosition(), t.lastPos(), t.stuckTicks());
 				if (stuck >= 100) {
 					finishTransport(golem, t);
 					broadcastMoveAbort(golem, level, "路被挡住了，这次搬运先算了（目标过不去）");
