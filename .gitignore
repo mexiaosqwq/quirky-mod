@@ -65,6 +65,7 @@ Screenshot_*.png
 # internal agent/dev config & docs (not for public repo)
 
 AGENTS.md
+.omp/
 .pi/
 docs/
 tools/
