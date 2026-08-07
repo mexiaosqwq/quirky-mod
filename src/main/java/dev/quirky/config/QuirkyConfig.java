@@ -198,7 +198,7 @@ public class QuirkyConfig implements ConfigData {
 	@ConfigEntry.Category("ai")
 	@ConfigEntry.BoundedDiscrete(min = 2, max = 32)
 	@ConfigEntry.Gui.Tooltip
-	public int aiListenRange = 8;
+	public int aiListenRange = 16;
 
 	@ConfigEntry.Category("ai")
 	@ConfigEntry.BoundedDiscrete(min = 10, max = 600)

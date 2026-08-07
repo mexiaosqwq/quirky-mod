@@ -470,15 +470,15 @@ public final class CopperGolemAiService {
 		AABB box = new AABB(player.blockPosition()).inflate(range);
 		List<CopperGolem> golems = level.getEntities(EntityTypeTest.forClass(CopperGolem.class), box, e -> !e.isRemoved());
 		String lower = text.toLowerCase();
+		// 群体称呼优先：说"大家/你们/全部" = 范围内全部触发（点名+大家也是叫全部，防名字分拣短路群体指令）
+		if (GROUP_WORDS.stream().anyMatch(lower::contains)) {
+			return golems;
+		}
 		List<CopperGolem> byName = golems.stream()
 			.filter(g -> g.getCustomName() != null && lower.contains(g.getName().getString().toLowerCase()))
 			.toList();
 		if (!byName.isEmpty()) {
 			return byName;
-		}
-		// 群体称呼（无名字）：范围内全部触发
-		if (GROUP_WORDS.stream().anyMatch(lower::contains)) {
-			return golems;
 		}
 		CopperGolem nearest = golems.stream()
 			.min(Comparator.comparingDouble(g -> g.distanceToSqr(player)))
@@ -988,6 +988,12 @@ public final class CopperGolemAiService {
 	/** 开始捡掉落物：找 range 内最近 ItemEntity → 注册 COLLECT 任务。 */
 	/** 清扫掉落物：找附近全部掉落物（最多 64 个安全上限），逐个捡并自动放铜箱；队列自动延续到捡完或被打断。 */
 	public static String startCollect(CopperGolem golem, ServerLevel level, int range) {
+		// 在途保护：任务进行中重复发起会重置队列 → 永远捡不完（日志实锤：一轮对话连续 12 次 collect）
+		CollectTask active = ACTIVE_COLLECTS.get(golem.getUUID());
+		if (active != null) {
+			int remaining = active.queue().size() + 1; // 当前目标 + 队列剩余
+			return "{\"ok\":\"正在捡掉落物（还剩 " + remaining + " 个）——别重复发起，等捡完再说\"}";
+		}
 		AABB box = new AABB(golem.blockPosition()).inflate(range);
 		List<net.minecraft.world.entity.item.ItemEntity> all = level.getEntities(EntityTypeTest.forClass(net.minecraft.world.entity.item.ItemEntity.class),
 				box, e -> !e.isRemoved()).stream()
