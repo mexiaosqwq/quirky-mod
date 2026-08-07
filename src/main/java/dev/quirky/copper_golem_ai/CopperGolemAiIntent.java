@@ -35,7 +35,7 @@ public final class CopperGolemAiIntent {
 			if (item == null || source == null || destination == null) {
 				return null;
 			}
-			if (!isPlausibleTarget(source) || !isPlausibleTarget(destination) || "give".equals(source)) {
+			if (!isPlausibleTarget(source) || !isPlausibleTarget(destination) || "give".equals(source) || "hand".equals(destination)) {
 				return null;
 			}
 			if (source.equals(destination)) {
@@ -52,9 +52,9 @@ public final class CopperGolemAiIntent {
 		return item != null && (item.equals("any") || ITEM_ID.matcher(item).matches());
 	}
 
-	/** 搬运目标合法：copper / give / 坐标 x,y,z。 */
+	/** 搬运目标合法：copper / give / hand（仅 source：把手上的物品放下）/ 坐标 x,y,z。 */
 	public static boolean isPlausibleTarget(String t) {
-		return t != null && (t.equals("copper") || t.equals("give") || COORDS.matcher(t).matches());
+		return t != null && (t.equals("copper") || t.equals("give") || t.equals("hand") || COORDS.matcher(t).matches());
 	}
 
 	/** 标准化物品名：剥离 ×N 数量后缀（AI 可能从感知结果带上数量）。 */

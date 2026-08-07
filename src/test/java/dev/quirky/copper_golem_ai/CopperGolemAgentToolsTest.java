@@ -14,9 +14,9 @@ import static org.junit.jupiter.api.Assertions.*;
 class CopperGolemAgentToolsTest {
 
 	@Test
-	void toolsJsonIsValidWithTwelveFunctions() {
+	void toolsJsonIsValidWithThirteenFunctions() {
 		JsonArray tools = JsonParser.parseString(CopperGolemAgentTools.TOOLS_JSON).getAsJsonArray();
-		assertEquals(12, tools.size());
+		assertEquals(13, tools.size());
 		Set<String> names = new java.util.HashSet<>();
 		for (var el : tools) {
 			JsonObject fn = el.getAsJsonObject().getAsJsonObject("function");
@@ -24,7 +24,22 @@ class CopperGolemAgentToolsTest {
 			names.add(fn.get("name").getAsString());
 		}
 		assertEquals(Set.of("look_containers", "get_player_status", "get_world_info", "get_self_status", "scan_mobs",
-			"move_to", "follow_player", "approach_entity", "stop", "collect_dropped_items", "transport", "tell_golem"), names);
+			"move_to", "follow_player", "approach_entity", "stop", "collect_dropped_items", "transport", "tell_golem",
+			"organize_container"), names);
+	}
+
+	@Test
+	void transportToolDescribesHandSource() {
+		JsonArray tools = JsonParser.parseString(CopperGolemAgentTools.TOOLS_JSON).getAsJsonArray();
+		for (var el : tools) {
+			JsonObject fn = el.getAsJsonObject().getAsJsonObject("function");
+			if ("transport".equals(fn.get("name").getAsString())) {
+				assertTrue(fn.get("description").getAsString().contains("hand"),
+					"transport 描述必须说明 source=hand（把手上的物品放下）");
+				return;
+			}
+		}
+		fail("transport 工具缺失");
 	}
 
 	@Test

@@ -51,7 +51,8 @@ public final class CopperGolemAgentTools {
 			+ "{\"type\":\"function\",\"function\":{\"name\":\"stop\",\"description\":\"停止所有行动（移动/跟随/搬运），恢复待机\",\"parameters\":{\"type\":\"object\",\"properties\":{},\"required\":[]}}},"
 			+ "{\"type\":\"function\",\"function\":{\"name\":\"collect_dropped_items\",\"description\":\"捡起附近地上所有掉落物并自动放进64格内最近的铜箱，一次调用捡完为止（最多64个）；随时可被stop打断\",\"parameters\":{\"type\":\"object\",\"properties\":{\"range\":{\"type\":\"integer\",\"description\":\"搜索半径格，默认16\"}},\"required\":[]}}},"
 			+ "{\"type\":\"function\",\"function\":{\"name\":\"tell_golem\",\"description\":\"给附近32格内名字匹配的同伴铜傀儡留言传话（如叫它过来、告诉它发现），它下次心跳会看到并回应\",\"parameters\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"同伴名字（如 小Q）\"},\"message\":{\"type\":\"string\",\"description\":\"要说的话\"}},\"required\":[\"name\",\"message\"]}}},"
-			+ "{\"type\":\"function\",\"function\":{\"name\":\"transport\",\"description\":\"把物品在容器之间搬运；item 必须引用 look_containers 返回的真实物品ID；source/destination 用 look_containers 返回的坐标(如 12,64,-8)或 copper；destination 写 copper=最近的铜箱或 give=直接递给玩家；若 source 已是铜箱则 destination 不能写 copper（会报来源和目标相同），改写 give 或末影箱坐标\",\"parameters\":{\"type\":\"object\",\"properties\":{\"item\":{\"type\":\"string\",\"description\":\"物品ID，必须来自 look_containers 结果\"},\"source\":{\"type\":\"string\",\"description\":\"取货来源：坐标或 copper\"},\"destination\":{\"type\":\"string\",\"description\":\"放货目标：坐标/copper/give\"}},\"required\":[\"item\",\"source\",\"destination\"]}}}]";
+			+ "{\"type\":\"function\",\"function\":{\"name\":\"transport\",\"description\":\"把物品在容器之间搬运；item 必须引用 look_containers 返回的真实物品ID；source 写 hand=把手上的物品放下（放去 destination）、写 look_containers 返回的坐标(如 12,64,-8)或 copper=从容器取货；destination 写 copper=最近的铜箱、give=直接递给玩家或末影箱等容器坐标；若 source 已是铜箱则 destination 不能写 copper（会报来源和目标相同），改写 give 或末影箱坐标\",\"parameters\":{\"type\":\"object\",\"properties\":{\"item\":{\"type\":\"string\",\"description\":\"物品ID，必须来自 look_containers 结果（hand 模式可写 any）\"},\"source\":{\"type\":\"string\",\"description\":\"取货来源：hand（手上）/坐标/copper\"},\"destination\":{\"type\":\"string\",\"description\":\"放货目标：坐标/copper/give\"}},\"required\":[\"item\",\"source\",\"destination\"]}}},"
+			+ "{\"type\":\"function\",\"function\":{\"name\":\"organize_container\",\"description\":\"整理指定容器：把同类物品合并成满组并按类型归类摆放，返回合并统计；整理比用 transport 一件件搬高效，玩家说整理/收拾/归类箱子时用这个\",\"parameters\":{\"type\":\"object\",\"properties\":{\"container\":{\"type\":\"string\",\"description\":\"容器位置坐标(如 12,64,-8)或 copper\"}},\"required\":[\"container\"]}}}]";
 
 	/** 工具执行上下文。knownItems=本回合 look_containers 已感知的物品 ID（transport 引用校验用）。 */
 	public record ToolContext(CopperGolem golem, ServerLevel level, @Nullable ServerPlayer player, java.util.Set<String> knownItems) {
@@ -85,6 +86,7 @@ public final class CopperGolemAgentTools {
 			case "collect_dropped_items" -> collectDropped(ctx, args);
 			case "tell_golem" -> tellGolem(ctx, args);
 			case "transport" -> transport(ctx, args);
+			case "organize_container" -> organizeContainer(ctx, args);
 			default -> "{\"error\":\"unknown tool: " + name + "\"}";
 		};
 		LOGGER.info("golem tool {} args={} -> {}", name, argsJson, result.length() > 200 ? result.substring(0, 200) + "…" : result);
@@ -323,9 +325,20 @@ public final class CopperGolemAgentTools {
 		}
 		CopperGolemAiIntent.TransportRequest req = CopperGolemAiIntent.parse(args.toString());
 		if (req == null) {
-			return "{\"error\":\"搬运参数不合法：item 用物品ID（或 any），source/destination 用 look_containers 的坐标或 copper，destination 可为 give\"}";
+			return "{\"error\":\"搬运参数不合法：item 用物品ID（或 any），source 用 hand/坐标/copper，destination 用坐标/copper/give\"}";
 		}
 		return CopperGolemAiService.handleTransportRequest(ctx.golem(), ctx.level(), ctx.player(), ctx.knownItems(), req);
+	}
+
+	private static String organizeContainer(@Nullable ToolContext ctx, JsonObject args) {
+		if (ctx == null) {
+			return "{\"error\":\"no context\"}";
+		}
+		String container = args.has("container") ? args.get("container").getAsString() : "";
+		if (container.isBlank()) {
+			return "{\"error\":\"需要 container 参数：look_containers 返回的坐标或 copper\"}";
+		}
+		return CopperGolemAiService.organizeContainerAt(ctx.golem(), ctx.level(), ctx.player(), container);
 	}
 
 	private static String collectDropped(@Nullable ToolContext ctx, JsonObject args) {
@@ -482,7 +495,7 @@ public final class CopperGolemAgentTools {
 	/** 行动工具（执行即"已动手"）：对话硬校验跨轮判定用——纯感知不算，防"说停下只 look 不 stop"漏检。 */
 	public static boolean isActionTool(String name) {
 		return switch (name) {
-			case "move_to", "follow_player", "approach_entity", "stop", "transport", "collect_dropped_items" -> true;
+			case "move_to", "follow_player", "approach_entity", "stop", "transport", "collect_dropped_items", "organize_container" -> true;
 			default -> false;
 		};
 	}

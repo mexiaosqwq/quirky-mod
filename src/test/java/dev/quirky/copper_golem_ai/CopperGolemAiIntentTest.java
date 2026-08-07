@@ -25,6 +25,19 @@ class CopperGolemAiIntentTest {
 	}
 
 	@Test
+	void parseHandSource() {
+		var req = CopperGolemAiIntent.parse("{\"item\":\"minecraft:obsidian\",\"source\":\"hand\",\"destination\":\"-226,95,-605\"}");
+		assertNotNull(req);
+		assertEquals("hand", req.source());
+		assertEquals("-226,95,-605", req.destination());
+		var give = CopperGolemAiIntent.parse("{\"item\":\"minecraft:obsidian\",\"source\":\"hand\",\"destination\":\"give\"}");
+		assertNotNull(give);
+		assertEquals("give", give.destination());
+		// hand 只能作来源
+		assertNull(CopperGolemAiIntent.parse("{\"item\":\"x\",\"source\":\"copper\",\"destination\":\"hand\"}"));
+	}
+
+	@Test
 	void parseInvalidReturnsNull() {
 		assertNull(CopperGolemAiIntent.parse("{\"item\":\"minecraft:copper_ingot\",\"source\":\"bogus\",\"destination\":\"copper\"}"));
 		assertNull(CopperGolemAiIntent.parse("{\"item\":\"minecraft:copper_ingot\"}"));
@@ -46,6 +59,7 @@ class CopperGolemAiIntentTest {
 	void targetsValidate() {
 		assertTrue(CopperGolemAiIntent.isPlausibleTarget("copper"));
 		assertTrue(CopperGolemAiIntent.isPlausibleTarget("give"));
+		assertTrue(CopperGolemAiIntent.isPlausibleTarget("hand"));
 		assertTrue(CopperGolemAiIntent.isPlausibleTarget("12,64,-8"));
 		assertFalse(CopperGolemAiIntent.isPlausibleTarget(""));
 		assertFalse(CopperGolemAiIntent.isPlausibleTarget("12,64"));

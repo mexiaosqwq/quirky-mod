@@ -111,7 +111,7 @@ class CopperGolemAiHttpTest {
 		).getAsJsonObject();
 		var tools = root.getAsJsonArray("tools");
 		// 全量工具列表（曾残留 V1 单工具——请求必须全量传，否则 AI 不知道有其他能力）
-		assertEquals(12, tools.size());
+		assertEquals(13, tools.size());
 		assertEquals("function", tools.get(0).getAsJsonObject().get("type").getAsString());
 		java.util.Set<String> names = new java.util.HashSet<>();
 		for (var t : tools) {
@@ -120,6 +120,7 @@ class CopperGolemAiHttpTest {
 		assertTrue(names.contains("transport"));
 		assertTrue(names.contains("look_containers"));
 		assertTrue(names.contains("tell_golem"));
+		assertTrue(names.contains("organize_container"));
 		assertEquals("auto", root.get("tool_choice").getAsString());
 	}
 

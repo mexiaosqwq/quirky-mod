@@ -318,7 +318,8 @@ public final class CopperGolemAiService {
 			+ (prevSummary == null ? "" : "\n你上一轮心跳的结论：" + prevSummary + "（接着干就行，别重复查看已经看过的东西）。")
 			+ "\n现在是自主行动时间：至少做一件事——查看周围（look_containers/get_player_status/get_world_info），"
 			+ "做点有用的事（捡掉落物/搬东西/跟着玩家/去看看生物）。"
-			+ "看一圈（最多两次感知工具）就动手干，别反复查看；搬箱子里东西时 transport 的 destination 直接写 copper（最近的铜箱）或末影箱坐标，不用等玩家指定目标。"
+			+ "看一圈（最多两次感知工具）就动手干，别反复查看；搬箱子里东西时 transport 的 destination 直接写 copper（最近的铜箱）或末影箱坐标，不用等玩家指定目标；"
+			+ "玩家说整理/收拾箱子时用 organize_container（参数 container=容器坐标）；手上拿着物品要放下时 transport 的 source 写 hand、destination 写要放的容器（copper 或末影箱坐标）。"
 			+ "说话纪律（防刷屏）：纯巡逻结果（天气/时间/箱子盘点/地上没东西）一律不播报，回：无事；只有三种情况才说话——①干完了实事（捡了/搬了/走到了）②玩家主动看你或问你③发现危险或玩家相关的重要事。";
 		CopperGolemAgentLoop loop = new CopperGolemAgentLoop(QuirkyConfigHolder.get(), systemPrompt, List.of(), "[自主行动时间]");
 		// 心跳轮把附近最近玩家传入工具上下文：末影箱访问/内容显示需要归属玩家（player=null 时 containerAt 拒绝末影箱，
@@ -885,19 +886,36 @@ public final class CopperGolemAiService {
 		if (player == null && toPlayer) {
 			return "{\"error\":\"玩家不在线，没法递给他\"}";
 		}
-		BlockPos source = "copper".equals(req.source())
-			? findNearestCopperChest(golem, level, MAX_TRANSPORT_DISTANCE)
-			: CopperGolemAgentTools.parseCoords(req.source());
-		if (source == null) {
-			return "{\"error\":\"附近没有铜箱子\"}";
-		}
-		UUID enderOwner = enderOwnerOf(level, source, player);
-		if (containerAt(level, source, enderOwner) == null) {
-			return "{\"error\":\"取货位置不是容器（末影箱需玩家在场）\"}";
-		}
-		// 距离校验：源/目标超过 64 格不接受（防 AI 幻觉/过期坐标导致无限远行）
-		if (source.distToCenterSqr(golem.getX(), golem.getY(), golem.getZ()) > MAX_TRANSPORT_DISTANCE * MAX_TRANSPORT_DISTANCE) {
-			return "{\"error\":\"取货位置太远了（超过 " + MAX_TRANSPORT_DISTANCE + " 格）\"}";
+		// hand 源：把手上的物品放去 destination（不查源容器；等价 tickStrayReturn 的 WALK_DEST 起始）
+		boolean fromHand = "hand".equals(req.source());
+		BlockPos source = null;
+		UUID enderOwner = null;
+		if (!fromHand) {
+			source = "copper".equals(req.source())
+				? findNearestCopperChest(golem, level, MAX_TRANSPORT_DISTANCE)
+				: CopperGolemAgentTools.parseCoords(req.source());
+			if (source == null) {
+				return "{\"error\":\"附近没有铜箱子\"}";
+			}
+			enderOwner = enderOwnerOf(level, source, player);
+			if (containerAt(level, source, enderOwner) == null) {
+				return "{\"error\":\"取货位置不是容器（末影箱需玩家在场）\"}";
+			}
+			// 距离校验：源/目标超过 64 格不接受（防 AI 幻觉/过期坐标导致无限远行）
+			if (source.distToCenterSqr(golem.getX(), golem.getY(), golem.getZ()) > MAX_TRANSPORT_DISTANCE * MAX_TRANSPORT_DISTANCE) {
+				return "{\"error\":\"取货位置太远了（超过 " + MAX_TRANSPORT_DISTANCE + " 格）\"}";
+			}
+		} else {
+			ItemStack held = golem.getMainHandItem();
+			if (held.isEmpty()) {
+				return "{\"error\":\"你手上没有物品可放\"}";
+			}
+			if (!"any".equals(itemId)) {
+				String heldId = BuiltInRegistries.ITEM.getKey(held.getItem()).toString();
+				if (!itemId.equals(heldId)) {
+					return "{\"error\":\"你手上拿的是 " + heldId + "，不是 " + itemId + "\"}";
+				}
+			}
 		}
 		BlockPos destination = null;
 		if (!toPlayer) {
@@ -907,7 +925,7 @@ public final class CopperGolemAiService {
 			if (destination == null) {
 				return "{\"error\":\"目标位置无效\"}";
 			}
-			if (destination.equals(source)) {
+			if (source != null && destination.equals(source)) {
 				return "{\"error\":\"来源和目标相同——你已经在最近的铜箱这里了，destination 改写 give（递给我）或末影箱/其他容器的坐标\"}";
 			}
 			if (enderOwner == null) {
@@ -921,7 +939,7 @@ public final class CopperGolemAiService {
 			}
 		}
 		// 未感知物品预检：源容器实际有货才搬（防 AI 幻觉 ID 白跑；凭记忆搬真实存在的货放行）
-		if (!"any".equals(itemId)) {
+		if (!fromHand && !"any".equals(itemId)) {
 			Container src = containerAt(level, source, enderOwner);
 			if (src != null && !hasItem(src, itemId)) {
 				return "{\"error\":\"" + itemId + " 不在这个容器里，先 look_containers 确认\"}";
@@ -932,7 +950,8 @@ public final class CopperGolemAiService {
 		clearOtherTasks(golem, "transport");
 		TRANSPORT_START_TICK.put(golem.getUUID(), level.getGameTime());
 		ACTIVE_TRANSPORTS.put(golem.getUUID(),
-			new ActiveTransport(req, CopperGolemTransportTask.State.WALK_SOURCE, source, destination, itemId,
+			new ActiveTransport(req, fromHand ? CopperGolemTransportTask.State.WALK_DEST : CopperGolemTransportTask.State.WALK_SOURCE,
+				fromHand ? golem.blockPosition() : source, destination, itemId,
 				toPlayer ? player.getUUID() : null, null, null, enderOwner));
 		return "{\"ok\":\"开始搬运 " + itemId + "\"}";
 	}
@@ -980,6 +999,83 @@ public final class CopperGolemAiService {
 			}
 		}
 		return best != null && bestDist <= (double) maxDist * maxDist ? best : null;
+	}
+
+	/** 整理结果：merged=合并组数（每次并入计 1），kinds=整理后物品种类数。 */
+	public record OrganizeResult(int merged, int kinds) {
+	}
+
+	/** 整理槽位列表：同类物品（同 item + 同组件）合并成满组，再按物品 ID 稳定聚拢。直接回填传入列表。 */
+	public static OrganizeResult organizeSlots(List<ItemStack> slots) {
+		int size = slots.size();
+		List<ItemStack> work = new ArrayList<>(slots);
+		int merged = 0;
+		for (int i = 0; i < size; i++) {
+			ItemStack cur = work.get(i);
+			if (cur.isEmpty()) {
+				continue;
+			}
+			for (int j = i + 1; j < size && !cur.isEmpty(); j++) {
+				ItemStack other = work.get(j);
+				if (other.isEmpty() || !ItemStack.isSameItemSameComponents(cur, other)) {
+					continue;
+				}
+				int space = cur.getMaxStackSize() - cur.getCount();
+				if (space > 0) {
+					int take = Math.min(space, other.getCount());
+					cur.grow(take);
+					other.shrink(take);
+					merged++;
+					if (other.isEmpty()) {
+						work.set(j, ItemStack.EMPTY);
+					}
+					if (cur.getCount() >= cur.getMaxStackSize()) {
+						break;
+					}
+				}
+			}
+		}
+		List<ItemStack> nonEmpty = new ArrayList<>();
+		for (ItemStack s : work) {
+			if (!s.isEmpty()) {
+				nonEmpty.add(s);
+			}
+		}
+		nonEmpty.sort(Comparator.comparing(s -> BuiltInRegistries.ITEM.getKey(s.getItem()).toString()));
+		for (int i = 0; i < size; i++) {
+			slots.set(i, i < nonEmpty.size() ? nonEmpty.get(i) : ItemStack.EMPTY);
+		}
+		return new OrganizeResult(merged, nonEmpty.size());
+	}
+
+	/** organize_container 工具：整理指定容器（合并同类 + 归类摆放）；container=坐标或 copper。 */
+	public static String organizeContainerAt(CopperGolem golem, ServerLevel level, @Nullable ServerPlayer player, String container) {
+		BlockPos pos = "copper".equals(container)
+			? findNearestCopperChest(golem, level, MAX_TRANSPORT_DISTANCE)
+			: CopperGolemAgentTools.parseCoords(container);
+		if (pos == null) {
+			return "{\"error\":\"目标容器位置无效（用 look_containers 返回的坐标或 copper）\"}";
+		}
+		if (pos.distToCenterSqr(golem.getX(), golem.getY(), golem.getZ()) > MAX_TRANSPORT_DISTANCE * MAX_TRANSPORT_DISTANCE) {
+			return "{\"error\":\"容器太远了（超过 " + MAX_TRANSPORT_DISTANCE + " 格）\"}";
+		}
+		UUID enderOwner = enderOwnerOf(level, pos, player);
+		Container c = containerAt(level, pos, enderOwner);
+		if (c == null) {
+			return "{\"error\":\"目标位置不是容器（末影箱需玩家在场）\"}";
+		}
+		List<ItemStack> slots = new ArrayList<>(c.getContainerSize());
+		for (int i = 0; i < c.getContainerSize(); i++) {
+			slots.add(c.getItem(i));
+		}
+		OrganizeResult r = organizeSlots(slots);
+		for (int i = 0; i < c.getContainerSize(); i++) {
+			c.setItem(i, slots.get(i));
+		}
+		if (r.merged() == 0) {
+			return "{\"ok\":\"这个箱子已经很整齐了，没有需要合并的物品（共 " + r.kinds() + " 种）\"}";
+		}
+		return "{\"ok\":\"整理完成：合并 " + r.merged() + " 组同类物品，现在共有 " + r.kinds() + " 种物品\"}";
 	}
 
 	/** 捡掉落物任务：走到掉落物旁 → 捡起 → 转入 TRANSPORT（带回最近铜箱）。 */
@@ -1102,12 +1198,14 @@ public final class CopperGolemAiService {
 		}
 		BlockPos copper = findNearestCopperChest(golem, level, MAX_TRANSPORT_DISTANCE);
 		if (copper == null) {
+			LOGGER.warn("golem {} stray item {} no copper chest within {} blocks, keeping in hand", id,
+				BuiltInRegistries.ITEM.getKey(held.getItem()), MAX_TRANSPORT_DISTANCE);
 			return; // 无铜箱可放：保留手里物品（绝不销毁）
 		}
 		LAST_STRAY_RETURN.put(id, level.getGameTime());
 		golem.getBrain().setMemory(MemoryModuleType.TRANSPORT_ITEMS_COOLDOWN_TICKS, 6000);
 		String itemId = BuiltInRegistries.ITEM.getKey(held.getItem()).toString();
-		CopperGolemAiIntent.TransportRequest req = new CopperGolemAiIntent.TransportRequest(itemId, "copper",
+		CopperGolemAiIntent.TransportRequest req = new CopperGolemAiIntent.TransportRequest(itemId, "hand",
 			copper.getX() + "," + copper.getY() + "," + copper.getZ());
 		ACTIVE_TRANSPORTS.put(id, new ActiveTransport(req, CopperGolemTransportTask.State.WALK_DEST,
 			golem.blockPosition(), copper, itemId, null, null, null, null));
@@ -1615,6 +1713,11 @@ public final class CopperGolemAiService {
 		}
 		golem.clearOpenedChestPos();
 		golem.getBrain().eraseMemory(MemoryModuleType.TRANSPORT_ITEMS_COOLDOWN_TICKS);
+		// 手放任务（source=hand：从手上放货）结束但物品仍在手上 → 放货失败告警（箱满/路径问题，定位归位失效用）
+		if (!golem.getMainHandItem().isEmpty() && "hand".equals(t.request().source())) {
+			LOGGER.warn("golem {} hand-put to {} finished but still holding {}", golem.getUUID(),
+				t.request().destination(), BuiltInRegistries.ITEM.getKey(golem.getMainHandItem().getItem()));
+		}
 		ACTIVE_TRANSPORTS.remove(golem.getUUID());
 		TRANSPORT_START_TICK.remove(golem.getUUID());
 		// collect 批量链：剩余目标 → 自动继续捡

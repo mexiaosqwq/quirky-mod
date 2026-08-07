@@ -125,6 +125,9 @@ public final class CopperGolemAgentLoop {
 
 	/** 动作词 → 应调用的工具指引。 */
 	private static String toolHintFor(String userText) {
+		if (userText.contains("整理") || userText.contains("归类") || userText.contains("收拾")) {
+			return "organize_container（参数 container=容器坐标或 copper）";
+		}
 		if (userText.contains("捡") || userText.contains("收集") || userText.contains("打扫") || userText.contains("清理")) {
 			return "collect_dropped_items（参数 range）";
 		}
@@ -132,7 +135,7 @@ public final class CopperGolemAgentLoop {
 			return "follow_player（参数 name=玩家名字）";
 		}
 		if (userText.contains("搬") || userText.contains("拿") || userText.contains("取") || userText.contains("给") || userText.contains("放")) {
-			return "transport（参数 item/source/destination，item 先 look_containers 查）";
+			return "transport（参数 item/source/destination；把手上的物品放下时 source 写 hand，item 先 look_containers 查）";
 		}
 		return "move_to（参数 x,y,z）";
 	}
