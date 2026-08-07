@@ -17,6 +17,8 @@ import java.util.List;
 public final class CopperGolemAgentLoop {
 	/** 工程保险：单回合最多工具轮数（正常对话 1-4 轮）。 */
 	public static final int MAX_ROUNDS = 20;
+	/** 动作指令零工具的强制重试上限（仍零工具 → 放弃，AI 如实说）。 */
+	public static final int MAX_ACTION_RETRIES = 2;
 	private static final String FALLBACK_REPLY = "我有点走神了";
 
 	@FunctionalInterface
@@ -31,12 +33,15 @@ public final class CopperGolemAgentLoop {
 
 	private final QuirkyConfig config;
 	private final JsonArray messages;
+	private final String userText;
 	private int rounds;
+	private int actionRetries;
 	private @Nullable String lastReply;
 
 	/** 初始化消息：system + 历史 + 本次用户输入。 */
 	public CopperGolemAgentLoop(QuirkyConfig config, String systemPrompt, List<String> history, String userText) {
 		this.config = config;
+		this.userText = userText;
 		this.messages = new JsonArray();
 		addTextMessage("system", systemPrompt);
 		for (String h : history) {
@@ -64,7 +69,17 @@ public final class CopperGolemAgentLoop {
 			List<CopperGolemAiHttp.ToolCall> calls = CopperGolemAiHttp.parseToolCalls(response);
 			String reply = CopperGolemAiHttp.parseReply(response);
 			if (calls.isEmpty()) {
-				return reply != null ? reply : (lastReply != null ? lastReply : FALLBACK_REPLY);
+				String finalReply = reply != null ? reply : (lastReply != null ? lastReply : FALLBACK_REPLY);
+				// 硬校验：玩家含动作意图 + 本轮零工具 + 未宣布完成 → 追加重试轮（带工具指引），防"光说不做"
+				if (actionRetries < MAX_ACTION_RETRIES && CopperGolemAiIntent.hasActionIntent(userText)
+					&& !CopperGolemAiIntent.isDoneStatement(finalReply)) {
+					actionRetries++;
+					addTextMessage("system", "玩家让你" + userText + "，但你从头到尾没调用任何工具——光说不做 = 失败。"
+						+ "立即调用" + toolHintFor(userText) + "。");
+					rounds++;
+					continue;
+				}
+				return finalReply;
 			}
 			if (reply != null) {
 				lastReply = reply;
@@ -80,6 +95,20 @@ public final class CopperGolemAgentLoop {
 			CopperGolemAiHttp.appendToolRound(messages, calls, results);
 			rounds++;
 		}
+	}
+
+	/** 动作词 → 应调用的工具指引。 */
+	private static String toolHintFor(String userText) {
+		if (userText.contains("捡") || userText.contains("收集") || userText.contains("打扫") || userText.contains("清理")) {
+			return "collect_dropped_items（参数 range）";
+		}
+		if (userText.contains("跟")) {
+			return "follow_player（参数 name=玩家名字）";
+		}
+		if (userText.contains("搬") || userText.contains("拿") || userText.contains("取") || userText.contains("给") || userText.contains("放")) {
+			return "transport（参数 item/source/destination，item 先 look_containers 查）";
+		}
+		return "move_to（参数 x,y,z）";
 	}
 
 	private void addTextMessage(String role, String content) {

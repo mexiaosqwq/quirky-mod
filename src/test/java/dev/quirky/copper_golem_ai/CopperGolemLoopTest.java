@@ -94,4 +94,47 @@ class CopperGolemLoopTest {
 		String reply = loop.run(body -> "{\"choices\":[{\"message\":{\"content\":null}}]}", (name, args) -> "{}");
 		assertFalse(reply.isBlank());
 	}
+	@Test
+	void actionIntentWithNoToolsForcesRetryWithToolHint() throws Exception {
+		java.util.concurrent.atomic.AtomicInteger calls = new java.util.concurrent.atomic.AtomicInteger();
+		var loop = new CopperGolemAgentLoop(new QuirkyConfig(), "你是铜傀儡", List.of(), "把黑曜石搬到末影箱");
+		String reply = loop.run(body -> {
+			calls.incrementAndGet();
+			if (calls.get() == 1) {
+				return "{\"choices\":[{\"message\":{\"content\":\"好，这就去搬！\"}}]}";
+			}
+			JsonObject req = JsonParser.parseString(body).getAsJsonObject();
+			JsonArray messages = req.getAsJsonArray("messages");
+			String all = messages.toString();
+			assertTrue(all.contains("光说不做"), "第二次请求应含硬校验提示: " + all);
+			assertTrue(all.contains("transport"), "提示应点名 transport 工具: " + all);
+			return "{\"choices\":[{\"message\":{\"content\":\"搬好了\"}}]}";
+		}, (name, args) -> "{}");
+		assertEquals("搬好了", reply);
+		assertEquals(2, calls.get());
+	}
+
+	@Test
+	void actionIntentRetriesAtMostTwice() throws Exception {
+		java.util.concurrent.atomic.AtomicInteger calls = new java.util.concurrent.atomic.AtomicInteger();
+		var loop = new CopperGolemAgentLoop(new QuirkyConfig(), "你是铜傀儡", List.of(), "去那边看看");
+		String reply = loop.run(body -> {
+			calls.incrementAndGet();
+			return "{\"choices\":[{\"message\":{\"content\":\"好\"}}]}";
+		}, (name, args) -> "{}");
+		assertEquals("好", reply);
+		assertEquals(3, calls.get());
+	}
+
+	@Test
+	void doneStatementSkipsRetry() throws Exception {
+		java.util.concurrent.atomic.AtomicInteger calls = new java.util.concurrent.atomic.AtomicInteger();
+		var loop = new CopperGolemAgentLoop(new QuirkyConfig(), "你是铜傀儡", List.of(), "把东西搬过去");
+		String reply = loop.run(body -> {
+			calls.incrementAndGet();
+			return "{\"choices\":[{\"message\":{\"content\":\"已经搬完了\"}}]}";
+		}, (name, args) -> "{}");
+		assertEquals("已经搬完了", reply);
+		assertEquals(1, calls.get());
+	}
 }
