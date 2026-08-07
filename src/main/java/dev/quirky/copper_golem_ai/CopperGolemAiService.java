@@ -64,7 +64,7 @@ public final class CopperGolemAiService {
 	});
 	private static final Map<UUID, CopperGolemAiHistory.GolemSession> SESSIONS = new ConcurrentHashMap<>();
 	private static final Map<UUID, Long> LAST_REPLY_TICK = new ConcurrentHashMap<>();
-	private static final Map<UUID, Long> LAST_HEARTBEAT_TICK = new ConcurrentHashMap<>();
+	private static final Map<UUID, Long> LAST_HEARTBEAT_TICK = new ConcurrentHashMap<>(); // golemId → 下次触发 tick（含随机抖动相位）
 	private static final Map<UUID, Long> LAST_CHATTER_TICK = new ConcurrentHashMap<>();
 	private static final Map<UUID, Integer> MOOD_SCORES = new ConcurrentHashMap<>(); // golemId → 心情分数
 	private static final Map<UUID, CopperGolemRename.RenameState> RENAMES = new ConcurrentHashMap<>(); // golemId → 待命名
@@ -164,9 +164,9 @@ public final class CopperGolemAiService {
 		for (net.minecraft.server.level.ServerLevel level : server.getAllLevels()) {
 			for (CopperGolem golem : level.getEntities(EntityTypeTest.forClass(CopperGolem.class), e -> !e.isRemoved())) {
 				UUID golemId = golem.getUUID();
-				Long last = LAST_HEARTBEAT_TICK.get(golemId);
-				// 便宜判断前置：间隔未到（map 命中）直接跳过，避免每 tick 空扫实体
-				if (last != null && nowTick - last < interval * 20L) {
+				Long next = LAST_HEARTBEAT_TICK.get(golemId);
+				// 便宜判断前置：未到点（map 命中）直接跳过，避免每 tick 空扫实体；间隔带随机抖动，多傀儡相位错开
+				if (next != null && nowTick < next) {
 					continue;
 				}
 				// busy 只挡"正在干活"的任务（搬运/捡取中）+ 对话在途；跟随/接近是自主行动，不挡心跳
@@ -178,10 +178,11 @@ public final class CopperGolemAiService {
 					|| PENDING_REPLIES.containsKey(golemId);
 				boolean playerNearby = !level.getEntities(EntityTypeTest.forClass(net.minecraft.server.level.ServerPlayer.class),
 					new AABB(golem.blockPosition()).inflate(CopperGolemHeartbeat.HEARTBEAT_PLAYER_RANGE), e -> !e.isRemoved()).isEmpty();
-				if (!CopperGolemHeartbeat.shouldHeartbeat(interval, nowTick, last == null ? 0 : last, playerNearby, busy)) {
-					continue;
+				if (!CopperGolemHeartbeat.shouldHeartbeat(interval, nowTick, next == null ? 0 : next, playerNearby, busy)) {
+					continue; // busy/玩家不在：不更新 next——忙完/玩家回来立即触发（补偿语义）
 				}
-				LAST_HEARTBEAT_TICK.put(golemId, nowTick);
+				// 触发：写下一轮带抖动的触发 tick（0.75x~1.25x 间隔），多傀儡天然错开
+				LAST_HEARTBEAT_TICK.put(golemId, CopperGolemHeartbeat.nextHeartbeatTick(level.getRandom(), interval, nowTick));
 				LOGGER.info("heartbeat fired for golem {}", golemId);
 				fireHeartbeat(golem, level, nowTick);
 			}
