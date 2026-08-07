@@ -170,7 +170,11 @@ public final class CopperGolemAiService {
 					continue;
 				}
 				// busy 只挡"正在干活"的任务（搬运/捡取中）+ 对话在途；跟随/接近是自主行动，不挡心跳
-				boolean busy = ACTIVE_TRANSPORTS.containsKey(golemId) || ACTIVE_COLLECTS.containsKey(golemId)
+				// 受伤例外：被打后 5 秒内不挡心跳——让 AI 得知挨打（信息事件，不中断任务），自主决定软反应
+				HurtInfo hurt = LAST_HURT.get(golemId);
+				boolean recentlyHurt = hurt != null && level.getGameTime() - hurt.tick() < 100;
+				boolean busy = (ACTIVE_TRANSPORTS.containsKey(golemId) || ACTIVE_COLLECTS.containsKey(golemId))
+					&& !recentlyHurt
 					|| PENDING_REPLIES.containsKey(golemId);
 				boolean playerNearby = !level.getEntities(EntityTypeTest.forClass(net.minecraft.server.level.ServerPlayer.class),
 					new AABB(golem.blockPosition()).inflate(CopperGolemHeartbeat.HEARTBEAT_PLAYER_RANGE), e -> !e.isRemoved()).isEmpty();
