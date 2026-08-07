@@ -1,6 +1,7 @@
 package dev.quirky.copper_golem_ai;
 
 import dev.quirky.config.QuirkyConfig;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -25,8 +26,11 @@ public final class CopperGolemAiHistory {
 
 	/** 单只傀儡会话状态（每傀儡一个，存于 Service 的 Map<UUID, GolemSession>）。 */
 	public static final class GolemSession {
+		/** 在途对话排队上限（防玩家连发刷爆串行队列）。 */
+		public static final int MAX_REPLY_QUEUE = 10;
 		private final Deque<String> messages = new ArrayDeque<>();
 		private final Deque<String> pending = new ArrayDeque<>();
+		private final Deque<String> replyQueue = new ArrayDeque<>(); // 对话在途时玩家新消息：排队等当前回复完成续接（串行化）
 		private boolean compressing = false;
 
 		/** 玩家消息入口；压缩中返回 COMPRESSING（入队），纠错指令本地处理。 */
@@ -87,9 +91,24 @@ public final class CopperGolemAiHistory {
 			return pending.pollFirst();
 		}
 
+		/** 对话在途时排队玩家消息；队列满（>MAX_REPLY_QUEUE）返回 false（丢弃并提示）。 */
+		public boolean queueForReply(String text) {
+			if (replyQueue.size() >= MAX_REPLY_QUEUE) {
+				return false;
+			}
+			replyQueue.addLast(text);
+			return true;
+		}
+
+		/** 取出一条在途排队消息（当前回复完成后逐条续接，天然串行）。 */
+		public @Nullable String pollForReply() {
+			return replyQueue.pollFirst();
+		}
+
 		public void clear() {
 			messages.clear();
 			pending.clear();
+			replyQueue.clear();
 		}
 
 		/** 摘出最近一条玩家消息（压缩前移出当前消息；纠错指令 "忘掉上一条" 也用它）。 */

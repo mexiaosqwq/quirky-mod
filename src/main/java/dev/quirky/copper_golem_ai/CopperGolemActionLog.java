@@ -10,7 +10,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** AI 行为流水（纯逻辑，可单测）：最近成功动作 + 最后失败——心跳注入用，AI 知道自己刚做过什么，不重复劳动。 */
+/** AI 行为流水（纯逻辑，可单测）：最近成功动作 + 最后失败——心跳注入用，AI 知道自己刚做过什么，不重复劳动。
+ *  线程约束：全部方法仅在服务端主线程（tick）调用（记录点在 executeOnServerThread 主线程回调，注入点在心跳/对话构建主线程）。 */
 public final class CopperGolemActionLog {
 	public static final int MAX_ACTIONS = 10;
 	private static final Map<UUID, ArrayDeque<String>> ACTIONS = new ConcurrentHashMap<>(); // 头=最新
@@ -20,8 +21,8 @@ public final class CopperGolemActionLog {
 	}
 
 	public static void recordAction(UUID golemId, String entry) {
-		ACTIONS.computeIfAbsent(golemId, k -> new ArrayDeque<>()).addFirst(entry);
-		ArrayDeque<String> q = ACTIONS.get(golemId);
+		ArrayDeque<String> q = ACTIONS.computeIfAbsent(golemId, k -> new ArrayDeque<>());
+		q.addFirst(entry);
 		while (q.size() > MAX_ACTIONS) {
 			q.removeLast();
 		}
@@ -59,6 +60,12 @@ public final class CopperGolemActionLog {
 	public static void clear(UUID golemId) {
 		ACTIONS.remove(golemId);
 		LAST_FAILURE.remove(golemId);
+	}
+
+	/** 清理无活跃会话的傀儡记录（低频清理块调用；keepIds=仍在 SESSIONS 的 UUID）。 */
+	public static void clearWithoutSession(java.util.Set<UUID> keepIds) {
+		ACTIONS.keySet().removeIf(id -> !keepIds.contains(id));
+		LAST_FAILURE.keySet().removeIf(id -> !keepIds.contains(id));
 	}
 
 	public static void resetForTest() {

@@ -29,18 +29,15 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
- * 铜傀儡 agent 工具：10 个工具 schema 定义 + 执行器分发（服务端）。
+ * 铜傀儡 agent 工具：12 个工具 schema 定义 + 执行器分发（服务端）。
  * LLM 永不直接操作游戏——工具 = 意图声明，这里执行真实查询/行动。
  */
 public final class CopperGolemAgentTools {
 	private static final Gson GSON = new Gson();
 	private static final Logger LOGGER = LoggerFactory.getLogger("quirky-copper-golem-ai");
 
-	/** 10 工具声明（OpenAI 兼容 tools 数组）。感知 4 + 行动 5 + transport。 */
+	/** 12 工具声明（OpenAI 兼容 tools 数组）。感知 5 + 行动 5 + tell_golem + transport。 */
 	public static final String TOOLS_JSON =
 		"["
 			+ "{\"type\":\"function\",\"function\":{\"name\":\"look_containers\",\"description\":\"查看附近容器里的物品（箱子/木桶/潜影盒/末影箱），返回位置+物品清单；物品ID必须从这里获取才能搬运\",\"parameters\":{\"type\":\"object\",\"properties\":{\"range\":{\"type\":\"integer\",\"description\":\"搜索半径格，默认32\"},\"copper_only\":{\"type\":\"boolean\",\"description\":\"只看铜箱\"}},\"required\":[]}}},"
@@ -108,7 +105,7 @@ public final class CopperGolemAgentTools {
 		if (ctx == null) {
 			return "{\"error\":\"no context\"}";
 		}
-		int range = rangeOf(args, 16);
+		int range = rangeOf(args, 16, 32);
 		AABB box = new AABB(ctx.golem().blockPosition()).inflate(range);
 		List<net.minecraft.world.entity.LivingEntity> mobs = ctx.level()
 			.getEntities(EntityTypeTest.forClass(net.minecraft.world.entity.LivingEntity.class), box,
@@ -158,13 +155,17 @@ public final class CopperGolemAgentTools {
 		if (ctx == null) {
 			return "{\"error\":\"no context\"}";
 		}
-		int range = rangeOf(args, 32);
-		boolean copperOnly = args.has("copper_only") && args.get("copper_only").getAsBoolean();
+		int range = rangeOf(args, 32, 64);
+		boolean copperOnly = args.has("copper_only") && args.get("copper_only").isJsonPrimitive()
+			&& args.get("copper_only").getAsBoolean();
 		BlockPos golemPos = ctx.golem().blockPosition();
 		List<ContainerInfo> found = new ArrayList<>();
-		for (int dx = -range; dx <= range; dx += 16) {
-			for (int dz = -range; dz <= range; dz += 16) {
-				ChunkPos cp = ChunkPos.containing(golemPos.offset(dx, 0, dz));
+		// 按 chunk 网格遍历（±range 全覆盖）：block 步进 16 不从网格对齐会漏扫（range 非 16 倍数时连自己所在 chunk 都不进）
+		ChunkPos center = ChunkPos.containing(golemPos);
+		int radius = (range + 15) / 16;
+		for (int cx = -radius; cx <= radius; cx++) {
+			for (int cz = -radius; cz <= radius; cz++) {
+				ChunkPos cp = new ChunkPos(center.x() + cx, center.z() + cz);
 				LevelChunk chunk = ctx.level().getChunkSource().getChunkNow(cp.x(), cp.z());
 				if (chunk == null) {
 					continue;
@@ -251,7 +252,9 @@ public final class CopperGolemAgentTools {
 		}
 		AABB box = new AABB(ctx.golem().blockPosition()).inflate(32);
 		List<ServerPlayer> players = ctx.level().players().stream()
-			.filter(p -> !p.isRemoved() && box.contains(p.getX(), p.getY(), p.getZ())).toList();
+			.filter(p -> !p.isRemoved() && box.contains(p.getX(), p.getY(), p.getZ()))
+			.limit(5)
+			.toList();
 		List<String> out = new ArrayList<>();
 		for (ServerPlayer p : players) {
 			ItemStack held = p.getMainHandItem();
@@ -329,7 +332,7 @@ public final class CopperGolemAgentTools {
 		if (ctx == null) {
 			return "{\"error\":\"no context\"}";
 		}
-		int range = rangeOf(args, QuirkyConfigHolder.get().droppedPickupRange);
+		int range = rangeOf(args, QuirkyConfigHolder.get().droppedPickupRange, 64);
 		return CopperGolemAiService.startCollect(ctx.golem(), ctx.level(), range);
 	}
 
@@ -432,13 +435,18 @@ public final class CopperGolemAgentTools {
 		return String.join("\n", out);
 	}
 
-	/** range 参数解析：缺省/非法 → 默认值。 */
-	public static int rangeOf(JsonObject args, int def) {
+	/** range 参数解析：缺省/非法 → 默认值；越界 → clamp 到 [1, max]（AI 参数不可信，防超大 range 卡死服务端线程）。 */
+	public static int rangeOf(JsonObject args, int def, int max) {
+		int value;
 		try {
-			return args.has("range") ? args.get("range").getAsInt() : def;
+			value = args.has("range") ? args.get("range").getAsInt() : def;
 		} catch (RuntimeException e) {
-			return def;
+			value = def;
 		}
+		if (value <= 0) {
+			return Math.max(1, def);
+		}
+		return Math.min(value, max);
 	}
 
 	/** 跟随是否应停止：玩家超过 maxDist 格。 */

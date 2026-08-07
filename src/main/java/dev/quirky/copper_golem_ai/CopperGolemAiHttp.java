@@ -39,14 +39,7 @@ public final class CopperGolemAiHttp {
 			+ "答应干活必须当场调工具完成，别只说“我这就去”然后结束对话——说要去搬就立刻调 transport，说去捡就立刻调 collect，光说不做 = 失败。"
 			+ "捡掉落物会自动放进 64 格内最近的铜箱，不用再找箱子。";
 
-	/** transport 工具声明（OpenAI 兼容 tools 数组）。source/destination 枚举 targeted/copper。 */
-	public static final String TRANSPORT_TOOL_JSON =
-		"[{\"type\":\"function\",\"function\":{\"name\":\"transport\",\"description\":\"把物品在准心指着的箱子(targeted)和最近的铜箱(copper)之间搬运\","
-			+ "\"parameters\":{\"type\":\"object\",\"properties\":{"
-			+ "\"item\":{\"type\":\"string\",\"description\":\"物品 ID，如 minecraft:copper_ingot；不知道就写 any\"},"
-			+ "\"source\":{\"type\":\"string\",\"enum\":[\"targeted\",\"copper\"]},"
-			+ "\"destination\":{\"type\":\"string\",\"enum\":[\"targeted\",\"copper\"]}"
-			+ "},\"required\":[\"item\",\"source\",\"destination\"]}}}]";
+	/** transport 工具声明已并入 CopperGolemAgentTools.TOOLS_JSON（全量 12 工具）——请求必须全量传工具列表，禁止残留单工具版本。 */
 
 	private CopperGolemAiHttp() {
 	}
@@ -58,21 +51,6 @@ public final class CopperGolemAiHttp {
 			base = base.substring(0, base.length() - 1);
 		}
 		return base + "/chat/completions";
-	}
-
-	/** 对话请求体：system + 历史 + 本次。 */
-	public static String buildChatRequest(QuirkyConfig c, List<String> history, String userText) {
-		JsonObject body = baseBody(c);
-		JsonArray messages = new JsonArray();
-		addMessage(messages, "system", SYSTEM_PROMPT.replace("{NAME}", "无名的小铜傀儡"));
-		for (String h : history) {
-			addMessage(messages, roleOf(h), contentOf(h));
-		}
-		addMessage(messages, "user", userText);
-		body.add("messages", messages);
-		body.add("tools", JsonParser.parseString(TRANSPORT_TOOL_JSON));
-		body.addProperty("tool_choice", "auto");
-		return GSON.toJson(body);
 	}
 
 	/** 压缩请求体：system 压缩指令 + 全量历史，model 用 summaryModel（空则主 model）。 */
@@ -193,7 +171,7 @@ public final class CopperGolemAiHttp {
 		}
 	}
 
-	/** 用完整 messages 数组构造请求体（带全部 10 工具）。 */
+	/** 用完整 messages 数组构造请求体（带全部 12 工具）。 */
 	public static String buildChatRequestFromMessages(QuirkyConfig c, JsonArray messages) {
 		JsonObject body = baseBody(c);
 		body.add("messages", messages);

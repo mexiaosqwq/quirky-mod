@@ -137,4 +137,23 @@ class CopperGolemLoopTest {
 		assertEquals("已经搬完了", reply);
 		assertEquals(1, calls.get());
 	}
+
+	@Test
+	void toolsCalledEarlierSkipsHardVerification() throws Exception {
+		// 第 1 轮已调 transport（已动手，含失败也算），第 2 轮纯文本无完成语 → 不再指控"光说不做"（deep-fix 条款）
+		java.util.concurrent.atomic.AtomicInteger calls = new java.util.concurrent.atomic.AtomicInteger();
+		var loop = new CopperGolemAgentLoop(new QuirkyConfig(), "你是铜傀儡", List.of(), "把黑曜石搬到末影箱");
+		String reply = loop.run(body -> {
+			calls.incrementAndGet();
+			if (calls.get() == 1) {
+				return "{\"choices\":[{\"message\":{\"content\":null,\"tool_calls\":[{\"id\":\"a\",\"function\":{\"name\":\"transport\","
+					+ "\"arguments\":\"{\\\"item\\\":\\\"minecraft:obsidian\\\",\\\"source\\\":\\\"copper\\\",\\\"destination\\\":\\\"copper\\\"}\"}}]}}]}";
+			}
+			String all = JsonParser.parseString(body).getAsJsonObject().getAsJsonArray("messages").toString();
+			assertFalse(all.contains("光说不做"), "调过工具后不应再硬校验: " + all);
+			return "{\"choices\":[{\"message\":{\"content\":\"东西放好了\"}}]}";
+		}, (name, args) -> "{\"ok\":true}");
+		assertEquals("东西放好了", reply);
+		assertEquals(2, calls.get());
+	}
 }

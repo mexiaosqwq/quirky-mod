@@ -36,6 +36,7 @@ public final class CopperGolemAgentLoop {
 	private final String userText;
 	private int rounds;
 	private int actionRetries;
+	private boolean anyToolCalled; // 跨轮跟踪：本轮对话是否调过任何工具（含失败）——调过 = 已动手，不算光说不做
 	private @Nullable String lastReply;
 
 	/** 初始化消息：system + 历史 + 本次用户输入。 */
@@ -70,17 +71,20 @@ public final class CopperGolemAgentLoop {
 			String reply = CopperGolemAiHttp.parseReply(response);
 			if (calls.isEmpty()) {
 				String finalReply = reply != null ? reply : (lastReply != null ? lastReply : FALLBACK_REPLY);
-				// 硬校验：玩家含动作意图 + 本轮零工具 + 未宣布完成 → 追加重试轮（带工具指引），防"光说不做"
-				if (actionRetries < MAX_ACTION_RETRIES && CopperGolemAiIntent.hasActionIntent(userText)
+				// 硬校验：玩家含动作意图 + 整个循环零工具（跨轮跟踪）+ 未宣布完成 → 追加重试轮（带工具指引），防"光说不做"
+				// 调过工具（含失败）= 已动手，如实报告即可，不算光说不做（deep-fix 条款）
+				if (actionRetries < MAX_ACTION_RETRIES && !anyToolCalled && CopperGolemAiIntent.hasActionIntent(userText)
 					&& !CopperGolemAiIntent.isDoneStatement(finalReply)) {
 					actionRetries++;
-					addTextMessage("system", "玩家让你" + userText + "，但你从头到尾没调用任何工具——光说不做 = 失败。"
+					String intent = userText.length() > 80 ? userText.substring(0, 80) + "…" : userText;
+					addTextMessage("system", "玩家让你" + intent + "，但你从头到尾没调用任何工具——光说不做 = 失败。"
 						+ "立即调用" + toolHintFor(userText) + "。");
 					rounds++;
 					continue;
 				}
 				return finalReply;
 			}
+			anyToolCalled = true;
 			if (reply != null) {
 				lastReply = reply;
 			}

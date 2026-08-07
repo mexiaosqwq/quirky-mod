@@ -63,10 +63,17 @@ class CopperGolemAgentToolsTest {
 	@Test
 	void rangeArgumentDefaultsToSixteen() {
 		JsonObject args = new JsonObject();
-		assertEquals(16, CopperGolemAgentTools.rangeOf(args, 16));
+		assertEquals(16, CopperGolemAgentTools.rangeOf(args, 16, 64));
 		args.addProperty("range", 8);
-		assertEquals(8, CopperGolemAgentTools.rangeOf(args, 16));
+		assertEquals(8, CopperGolemAgentTools.rangeOf(args, 16, 64));
 		args.addProperty("range", "abc");
-		assertEquals(16, CopperGolemAgentTools.rangeOf(args, 16));
+		assertEquals(16, CopperGolemAgentTools.rangeOf(args, 16, 64));
+		// AI 参数不可信：越界 clamp 到 max、非正用默认（防超大 range 卡死服务端线程）
+		args.addProperty("range", 100000);
+		assertEquals(64, CopperGolemAgentTools.rangeOf(args, 16, 64));
+		args.addProperty("range", -5);
+		assertEquals(16, CopperGolemAgentTools.rangeOf(args, 16, 64));
+		args.addProperty("range", 0);
+		assertEquals(16, CopperGolemAgentTools.rangeOf(args, 16, 64));
 	}
 }

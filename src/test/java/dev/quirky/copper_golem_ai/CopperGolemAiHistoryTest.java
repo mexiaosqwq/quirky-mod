@@ -136,4 +136,22 @@ class CopperGolemAiHistoryTest {
 		s.removeLastPlayerMessage();
 		assertEquals(List.of("golem: 在的"), s.messages());
 	}
+
+	@Test
+	void replyQueueBoundedAndFifo() {
+		GolemSession s = new GolemSession();
+		for (int i = 0; i < GolemSession.MAX_REPLY_QUEUE; i++) {
+			assertTrue(s.queueForReply("m" + i), "队列容量内应可入队");
+		}
+		assertFalse(s.queueForReply("m-overflow"), "队列满应拒绝（防连发刷爆串行队列）");
+		assertEquals("m0", s.pollForReply(), "FIFO 顺序");
+		assertTrue(s.queueForReply("m-new"), "腾出位置后可再入");
+		assertEquals("m1", s.pollForReply());
+		s.clear();
+		assertNull(s.pollForReply(), "clear 应清空在途队列");
+		// 在途队列与消息历史互不干扰
+		s.addPlayerMessage("正常消息");
+		assertEquals(List.of("player: 正常消息"), s.messages());
+		assertNull(s.pollForReply());
+	}
 }

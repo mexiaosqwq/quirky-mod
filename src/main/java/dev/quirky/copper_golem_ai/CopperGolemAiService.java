@@ -91,6 +91,8 @@ public final class CopperGolemAiService {
 	}
 
 	private static final Map<UUID, List<GolemMessage>> GOLEM_MESSAGES = new ConcurrentHashMap<>();
+	/** 已注入 prompt 待确认的留言（ack=回复发出后删除；release=请求失败回填，防静默丢失）。 */
+	private static final Map<UUID, List<GolemMessage>> MESSAGE_HOLD = new ConcurrentHashMap<>();
 	private static final java.util.Set<UUID> GOLEM_MESSAGE_REPLYING = ConcurrentHashMap.newKeySet(); // 本轮回应对同伴留言，限流放行
 	private static final int GOLEM_MESSAGE_TTL_TICKS = 6000; // 5 分钟：心跳 30s，两轮内必被看到
 	private static final int MAX_TRANSPORT_DISTANCE = 64;
@@ -151,6 +153,7 @@ public final class CopperGolemAiService {
 				GOLEM_MESSAGES.entrySet().removeIf(e -> e.getValue().stream().allMatch(m -> m.expireTick() < server.getTickCount()));
 				MOOD_SCORES.keySet().removeIf(id -> !SESSIONS.containsKey(id));
 				LAST_HEARTBEAT_SUMMARY.keySet().removeIf(id -> !SESSIONS.containsKey(id));
+				LAST_CHATTER_TICK.keySet().removeIf(id -> !SESSIONS.containsKey(id));
 				LAST_LIGHTNING.keySet().removeIf(id -> !SESSIONS.containsKey(id));
 				LAST_HURT.keySet().removeIf(id -> {
 					HurtInfo h = LAST_HURT.get(id);
@@ -159,6 +162,25 @@ public final class CopperGolemAiService {
 				PENDING_GOALS.entrySet().removeIf(e -> server.getTickCount() - e.getValue().tick() > 12000); // 意图 10 分钟无进展
 				PENDING_GOALS.keySet().removeIf(id -> !SESSIONS.containsKey(id));
 				RENAMES.entrySet().removeIf(e -> CopperGolemRename.RenameState.isExpired(e.getValue(), server.getTickCount()));
+				// 动作流水随会话清（spec：无会话傀儡不保留）
+				CopperGolemActionLog.clearWithoutSession(SESSIONS.keySet());
+				MESSAGE_HOLD.keySet().removeIf(id -> !SESSIONS.containsKey(id));
+				// 已卸载/已死傀儡的任务表回收（tick 回调只在实体被 tick 时触发，区块卸载会残留）
+				java.util.Set<UUID> aliveGolems = new java.util.HashSet<>();
+				for (net.minecraft.server.level.ServerLevel lv : server.getAllLevels()) {
+					for (CopperGolem g : lv.getEntities(EntityTypeTest.forClass(CopperGolem.class), e -> !e.isRemoved())) {
+						aliveGolems.add(g.getUUID());
+					}
+				}
+				ACTIVE_TRANSPORTS.keySet().removeIf(id -> !aliveGolems.contains(id));
+				ACTIVE_FOLLOWS.keySet().removeIf(id -> !aliveGolems.contains(id));
+				ACTIVE_APPROACHES.keySet().removeIf(id -> !aliveGolems.contains(id));
+				ACTIVE_COLLECTS.keySet().removeIf(id -> !aliveGolems.contains(id));
+				ACTIVE_MOVES.keySet().removeIf(id -> !aliveGolems.contains(id));
+				TRANSPORT_START_TICK.keySet().removeIf(id -> !aliveGolems.contains(id));
+				SPIN_TICKS.keySet().removeIf(id -> !aliveGolems.contains(id));
+				CHAT_PLAYERS.keySet().removeIf(id -> !aliveGolems.contains(id));
+				PENDING_REPLIES.keySet().removeIf(id -> !aliveGolems.contains(id));
 			}
 		});
 	}
@@ -177,11 +199,12 @@ public final class CopperGolemAiService {
 				if (next != null && nowTick < next) {
 					continue;
 				}
-				// busy 只挡"正在干活"的任务（搬运/捡取中）+ 对话在途；跟随/接近是自主行动，不挡心跳
+				// busy 只挡"正在干活"的任务（搬运/捡取/move 中）+ 对话在途；跟随/接近是自主行动，不挡心跳
 				// 受伤例外：被打后 5 秒内不挡心跳——让 AI 得知挨打（信息事件，不中断任务），自主决定软反应
 				HurtInfo hurt = LAST_HURT.get(golemId);
 				boolean recentlyHurt = hurt != null && level.getGameTime() - hurt.tick() < 100;
-				boolean busy = (ACTIVE_TRANSPORTS.containsKey(golemId) || ACTIVE_COLLECTS.containsKey(golemId))
+				boolean busy = (ACTIVE_TRANSPORTS.containsKey(golemId) || ACTIVE_COLLECTS.containsKey(golemId)
+					|| ACTIVE_MOVES.containsKey(golemId))
 					&& !recentlyHurt
 					|| PENDING_REPLIES.containsKey(golemId);
 				boolean playerNearby = !level.getEntities(EntityTypeTest.forClass(net.minecraft.server.level.ServerPlayer.class),
@@ -253,7 +276,7 @@ public final class CopperGolemAiService {
 			// 同伴傀儡（名字+坐标）：AI 认识同类、知道去哪找它们
 			List<CopperGolem> pals = level.getEntities(EntityTypeTest.forClass(CopperGolem.class),
 					new AABB(golem.blockPosition()).inflate(CopperGolemHeartbeat.HEARTBEAT_PLAYER_RANGE),
-					e -> !e.isRemoved() && e != golem).stream()
+					e -> !e.isRemoved() && e.isAlive() && e != golem).stream()
 				.sorted(Comparator.comparingDouble(p -> p.distanceToSqr(golem)))
 				.limit(2)
 				.toList();
@@ -302,8 +325,10 @@ public final class CopperGolemAiService {
 					(name, args) -> executeOnServerThread(null, golem, ctx, name, args));
 				PENDING_TASKS.add(() -> {
 					if (golem.isRemoved()) {
+						releaseGolemMessages(golem); // 回复注定发不出：留言回填
 						return; // 傀儡已死/消失：不广播
 					}
+					ackGolemMessages(golem.getUUID()); // 回复确定发出：消费的留言正式删除
 					LAST_HEARTBEAT_SUMMARY.put(golem.getUUID(),
 						reply == null || reply.isBlank() ? "无事" : (reply.length() > 80 ? reply.substring(0, 80) + "…" : reply));
 					boolean replyingToGolem = GOLEM_MESSAGE_REPLYING.remove(golem.getUUID()); // 标记只服务这一次回复（先取后判）
@@ -331,6 +356,7 @@ public final class CopperGolemAiService {
 				});
 			} catch (Exception e) {
 				GOLEM_MESSAGE_REPLYING.remove(golem.getUUID());
+				releaseGolemMessages(golem); // 请求失败：留言回填，下轮再注入
 				LOGGER.info("Copper golem heartbeat failed, skipped: {}", e.toString());
 			}
 		});
@@ -374,6 +400,15 @@ public final class CopperGolemAiService {
 		LAST_REPLY_TICK.put(golemId, gameTime);
 
 		CopperGolemAiHistory.GolemSession session = SESSIONS.computeIfAbsent(golemId, id -> new CopperGolemAiHistory.GolemSession());
+		// 对话在途（LLM 未回，冷却 2s << LLM 延迟）：新消息排队，当前回复完成后自动续接（防并发双请求竞态）
+		if (PENDING_REPLIES.containsKey(golemId)) {
+			if (session.queueForReply(text)) {
+				LOGGER.info("golem {} reply in-flight, queued: {}", golemId, text);
+			} else {
+				reply(player, golem, "稍等，我还在想上一句…（一次一句，别着急）");
+			}
+			return;
+		}
 		// 会话管理命令（隔离记忆/提前压缩）：不进 AI 对话
 		if (CopperGolemAiHistory.isResetCommand(text)) {
 			session.clear();
@@ -519,7 +554,9 @@ public final class CopperGolemAiService {
 		try {
 			return future.get(30, java.util.concurrent.TimeUnit.SECONDS);
 		} catch (Exception e) {
-			return "{\"error\":\"tool timeout\"}";
+			// 主线程任务可能仍会执行完（副作用不取消）——如实告知 AI，防其重发顶掉在途劳动
+			LOGGER.warn("golem {} tool {} timed out after 30s (side effect may still complete)", golem.getUUID(), name);
+			return "{\"error\":\"tool timeout（可能已部分执行，别重复发起）\"}";
 		}
 	}
 
@@ -547,7 +584,7 @@ public final class CopperGolemAiService {
 		return "{\"ok\":\"留言已捎给 " + target.getName().getString() + "，它看到会回应\"}";
 	}
 
-	/** 消费留言：注入 system prompt 的文本（最多 2 条，注入后删除），无留言返回空串。 */
+	/** 消费留言：注入 system prompt 的文本（最多 2 条），消费的留言转入持有区；回复确定发出（ack）才删除，请求失败（release）回填。无留言返回空串。 */
 	private static String consumeGolemMessages(CopperGolem golem) {
 		List<GolemMessage> list = GOLEM_MESSAGES.get(golem.getUUID());
 		if (list == null || list.isEmpty()) {
@@ -556,14 +593,12 @@ public final class CopperGolemAiService {
 		long now = golem.level().getGameTime();
 		List<GolemMessage> fresh = list.stream().filter(m -> m.expireTick() >= now).toList();
 		// 只消费注入的部分（最多 2 条）+ 过期条；第 3+ 条保留到下轮（防丢失）
-		int take = Math.min(fresh.size(), 2);
-		List<GolemMessage> expired = list.stream().filter(m -> m.expireTick() < now).toList();
-		if (take == 0) {
-			if (!expired.isEmpty()) {
-				GOLEM_MESSAGES.remove(golem.getUUID());
-			}
+		if (fresh.isEmpty()) {
+			GOLEM_MESSAGES.remove(golem.getUUID()); // 全过期：整条清
 			return "";
 		}
+		int take = Math.min(fresh.size(), 2);
+		List<GolemMessage> consumed = new java.util.ArrayList<>(fresh.subList(0, take));
 		GOLEM_MESSAGES.compute(golem.getUUID(), (id, old) -> {
 			if (old == null) {
 				return null;
@@ -571,17 +606,42 @@ public final class CopperGolemAiService {
 			List<GolemMessage> kept = old.stream().filter(m -> m.expireTick() >= now).skip(take).toList();
 			return kept.isEmpty() ? null : new java.util.ArrayList<>(kept);
 		});
+		MESSAGE_HOLD.put(golem.getUUID(), consumed);
 		GOLEM_MESSAGE_REPLYING.add(golem.getUUID()); // 本轮回应对同伴留言 → 心跳回复不限流
 		StringBuilder sb = new StringBuilder("[同伴留言]");
-		for (int i = 0; i < take; i++) {
+		for (int i = 0; i < consumed.size(); i++) {
 			if (i > 0) {
 				sb.append("；");
 			}
-			GolemMessage m = fresh.get(i);
+			GolemMessage m = consumed.get(i);
 			sb.append(m.fromName()).append(" 对你说：").append(m.text());
 		}
 		LOGGER.info("golem {} consumes {} golem message(s)", golem.getUUID(), take);
 		return sb.append("。同伴叫你时你要回应它或行动。").toString();
+	}
+
+	/** 回复确定发出：丢弃已消费的留言。 */
+	private static void ackGolemMessages(UUID golemId) {
+		MESSAGE_HOLD.remove(golemId);
+	}
+
+	/** 请求失败：把未发出的留言回填（TTL 未过），防静默丢失。 */
+	private static void releaseGolemMessages(CopperGolem golem) {
+		List<GolemMessage> held = MESSAGE_HOLD.remove(golem.getUUID());
+		if (held == null || held.isEmpty()) {
+			return;
+		}
+		long now = golem.level().getGameTime();
+		List<GolemMessage> fresh = held.stream().filter(m -> m.expireTick() >= now).toList();
+		if (fresh.isEmpty()) {
+			return;
+		}
+		GOLEM_MESSAGES.compute(golem.getUUID(), (id, old) -> {
+			List<GolemMessage> merged = old == null ? new java.util.ArrayList<>() : new java.util.ArrayList<>(old);
+			merged.addAll(0, fresh);
+			return merged;
+		});
+		LOGGER.info("golem {} releases {} message(s) back after failure", golem.getUUID(), fresh.size());
 	}
 
 	private static void requestReply(ServerPlayer player, CopperGolem golem, CopperGolemAiHistory.GolemSession session, QuirkyConfig config, String text) {
@@ -607,6 +667,7 @@ public final class CopperGolemAiService {
 					PENDING_REPLIES.remove(golem.getUUID());
 					CHAT_PLAYERS.remove(golem.getUUID());
 					GOLEM_MESSAGE_REPLYING.remove(golem.getUUID()); // 对话可能消费过留言，防下次心跳误放行
+					ackGolemMessages(golem.getUUID()); // 回复确定发出：消费的留言正式删除
 					LOGGER.info("golem reply: {}", reply);
 					session.addGolemReply(reply);
 					// 意图接力：AI 宣布完成 → 清 goal；玩家含动作意图且未宣布完成 → 存（覆盖旧，心跳接力执行）
@@ -616,14 +677,33 @@ public final class CopperGolemAiService {
 						putPendingGoal(golem, player.level(), text);
 					}
 					reply(player, golem, reply);
+					// 在途排队消息续接：一次一条（串行化），走完整对话处理（纠错指令/压缩判定）
+					replyQueued(player, golem, session, config);
 				});
 			} catch (Exception e) {
 				PENDING_REPLIES.remove(golem.getUUID());
 				CHAT_PLAYERS.remove(golem.getUUID());
 				GOLEM_MESSAGE_REPLYING.remove(golem.getUUID());
+				releaseGolemMessages(golem); // 请求失败：留言回填，下轮再注入
 				LOGGER.warn("Copper golem AI request failed: {}", e.toString());
+				replyQueued(player, golem, session, config); // 失败也续接：排队消息不滞留（API 恢复后自然消费）
 			}
 		});
+	}
+
+	/** 续接一条在途排队消息（完整对话处理：纠错指令/压缩判定走同一路径）；无排队消息 → 空操作。 */
+	private static void replyQueued(ServerPlayer player, CopperGolem golem, CopperGolemAiHistory.GolemSession session, QuirkyConfig config) {
+		String queued = session.pollForReply();
+		if (queued == null) {
+			return;
+		}
+		var result = session.addPlayerMessage(queued);
+		switch (result) {
+			case FORGET_ALL -> reply(player, golem, "好，我把刚才的都忘了");
+			case FORGET_LAST -> reply(player, golem, "好，上一条忘了");
+			case COMPRESSING -> reply(player, golem, "正在整理记忆，稍等一下…");
+			case NORMAL -> requestReply(player, golem, session, config, queued);
+		}
 	}
 
 	private static void startCompression(ServerPlayer player, CopperGolem golem, CopperGolemAiHistory.GolemSession session, QuirkyConfig config, String currentText) {
@@ -648,15 +728,16 @@ public final class CopperGolemAiService {
 					int keep = Math.min(4, all.size());
 					replacement.addAll(all.subList(all.size() - keep, all.size()));
 					session.setSummarized(replacement);
-					// 处理压缩期间排队的消息（逐条走对话）
+					// 压缩期间排队的消息：转入在途队列，逐条串行续接（防并发双请求竞态）
 					String queued;
 					while ((queued = session.pollPending()) != null) {
-						session.addPlayerMessage(queued);
-						requestReply(player, golem, session, config, queued);
+						session.queueForReply(queued);
 					}
-					// 当前消息作为新消息正常回复（手动压缩则无当前消息）
+					replyQueued(player, golem, session, config);
+					// 当前消息作为新消息正常回复（手动压缩则无当前消息）：补进历史 + 串行续接
 					if (currentText != null) {
-						requestReply(player, golem, session, config, currentText);
+						session.addPlayerMessage(currentText);
+						replyQueued(player, golem, session, config);
 					}
 				});
 			} catch (Exception e) {
@@ -665,11 +746,12 @@ public final class CopperGolemAiService {
 					session.dropToTail(4);
 					String queued;
 					while ((queued = session.pollPending()) != null) {
-						session.addPlayerMessage(queued);
-						requestReply(player, golem, session, config, queued);
+						session.queueForReply(queued);
 					}
+					replyQueued(player, golem, session, config);
 					if (currentText != null) {
-						requestReply(player, golem, session, config, currentText);
+						session.addPlayerMessage(currentText);
+						replyQueued(player, golem, session, config);
 					}
 				});
 			}
@@ -747,6 +829,7 @@ public final class CopperGolemAiService {
 		ACTIVE_COLLECTS.clear();
 		ACTIVE_MOVES.clear();
 		GOLEM_MESSAGES.clear();
+		MESSAGE_HOLD.clear();
 		GOLEM_MESSAGE_REPLYING.clear();
 		PENDING_REPLIES.clear();
 		CHAT_PLAYERS.clear();
@@ -1223,7 +1306,7 @@ public final class CopperGolemAiService {
 			return;
 		}
 		if (t.state() == CopperGolemTransportTask.State.DONE || t.state() == CopperGolemTransportTask.State.FAIL) {
-			TRANSPORT_START_TICK.remove(golem.getUUID());
+			finishTransport(golem, t); // 终态回收任务表（防御：任何路径存入终态都走完整收尾，防心跳永久停摆）
 			return;
 		}
 		if (golem.isRemoved()) {

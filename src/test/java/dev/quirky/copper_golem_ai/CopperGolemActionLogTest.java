@@ -41,4 +41,16 @@ class CopperGolemActionLogTest {
 		CopperGolemActionLog.clear(id);
 		assertNull(CopperGolemActionLog.summary(id));
 	}
+
+	@Test
+	void clearWithoutSessionRemovesIdleEntries() {
+		UUID active = UUID.randomUUID();
+		UUID idle = UUID.randomUUID();
+		CopperGolemActionLog.recordAction(active, "a1");
+		CopperGolemActionLog.recordAction(idle, "i1");
+		CopperGolemActionLog.recordFailure(idle, "i-fail");
+		CopperGolemActionLog.clearWithoutSession(java.util.Set.of(active));
+		assertNotNull(CopperGolemActionLog.summary(active));
+		assertNull(CopperGolemActionLog.summary(idle));
+	}
 }

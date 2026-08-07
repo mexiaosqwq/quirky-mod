@@ -26,8 +26,9 @@ class CopperGolemAiHttpTest {
 		c.aiTemperature = 0.5F;
 		c.aiMaxTokens = 128;
 		c.aiThinking = "high";
+		var loop = new CopperGolemAgentLoop(c, "你是测试傀儡", List.of("player: 你好", "golem: 你好呀"), "今天天气如何");
 		var root = JsonParser.parseString(
-			CopperGolemAiHttp.buildChatRequest(c, List.of("player: 你好", "golem: 你好呀"), "今天天气如何")
+			CopperGolemAiHttp.buildChatRequestFromMessages(c, loop.messages())
 		).getAsJsonObject();
 		assertEquals("deepseek-chat", root.get("model").getAsString());
 		assertEquals(0.5, root.get("temperature").getAsDouble());
@@ -45,8 +46,9 @@ class CopperGolemAiHttpTest {
 	void thinkingOffOmitsParam() {
 		QuirkyConfig c = new QuirkyConfig();
 		c.aiThinking = "off";
+		var loop = new CopperGolemAgentLoop(c, "你是测试傀儡", List.of(), "hi");
 		var root = JsonParser.parseString(
-			CopperGolemAiHttp.buildChatRequest(c, List.of(), "hi")
+			CopperGolemAiHttp.buildChatRequestFromMessages(c, loop.messages())
 		).getAsJsonObject();
 		assertFalse(root.has("reasoning_effort"));
 	}
@@ -78,8 +80,9 @@ class CopperGolemAiHttpTest {
 	@Test
 	void systemSummaryLineKeepsSystemRole() {
 		QuirkyConfig c = new QuirkyConfig();
+		var loop = new CopperGolemAgentLoop(c, "你是测试傀儡", List.of("system: 摘要内容", "player: 你好"), "在吗");
 		var root = JsonParser.parseString(
-			CopperGolemAiHttp.buildChatRequest(c, List.of("system: 摘要内容", "player: 你好"), "在吗")
+			CopperGolemAiHttp.buildChatRequestFromMessages(c, loop.messages())
 		).getAsJsonObject();
 		var messages = root.getAsJsonArray("messages");
 		assertEquals("system", messages.get(0).getAsJsonObject().get("role").getAsString());
@@ -100,15 +103,23 @@ class CopperGolemAiHttpTest {
 	}
 
 	@Test
-	void chatRequestCarriesTransportTool() {
+	void chatRequestCarriesAllTools() {
 		QuirkyConfig c = new QuirkyConfig();
+		var loop = new CopperGolemAgentLoop(c, "你是测试傀儡", List.of(), "把铜锭放进这里");
 		var root = JsonParser.parseString(
-			CopperGolemAiHttp.buildChatRequest(c, List.of(), "把铜锭放进这里")
+			CopperGolemAiHttp.buildChatRequestFromMessages(c, loop.messages())
 		).getAsJsonObject();
 		var tools = root.getAsJsonArray("tools");
-		assertEquals(1, tools.size());
+		// 全量工具列表（曾残留 V1 单工具——请求必须全量传，否则 AI 不知道有其他能力）
+		assertEquals(12, tools.size());
 		assertEquals("function", tools.get(0).getAsJsonObject().get("type").getAsString());
-		assertEquals("transport", tools.get(0).getAsJsonObject().getAsJsonObject("function").get("name").getAsString());
+		java.util.Set<String> names = new java.util.HashSet<>();
+		for (var t : tools) {
+			names.add(t.getAsJsonObject().getAsJsonObject("function").get("name").getAsString());
+		}
+		assertTrue(names.contains("transport"));
+		assertTrue(names.contains("look_containers"));
+		assertTrue(names.contains("tell_golem"));
 		assertEquals("auto", root.get("tool_choice").getAsString());
 	}
 

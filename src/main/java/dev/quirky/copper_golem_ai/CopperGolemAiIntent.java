@@ -68,7 +68,7 @@ public final class CopperGolemAiIntent {
 
 	/** item 必须来自感知结果（knownItems）；"any" 放行。 */
 	public static boolean isKnownItem(String item, Set<String> knownItems) {
-		return item.equals("any") || knownItems.contains(item);
+		return item != null && (item.equals("any") || knownItems.contains(item));
 	}
 
 	/** 动作意图词（对话硬校验 + PENDING_GOAL 写入判定共用）。 */
@@ -78,10 +78,10 @@ public final class CopperGolemAiIntent {
 	public static final List<String> DONE_WORDS = List.of("办好了", "搬完了", "捡完了", "搞定了", "做好了", "完成了", "弄完了", "搬好", "捡好", "搞定", "收拾完了");
 
 	public static boolean hasActionIntent(String text) {
-		return ACTION_WORDS.stream().anyMatch(text::contains);
+		return text != null && ACTION_WORDS.stream().anyMatch(text::contains);
 	}
 
 	public static boolean isDoneStatement(String text) {
-		return DONE_WORDS.stream().anyMatch(text::contains);
+		return text != null && DONE_WORDS.stream().anyMatch(text::contains);
 	}
 }
