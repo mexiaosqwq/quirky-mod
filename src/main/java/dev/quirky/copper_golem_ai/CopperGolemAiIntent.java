@@ -72,10 +72,11 @@ public final class CopperGolemAiIntent {
 	}
 
 	/** 动作意图词（对话硬校验 + PENDING_GOAL 写入判定共用）。 */
-	public static final List<String> ACTION_WORDS = List.of("搬", "拿", "捡", "跟", "找", "去", "给", "放", "收集", "打扫", "带", "取", "清理");
+	public static final List<String> ACTION_WORDS = List.of("搬", "拿", "捡", "跟", "找", "去", "给", "放", "收集", "打扫", "带", "取", "清理",
+		"整理", "收拾", "归类", "分类", "合并");
 
 	/** 完成语（心跳/对话回复判定：AI 宣布任务达成 → 清 PENDING_GOAL）。 */
-	public static final List<String> DONE_WORDS = List.of("办好了", "搬完了", "捡完了", "搞定了", "做好了", "完成了", "弄完了", "搬好", "捡好", "搞定", "收拾完了");
+	public static final List<String> DONE_WORDS = List.of("办好了", "搬完了", "捡完了", "搞定了", "做好了", "完成了", "弄完了", "搬好", "捡好", "搞定", "收拾完了", "整理好了");
 
 	public static boolean hasActionIntent(String text) {
 		return text != null && ACTION_WORDS.stream().anyMatch(text::contains);

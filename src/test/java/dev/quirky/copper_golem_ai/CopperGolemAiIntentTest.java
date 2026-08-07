@@ -91,6 +91,9 @@ class CopperGolemAiIntentTest {
 		assertTrue(CopperGolemAiIntent.hasActionIntent("把黑曜石搬到末影箱"));
 		assertTrue(CopperGolemAiIntent.hasActionIntent("帮我捡一下地上的东西"));
 		assertTrue(CopperGolemAiIntent.hasActionIntent("跟着我"));
+		assertTrue(CopperGolemAiIntent.hasActionIntent("整理一下末影箱")); // 整理/收拾/归类 → PENDING_GOAL + 硬校验
+		assertTrue(CopperGolemAiIntent.hasActionIntent("帮我把箱子收拾好"));
+		assertTrue(CopperGolemAiIntent.hasActionIntent("归类一下铜箱"));
 		assertFalse(CopperGolemAiIntent.hasActionIntent("附近有什么"));
 		assertFalse(CopperGolemAiIntent.hasActionIntent("你真棒"));
 	}
@@ -99,6 +102,7 @@ class CopperGolemAiIntentTest {
 	void doneStatementWords() {
 		assertTrue(CopperGolemAiIntent.isDoneStatement("搬完了，放好了"));
 		assertTrue(CopperGolemAiIntent.isDoneStatement("搞定！"));
+		assertTrue(CopperGolemAiIntent.isDoneStatement("末影箱整理好了"));
 		assertFalse(CopperGolemAiIntent.isDoneStatement("我这就去搬"));
 	}
 }
