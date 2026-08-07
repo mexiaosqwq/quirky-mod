@@ -5,64 +5,105 @@ import me.shedaniel.autoconfig.annotation.Config;
 import me.shedaniel.autoconfig.annotation.ConfigEntry;
 
 /**
- * 配置集中定义。机制默认全开且不可关闭（v1.1 整理：删除全部布尔开关），
- * 这里只保留玩家可调数值参数，按「物品 / 机制 / 客户端」三组分类。
+ * 配置集中定义。v3：开关为主——行为/QoL 机制每个一个开关（默认全开，关闭 = 该机制不生效）；
+ * 非核心数值保留为隐藏字段（@ConfigEntry.Gui.Excluded，json5 可手改，GUI 不显示）；
+ * 物品类机制无开关（玩家主动使用，不做禁用）。四组：gameplay / client / totem / copper_golem。
  */
 @Config(name = "quirky")
 public class QuirkyConfig implements ConfigData {
 
-	// ==== 物品组：各物品机制的数值参数 ====
+	// ==== gameplay 玩法组：行为机制开关 ====
 
-	@ConfigEntry.Category("items")
-	@ConfigEntry.BoundedDiscrete(min = 1, max = 8)
+	@ConfigEntry.Category("gameplay")
 	@ConfigEntry.Gui.Tooltip
-	public int quiverCapacity = 4;
+	public boolean wakeUpEnabled = true;
 
-	@ConfigEntry.Category("items")
-	@ConfigEntry.BoundedDiscrete(min = 1, max = 64)
+	@ConfigEntry.Category("gameplay")
 	@ConfigEntry.Gui.Tooltip
-	public int ropeMaxExtendPerUse = 32;
+	public boolean autoClimbEnabled = true;
 
-	@ConfigEntry.Category("items")
-	@ConfigEntry.BoundedDiscrete(min = 4, max = 24)
+	@ConfigEntry.Category("gameplay")
 	@ConfigEntry.Gui.Tooltip
-	public int boomerangRange = 12;
+	public boolean soulLightEnabled = true;
 
-	@ConfigEntry.Category("items")
+	@ConfigEntry.Category("gameplay")
 	@ConfigEntry.Gui.Tooltip
-	public float boomerangBreakChance = 0.05F;
+	public boolean harvestReplantEnabled = true;
 
-	@ConfigEntry.Category("items")
-	@ConfigEntry.BoundedDiscrete(min = 0, max = 2)
+	@ConfigEntry.Category("gameplay")
 	@ConfigEntry.Gui.Tooltip
-	public int seedPouchRadius = 1;
+	public boolean doubleDoorEnabled = true;
 
-	@ConfigEntry.Category("items")
-	@ConfigEntry.BoundedDiscrete(min = 10, max = 300)
+	@ConfigEntry.Category("gameplay")
 	@ConfigEntry.Gui.Tooltip
-	public int fishBaitDurationSeconds = 90;
+	public boolean quickEquipEnabled = true;
 
-	@ConfigEntry.Category("items")
-	@ConfigEntry.BoundedDiscrete(min = 2, max = 8)
+	@ConfigEntry.Category("gameplay")
 	@ConfigEntry.Gui.Tooltip
-	public int fishBaitRadius = 4;
+	public boolean melonSeedSpitEnabled = true;
 
-	@ConfigEntry.Category("items")
-	@ConfigEntry.BoundedDiscrete(min = 8, max = 64)
+	@ConfigEntry.Gui.Excluded
+	public int wakeUpSlowFallingSeconds = 12;
+
+	// ==== client 客户端组：提示类开关 ====
+
+	@ConfigEntry.Category("client")
 	@ConfigEntry.Gui.Tooltip
-	public int petWhistleRadius = 24;
+	public boolean tickerEnabled = true;
 
-	@ConfigEntry.Category("items")
-	@ConfigEntry.BoundedDiscrete(min = 1, max = 5)
+	@ConfigEntry.Category("client")
 	@ConfigEntry.Gui.Tooltip
-	public int petWhistlePhantomMax = 3;
+	public boolean arrowDingEnabled = true;
 
-	// ==== 保留图腾（物品组，含服务端与客户端渲染参数）====
+	@ConfigEntry.Category("client")
+	@ConfigEntry.Gui.Tooltip
+	public boolean campfireSmokeEnabled = true;
+
+	@ConfigEntry.Category("client")
+	@ConfigEntry.Gui.Tooltip
+	public boolean deathCamEnabled = true;
+
+	@ConfigEntry.Category("client")
+	@ConfigEntry.Gui.Tooltip
+	public boolean shulkerPreviewEnabled = true;
+
+	@ConfigEntry.Category("client")
+	@ConfigEntry.Gui.Tooltip
+	public boolean mapPreviewEnabled = true;
+
+	@ConfigEntry.Category("client")
+	@ConfigEntry.Gui.Tooltip
+	public boolean clockTooltipEnabled = true;
+
+	@ConfigEntry.Category("client")
+	@ConfigEntry.Gui.Tooltip
+	public boolean foodTooltipEnabled = true;
+
+	@ConfigEntry.Category("client")
+	@ConfigEntry.Gui.Tooltip
+	public boolean attributeTooltipEnabled = true;
+
+	@ConfigEntry.Category("client")
+	@ConfigEntry.Gui.Tooltip
+	public boolean advancedTooltipEnabled = true;
+
+	@ConfigEntry.Gui.Excluded
+	public int tickerHoldTicks = 50;
+
+	@ConfigEntry.Gui.Excluded
+	public int tickerAnimTicks = 5;
+
+	@ConfigEntry.Gui.Excluded
+	public int deathCamDuration = 50;
+
+	@ConfigEntry.Gui.Excluded
+	public float arrowDingVolume = 0.6F;
+
+	// ==== totem 图腾组（独立页）：开关 + 核心数值可见 ====
 
 	@ConfigEntry.Category("totem")
-	@ConfigEntry.BoundedDiscrete(min = 1, max = 2)
 	@ConfigEntry.Gui.Tooltip
-	public int spawnHeightOffset = 1;
+	public boolean totemEnabled = true;
 
 	@ConfigEntry.Category("totem")
 	@ConfigEntry.BoundedDiscrete(min = 1, max = 10)
@@ -70,99 +111,56 @@ public class QuirkyConfig implements ConfigData {
 	public int hitsToRetrieve = 3;
 
 	@ConfigEntry.Category("totem")
+	@ConfigEntry.BoundedDiscrete(min = 1, max = 2)
 	@ConfigEntry.Gui.Tooltip
+	public int spawnHeightOffset = 1;
+
+	@ConfigEntry.Gui.Excluded
 	public float hitSoundVolume = 1.0F;
 
-	@ConfigEntry.Category("totem")
-	@ConfigEntry.Gui.Tooltip
+	@ConfigEntry.Gui.Excluded
 	public float hitSoundPitch = 1.0F;
 
-	@ConfigEntry.Category("totem")
-	@ConfigEntry.Gui.Tooltip
+	@ConfigEntry.Gui.Excluded
 	public float retrieveSoundVolume = 0.5F;
 
-	@ConfigEntry.Category("totem")
-	@ConfigEntry.BoundedDiscrete(min = 1, max = 100)
-	@ConfigEntry.Gui.Tooltip
+	@ConfigEntry.Gui.Excluded
 	public int enchantParticleChance = 4;
 
-	@ConfigEntry.Category("totem")
-	@ConfigEntry.BoundedDiscrete(min = 1, max = 100)
-	@ConfigEntry.Gui.Tooltip
+	@ConfigEntry.Gui.Excluded
 	public int endRodParticleChance = 12;
 
-	@ConfigEntry.Category("totem")
-	@ConfigEntry.Gui.Tooltip
+	@ConfigEntry.Gui.Excluded
 	public float endRodParticleXzSpread = 0.35F;
 
-	@ConfigEntry.Category("totem")
-	@ConfigEntry.Gui.Tooltip
+	@ConfigEntry.Gui.Excluded
 	public float endRodParticleYSpread = 0.3F;
 
-	@ConfigEntry.Category("totem")
-	@ConfigEntry.Gui.Tooltip
+	@ConfigEntry.Gui.Excluded
 	public float particleXzSpread = 0.45F;
 
-	@ConfigEntry.Category("totem")
-	@ConfigEntry.Gui.Tooltip
+	@ConfigEntry.Gui.Excluded
 	public float particleYSpread = 0.55F;
 
-	@ConfigEntry.Category("totem")
-	@ConfigEntry.Gui.Tooltip
+	@ConfigEntry.Gui.Excluded
 	public float modelScale = 1.8F;
 
-	@ConfigEntry.Category("totem")
-	@ConfigEntry.Gui.Tooltip
+	@ConfigEntry.Gui.Excluded
 	public float bobAmplitude = 0.25F;
 
-	@ConfigEntry.Category("totem")
-	@ConfigEntry.BoundedDiscrete(min = 4, max = 60)
-	@ConfigEntry.Gui.Tooltip
+	@ConfigEntry.Gui.Excluded
 	public int bobPeriod = 12;
 
-	@ConfigEntry.Category("totem")
-	@ConfigEntry.BoundedDiscrete(min = 4, max = 60)
-	@ConfigEntry.Gui.Tooltip
+	@ConfigEntry.Gui.Excluded
 	public int spinPeriod = 8;
 
-	@ConfigEntry.Category("totem")
-	@ConfigEntry.Gui.Tooltip
+	@ConfigEntry.Gui.Excluded
 	public float swayAmplitude = 0.08F;
 
-	@ConfigEntry.Category("totem")
-	@ConfigEntry.BoundedDiscrete(min = 4, max = 60)
-	@ConfigEntry.Gui.Tooltip
+	@ConfigEntry.Gui.Excluded
 	public int swayPeriod = 20;
 
-	// ==== 机制组：行为类机制的数值参数 ====
-
-	@ConfigEntry.Category("mechanics")
-	@ConfigEntry.Gui.Tooltip
-	public float arrowDingVolume = 0.6F;
-
-	@ConfigEntry.Category("mechanics")
-	@ConfigEntry.BoundedDiscrete(min = 0, max = 60)
-	@ConfigEntry.Gui.Tooltip
-	public int wakeUpSlowFallingSeconds = 12;
-
-	// ==== 客户端组：显示类数值参数 ====
-
-	@ConfigEntry.Category("client")
-	@ConfigEntry.BoundedDiscrete(min = 20, max = 200)
-	@ConfigEntry.Gui.Tooltip
-	public int tickerHoldTicks = 50;
-
-	@ConfigEntry.Category("client")
-	@ConfigEntry.BoundedDiscrete(min = 2, max = 20)
-	@ConfigEntry.Gui.Tooltip
-	public int tickerAnimTicks = 5;
-
-	@ConfigEntry.Category("client")
-	@ConfigEntry.BoundedDiscrete(min = 40, max = 100)
-	@ConfigEntry.Gui.Tooltip
-	public int deathCamDuration = 50;
-
-	// ==== 铜傀儡组：铜傀儡 AI 行为参数 ====
+	// ==== copper_golem 铜傀儡组：总开关 + 连接三件套 + 行为数值可见 ====
 
 	@ConfigEntry.Category("copper_golem")
 	@ConfigEntry.Gui.Tooltip
@@ -191,46 +189,64 @@ public class QuirkyConfig implements ConfigData {
 	public String aiModel = "";
 
 	@ConfigEntry.Category("copper_golem")
-	@ConfigEntry.Gui.Tooltip
-	public float aiTemperature = 0.7F;
-
-	@ConfigEntry.Category("copper_golem")
 	@ConfigEntry.BoundedDiscrete(min = 16, max = 128)
 	@ConfigEntry.Gui.Tooltip
 	public int maxTransportRange = 64;
-
-	@ConfigEntry.Category("copper_golem")
-	@ConfigEntry.BoundedDiscrete(min = 64, max = 4096)
-	@ConfigEntry.Gui.Tooltip
-	public int aiMaxTokens = 256;
 
 	@ConfigEntry.Category("copper_golem")
 	@ConfigEntry.BoundedDiscrete(min = 2, max = 32)
 	@ConfigEntry.Gui.Tooltip
 	public int aiListenRange = 16;
 
-	@ConfigEntry.Category("copper_golem")
-	@ConfigEntry.BoundedDiscrete(min = 10, max = 600)
-	@ConfigEntry.Gui.Tooltip
+	@ConfigEntry.Gui.Excluded
+	public float aiTemperature = 0.7F;
+
+	@ConfigEntry.Gui.Excluded
+	public int aiMaxTokens = 256;
+
+	@ConfigEntry.Gui.Excluded
 	public int aiCooldownTicks = 40;
 
-	@ConfigEntry.Category("copper_golem")
-	@ConfigEntry.Gui.Tooltip
+	@ConfigEntry.Gui.Excluded
 	public String aiThinking = "low"; // off/low/medium/high/xhigh/max
 
-	@ConfigEntry.Category("copper_golem")
-	@ConfigEntry.Gui.Tooltip
+	@ConfigEntry.Gui.Excluded
 	public String aiSummaryModel = "";
 
-	@ConfigEntry.Category("copper_golem")
-	@ConfigEntry.BoundedDiscrete(min = 4, max = 100)
-	@ConfigEntry.Gui.Tooltip
+	@ConfigEntry.Gui.Excluded
 	public int aiSummaryMessages = 20;
 
-	@ConfigEntry.Category("copper_golem")
-	@ConfigEntry.BoundedDiscrete(min = 256, max = 16000)
-	@ConfigEntry.Gui.Tooltip
+	@ConfigEntry.Gui.Excluded
 	public int aiSummaryTokens = 4000;
+
+	// ==== 物品类（无开关，数值全部隐藏，json5 可调）====
+
+	@ConfigEntry.Gui.Excluded
+	public int quiverCapacity = 4;
+
+	@ConfigEntry.Gui.Excluded
+	public int ropeMaxExtendPerUse = 32;
+
+	@ConfigEntry.Gui.Excluded
+	public int boomerangRange = 24;
+
+	@ConfigEntry.Gui.Excluded
+	public float boomerangBreakChance = 0.05F;
+
+	@ConfigEntry.Gui.Excluded
+	public int seedPouchRadius = 1;
+
+	@ConfigEntry.Gui.Excluded
+	public int fishBaitDurationSeconds = 90;
+
+	@ConfigEntry.Gui.Excluded
+	public int fishBaitRadius = 4;
+
+	@ConfigEntry.Gui.Excluded
+	public int petWhistleRadius = 24;
+
+	@ConfigEntry.Gui.Excluded
+	public int petWhistlePhantomMax = 3;
 
 	/**
 	 * 运行时自 clamp：GUI 的 BoundedDiscrete 只约束界面操作，json5 手改可越界；
@@ -247,6 +263,11 @@ public class QuirkyConfig implements ConfigData {
 		fishBaitRadius = Math.clamp(fishBaitRadius, 2, 8);
 		petWhistleRadius = Math.clamp(petWhistleRadius, 8, 64);
 		petWhistlePhantomMax = Math.clamp(petWhistlePhantomMax, 1, 5);
+		wakeUpSlowFallingSeconds = Math.clamp(wakeUpSlowFallingSeconds, 0, 60);
+		arrowDingVolume = Math.clamp(arrowDingVolume, 0F, 2F);
+		tickerHoldTicks = Math.clamp(tickerHoldTicks, 20, 200);
+		tickerAnimTicks = Math.clamp(tickerAnimTicks, 2, 20);
+		deathCamDuration = Math.clamp(deathCamDuration, 40, 100);
 		spawnHeightOffset = Math.clamp(spawnHeightOffset, 1, 2);
 		hitsToRetrieve = Math.clamp(hitsToRetrieve, 1, 10);
 		hitSoundVolume = Math.clamp(hitSoundVolume, 0F, 2F);
@@ -264,19 +285,14 @@ public class QuirkyConfig implements ConfigData {
 		spinPeriod = Math.clamp(spinPeriod, 4, 60);
 		swayAmplitude = Math.clamp(swayAmplitude, 0F, 2F);
 		swayPeriod = Math.clamp(swayPeriod, 4, 60);
-		arrowDingVolume = Math.clamp(arrowDingVolume, 0F, 2F);
-		wakeUpSlowFallingSeconds = Math.clamp(wakeUpSlowFallingSeconds, 0, 60);
-		tickerHoldTicks = Math.clamp(tickerHoldTicks, 20, 200);
-		tickerAnimTicks = Math.clamp(tickerAnimTicks, 2, 20);
-		deathCamDuration = Math.clamp(deathCamDuration, 40, 100);
 		heartbeatIntervalSeconds = Math.clamp(heartbeatIntervalSeconds, 0, 300);
 		droppedPickupRange = Math.clamp(droppedPickupRange, 4, 32);
 		maxTransportRange = Math.clamp(maxTransportRange, 16, 128);
-		aiMaxTokens = Math.clamp(aiMaxTokens, 64, 4096);
 		aiListenRange = Math.clamp(aiListenRange, 2, 32);
+		aiTemperature = Math.clamp(aiTemperature, 0F, 2F);
+		aiMaxTokens = Math.clamp(aiMaxTokens, 64, 4096);
 		aiCooldownTicks = Math.clamp(aiCooldownTicks, 10, 600);
 		aiSummaryMessages = Math.clamp(aiSummaryMessages, 4, 100);
 		aiSummaryTokens = Math.clamp(aiSummaryTokens, 256, 16000);
-		aiTemperature = Math.clamp(aiTemperature, 0F, 2F);
 	}
 }
