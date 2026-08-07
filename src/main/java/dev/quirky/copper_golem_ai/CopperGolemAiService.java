@@ -101,7 +101,7 @@ public final class CopperGolemAiService {
 	private static final int TARGETED_RAYCAST_DISTANCE = 6;
 	private static volatile boolean initialized = false;
 
-	/** 进行中的搬运任务（每傀儡一个）。givePlayerId=give 目标玩家（非 give 为 null）；openPos=当前打开的容器；collectQueue=collect 批量链的剩余目标（非 collect 为 null）。 */
+	/** 进行中的搬运任务（每傀儡一个）。givePlayerId=give 目标玩家（非 give 为 null）；openPos=当前打开的容器；collectQueue=collect 批量链的剩余目标（非 collect 为 null）；lastPos/stuckTicks=走路卡住检测（不可达目标快速中止，不再等 60 秒超时）。 */
 	private record ActiveTransport(
 		CopperGolemAiIntent.TransportRequest request,
 		CopperGolemTransportTask.State state,
@@ -111,14 +111,20 @@ public final class CopperGolemAiService {
 		@Nullable UUID givePlayerId,
 		@Nullable BlockPos openPos,
 		@Nullable List<UUID> collectQueue,
-		@Nullable UUID enderOwner // 末影箱归属玩家（对话发起者）；非末影箱任务为 null
+		@Nullable UUID enderOwner, // 末影箱归属玩家（对话发起者）；非末影箱任务为 null
+		@Nullable BlockPos lastPos, // 卡住检测：上轮所在位置（null=首次）
+		int stuckTicks // 连续未换格 tick 数
 	) {
 		ActiveTransport withState(CopperGolemTransportTask.State s) {
-			return new ActiveTransport(request, s, source, destination, itemId, givePlayerId, openPos, collectQueue, enderOwner);
+			return new ActiveTransport(request, s, source, destination, itemId, givePlayerId, openPos, collectQueue, enderOwner, lastPos, stuckTicks);
 		}
 
 		ActiveTransport withOpenPos(BlockPos p) {
-			return new ActiveTransport(request, state, source, destination, itemId, givePlayerId, p, collectQueue, enderOwner);
+			return new ActiveTransport(request, state, source, destination, itemId, givePlayerId, p, collectQueue, enderOwner, lastPos, stuckTicks);
+		}
+
+		ActiveTransport withPos(BlockPos p, int stuck) {
+			return new ActiveTransport(request, state, source, destination, itemId, givePlayerId, openPos, collectQueue, enderOwner, p, stuck);
 		}
 	}
 
@@ -952,7 +958,7 @@ public final class CopperGolemAiService {
 		ACTIVE_TRANSPORTS.put(golem.getUUID(),
 			new ActiveTransport(req, fromHand ? CopperGolemTransportTask.State.WALK_DEST : CopperGolemTransportTask.State.WALK_SOURCE,
 				fromHand ? golem.blockPosition() : source, destination, itemId,
-				toPlayer ? player.getUUID() : null, null, null, enderOwner));
+				toPlayer ? player.getUUID() : null, null, null, enderOwner, null, 0));
 		return "{\"ok\":\"开始搬运 " + itemId + "\"}";
 	}
 
@@ -1144,7 +1150,7 @@ public final class CopperGolemAiService {
 				BuiltInRegistries.ITEM.getKey(golem.getMainHandItem().getItem()).toString(), "copper",
 				copper.getX() + "," + copper.getY() + "," + copper.getZ());
 			ACTIVE_TRANSPORTS.put(golem.getUUID(),
-				new ActiveTransport(req, CopperGolemTransportTask.State.WALK_DEST, golem.blockPosition(), copper, req.item(), null, null, newQueue, null));
+				new ActiveTransport(req, CopperGolemTransportTask.State.WALK_DEST, golem.blockPosition(), copper, req.item(), null, null, newQueue, null, null, 0));
 			return;
 		}
 		ItemStack stack = item.getItem();
@@ -1162,7 +1168,7 @@ public final class CopperGolemAiService {
 		CopperGolemAiIntent.TransportRequest req = new CopperGolemAiIntent.TransportRequest(
 			BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(), "copper", copper.getX() + "," + copper.getY() + "," + copper.getZ());
 		ACTIVE_TRANSPORTS.put(golem.getUUID(),
-			new ActiveTransport(req, CopperGolemTransportTask.State.WALK_DEST, task.pos(), copper, req.item(), null, null, task.queue(), null));
+			new ActiveTransport(req, CopperGolemTransportTask.State.WALK_DEST, task.pos(), copper, req.item(), null, null, task.queue(), null, null, 0));
 	}
 
 	/** 移动中任务（move_to）：tick 推进，到达/卡住/超时收尾。 */
@@ -1208,7 +1214,7 @@ public final class CopperGolemAiService {
 		CopperGolemAiIntent.TransportRequest req = new CopperGolemAiIntent.TransportRequest(itemId, "hand",
 			copper.getX() + "," + copper.getY() + "," + copper.getZ());
 		ACTIVE_TRANSPORTS.put(id, new ActiveTransport(req, CopperGolemTransportTask.State.WALK_DEST,
-			golem.blockPosition(), copper, itemId, null, null, null, null));
+			golem.blockPosition(), copper, itemId, null, null, null, null, null, 0));
 		LOGGER.info("golem {} stray item {} auto-returning to copper chest", id, itemId);
 	}
 
@@ -1514,12 +1520,21 @@ public final class CopperGolemAiService {
 			}
 			boolean atTarget = golem.blockPosition().distSqr(target) <= 4.0;
 			if (!atTarget) {
+				// 卡住检测：2 秒没换格 = 目标不可达（悬崖/墙/地下箱子），快速中止，不再等 60 秒超时白耗
+				int stuck = golem.blockPosition().equals(t.lastPos()) ? t.stuckTicks() + 1 : 0;
+				if (stuck >= 40) {
+					finishTransport(golem, t);
+					broadcastMoveAbort(golem, level, "路被挡住了，这次搬运先算了（目标过不去）");
+					return;
+				}
+				ACTIVE_TRANSPORTS.put(golem.getUUID(), t.withPos(golem.blockPosition(), stuck));
 				BehaviorUtils.setWalkAndLookTargetMemories(golem, target, 1.0F, 0);
 				return;
 			}
 			if (t.state() == CopperGolemTransportTask.State.WALK_SOURCE) {
 				if (doTake(golem, level, t)) {
-					ACTIVE_TRANSPORTS.put(golem.getUUID(), t.withState(CopperGolemTransportTask.State.WALK_DEST));
+					ACTIVE_TRANSPORTS.put(golem.getUUID(),
+						t.withState(CopperGolemTransportTask.State.WALK_DEST).withPos(golem.blockPosition(), 0));
 				} else {
 					finishTransport(golem, t);
 				}

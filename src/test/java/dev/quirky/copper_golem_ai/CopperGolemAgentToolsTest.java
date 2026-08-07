@@ -57,15 +57,17 @@ class CopperGolemAgentToolsTest {
 	void formatContainersTruncates() {
 		List<CopperGolemAgentTools.ContainerInfo> list = new ArrayList<>();
 		for (int i = 0; i < 25; i++) {
-			list.add(new CopperGolemAgentTools.ContainerInfo("chest", "100," + i + ",0", List.of("a×1", "b×2"), 2));
+			list.add(new CopperGolemAgentTools.ContainerInfo("chest", "100," + i + ",0", List.of("a×1", "b×2"), 2, 3));
 		}
 		String out = CopperGolemAgentTools.formatContainers(list, 20, 10);
 		assertTrue(out.contains("还有 5 个容器未列出"));
+		assertTrue(out.contains("距你3格")); // 距离字段：AI 判断远近
 
 		List<CopperGolemAgentTools.ContainerInfo> one = List.of(
-			new CopperGolemAgentTools.ContainerInfo("chest", "1,64,1", List.of("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"), 12));
+			new CopperGolemAgentTools.ContainerInfo("chest", "1,64,1", List.of("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"), 12, 7));
 		String out2 = CopperGolemAgentTools.formatContainers(one, 20, 10);
 		assertTrue(out2.contains("还有 2 种物品未列出"));
+		assertTrue(out2.contains("距你7格"));
 	}
 
 	@Test

@@ -58,8 +58,8 @@ public final class CopperGolemAgentTools {
 	public record ToolContext(CopperGolem golem, ServerLevel level, @Nullable ServerPlayer player, java.util.Set<String> knownItems) {
 	}
 
-	/** 单个容器概要（formatContainers 的输入）。 */
-	public record ContainerInfo(String type, String pos, List<String> items, int totalItems) {
+	/** 单个容器概要（formatContainers 的输入）。dist=距傀儡格数（AI 判断远近，防凭记忆乱搬远处箱子）。 */
+	public record ContainerInfo(String type, String pos, List<String> items, int totalItems, int dist) {
 	}
 
 	private CopperGolemAgentTools() {
@@ -198,7 +198,7 @@ public final class CopperGolemAgentTools {
 								ctx.knownItems().add(id);
 							}
 						}
-						found.add(new ContainerInfo("ender_chest(" + ownerName + ")", pos.getX() + "," + pos.getY() + "," + pos.getZ(), items, total));
+						found.add(new ContainerInfo("ender_chest(" + ownerName + ")", pos.getX() + "," + pos.getY() + "," + pos.getZ(), items, total, distOf(golemPos, pos)));
 						continue;
 					}
 					if (!(be instanceof ChestBlockEntity || be instanceof BarrelBlockEntity || be instanceof ShulkerBoxBlockEntity)) {
@@ -226,7 +226,7 @@ public final class CopperGolemAgentTools {
 						items.add(id + "(" + stack.getHoverName().getString() + ")×" + stack.getCount());
 						ctx.knownItems().add(id);
 					}
-					found.add(new ContainerInfo(typeOf(ctx, be, pos), pos.getX() + "," + pos.getY() + "," + pos.getZ(), items, total));
+					found.add(new ContainerInfo(typeOf(ctx, be, pos), pos.getX() + "," + pos.getY() + "," + pos.getZ(), items, total, distOf(golemPos, pos)));
 				}
 			}
 		}
@@ -418,13 +418,18 @@ public final class CopperGolemAgentTools {
 		return "黎明";
 	}
 
+	/** 容器到傀儡的直线格数（block 中心距离，四舍五入）。 */
+	private static int distOf(BlockPos from, BlockPos to) {
+		return (int) Math.round(Math.sqrt(from.distSqr(to)));
+	}
+
 	/** 容器清单截断：最多 maxContainers 个容器 × 每容器前 maxItems 种物品，超出补"还有 N 未列出"。 */
 	public static String formatContainers(List<ContainerInfo> containers, int maxContainers, int maxItems) {
 		List<String> out = new ArrayList<>();
 		int truncated = 0;
 		for (int i = 0; i < containers.size() && i < maxContainers; i++) {
 			ContainerInfo c = containers.get(i);
-			StringBuilder sb = new StringBuilder(c.type() + "@(" + c.pos() + ")");
+			StringBuilder sb = new StringBuilder(c.type() + "@(" + c.pos() + ") 距你" + c.dist() + "格");
 			if (c.items().isEmpty()) {
 				sb.append("：空");
 			} else {
