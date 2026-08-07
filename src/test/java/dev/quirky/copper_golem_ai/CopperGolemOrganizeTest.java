@@ -19,6 +19,8 @@ class CopperGolemOrganizeTest {
 		TestBootstrap.boot();
 		TestBootstrap.bindItem(Items.OAK_LOG);
 		TestBootstrap.bindItem(Items.STONE);
+		TestBootstrap.bindItem(Items.APPLE);
+		TestBootstrap.bindItem(Items.IRON_PICKAXE);
 	}
 
 	@Test
@@ -50,10 +52,35 @@ class CopperGolemOrganizeTest {
 	void groupsByItemKind() {
 		List<ItemStack> slots = new ArrayList<>(List.of(
 			new ItemStack(Items.STONE, 3), new ItemStack(Items.OAK_LOG, 3)));
-		CopperGolemAiService.organizeSlots(slots);
-		// 稳定排序：oak_log 字典序在 stone 前 → 同类相邻
+		CopperGolemAiService.OrganizeResult r = CopperGolemAiService.organizeSlots(slots);
+		// 同类（方块组）内按 id 字典序：oak_log 在 stone 前 → 同类相邻
 		assertEquals(Items.OAK_LOG, slots.get(0).getItem());
 		assertEquals(Items.STONE, slots.get(1).getItem());
+		assertTrue(r.reordered()); // 顺序从 stone→oak_log 变成 oak_log→stone
+	}
+
+	@Test
+	void groupsByCategoryThenId() {
+		// 方块组 0（原木/石头）→ 食物组 1（苹果）→ 工具组 2（铁镐）：跨类别聚拢，组内字典序
+		List<ItemStack> slots = new ArrayList<>(List.of(
+			new ItemStack(Items.APPLE, 1),
+			new ItemStack(Items.IRON_PICKAXE, 1),
+			new ItemStack(Items.STONE, 3),
+			new ItemStack(Items.OAK_LOG, 3)));
+		CopperGolemAiService.organizeSlots(slots);
+		assertEquals(Items.OAK_LOG, slots.get(0).getItem());
+		assertEquals(Items.STONE, slots.get(1).getItem());
+		assertEquals(Items.APPLE, slots.get(2).getItem());
+		assertEquals(Items.IRON_PICKAXE, slots.get(3).getItem());
+	}
+
+	@Test
+	void notReorderedWhenAlreadyInOrder() {
+		List<ItemStack> slots = new ArrayList<>(List.of(
+			new ItemStack(Items.OAK_LOG, 3), new ItemStack(Items.STONE, 3)));
+		CopperGolemAiService.OrganizeResult r = CopperGolemAiService.organizeSlots(slots);
+		assertEquals(0, r.merged());
+		assertFalse(r.reordered()); // 已在正确顺序 → 不误报"重新归位"
 	}
 
 	@Test

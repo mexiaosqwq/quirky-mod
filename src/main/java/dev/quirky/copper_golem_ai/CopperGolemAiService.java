@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -20,6 +21,7 @@ import net.minecraft.world.entity.ai.behavior.BehaviorUtils;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.animal.golem.CopperGolem;
 import net.minecraft.world.entity.animal.golem.CopperGolemState;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ChunkPos;
@@ -1012,11 +1014,26 @@ public final class CopperGolemAiService {
 		return best != null && bestDist <= (double) maxDist * maxDist ? best : null;
 	}
 
-	/** 整理结果：merged=合并组数（每次并入计 1），kinds=整理后物品种类数。 */
-	public record OrganizeResult(int merged, int kinds) {
+	/** 整理结果：merged=合并次数（每次并入计 1），kinds=整理后物品种类数，reordered=槽位顺序发生变化。 */
+	public record OrganizeResult(int merged, int kinds, boolean reordered) {
 	}
 
-	/** 整理槽位列表：同类物品（同 item + 同组件）合并成满组，再按物品 ID 稳定聚拢。直接回填传入列表。 */
+	/** 归类键：方块（建材/装饰/自然）→ 食物 → 工具装备 → 杂项，组内按物品 ID 字典序。
+	 *  比纯字典序符合玩家心智：建筑材料聚一块、食物聚一块，而不是 apple 紧挨 acacia_log。 */
+	static int groupOf(ItemStack s) {
+		if (s.getItem() instanceof BlockItem) {
+			return 0;
+		}
+		if (s.has(DataComponents.FOOD)) {
+			return 1;
+		}
+		if (s.has(DataComponents.TOOL) || s.has(DataComponents.EQUIPPABLE)) {
+			return 2;
+		}
+		return 3;
+	}
+
+	/** 整理槽位列表：同类物品（同 item + 同组件）合并成满组，再按类别分组排序。直接回填传入列表。 */
 	public static OrganizeResult organizeSlots(List<ItemStack> slots) {
 		int size = slots.size();
 		List<ItemStack> work = new ArrayList<>(slots);
@@ -1052,11 +1069,21 @@ public final class CopperGolemAiService {
 				nonEmpty.add(s);
 			}
 		}
-		nonEmpty.sort(Comparator.comparing(s -> BuiltInRegistries.ITEM.getKey(s.getItem()).toString()));
+		List<ItemStack> beforeSort = new ArrayList<>(nonEmpty);
+		nonEmpty.sort(Comparator.comparingInt(CopperGolemAiService::groupOf)
+			.thenComparing(s -> BuiltInRegistries.ITEM.getKey(s.getItem()).toString()));
+		boolean reordered = false;
+		for (int i = 0; i < nonEmpty.size() && !reordered; i++) {
+			ItemStack a = beforeSort.get(i);
+			ItemStack b = nonEmpty.get(i);
+			if (a.getItem() != b.getItem() || a.getCount() != b.getCount()) {
+				reordered = true;
+			}
+		}
 		for (int i = 0; i < size; i++) {
 			slots.set(i, i < nonEmpty.size() ? nonEmpty.get(i) : ItemStack.EMPTY);
 		}
-		return new OrganizeResult(merged, nonEmpty.size());
+		return new OrganizeResult(merged, nonEmpty.size(), reordered);
 	}
 
 	/** organize_container 工具：整理指定容器（合并同类 + 归类摆放）；container=坐标或 copper。 */
@@ -1083,10 +1110,18 @@ public final class CopperGolemAiService {
 		for (int i = 0; i < c.getContainerSize(); i++) {
 			c.setItem(i, slots.get(i));
 		}
-		if (r.merged() == 0) {
+		if (r.merged() == 0 && !r.reordered()) {
 			return "{\"ok\":\"这个箱子已经很整齐了，没有需要合并的物品（共 " + r.kinds() + " 种）\"}";
 		}
-		return "{\"ok\":\"整理完成：合并 " + r.merged() + " 次同类物品，现在共有 " + r.kinds() + " 种物品\"}";
+		StringBuilder msg = new StringBuilder("{\"ok\":\"整理完成");
+		if (r.merged() > 0) {
+			msg.append("：合并 ").append(r.merged()).append(" 次同类物品");
+		}
+		if (r.reordered()) {
+			msg.append(r.merged() > 0 ? "，并按类别重新归位" : "：按类别重新归位");
+		}
+		msg.append("，现在共有 ").append(r.kinds()).append(" 种物品\"}");
+		return msg.toString();
 	}
 
 	/** 捡掉落物任务：走到掉落物旁 → 捡起 → 转入 TRANSPORT（带回最近铜箱）。 */
