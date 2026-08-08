@@ -120,63 +120,68 @@ public class QuirkyConfig implements ConfigData {
 	@ConfigEntry.Gui.Tooltip
 	public int spawnHeightOffset = 1;
 
-	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Gui.Tooltip
 	@ConfigEntry.Category("totem")
 	public float hitSoundVolume = 1.0F;
 
-	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Gui.Tooltip
 	@ConfigEntry.Category("totem")
 	public float hitSoundPitch = 1.0F;
 
-	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Gui.Tooltip
 	@ConfigEntry.Category("totem")
 	public float retrieveSoundVolume = 0.5F;
 
-	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.BoundedDiscrete(min = 1, max = 100)
+	@ConfigEntry.Gui.Tooltip
 	@ConfigEntry.Category("totem")
 	public int enchantParticleChance = 4;
 
-	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.BoundedDiscrete(min = 1, max = 100)
+	@ConfigEntry.Gui.Tooltip
 	@ConfigEntry.Category("totem")
 	public int endRodParticleChance = 12;
 
-	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Gui.Tooltip
 	@ConfigEntry.Category("totem")
 	public float endRodParticleXzSpread = 0.35F;
 
-	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Gui.Tooltip
 	@ConfigEntry.Category("totem")
 	public float endRodParticleYSpread = 0.3F;
 
-	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Gui.Tooltip
 	@ConfigEntry.Category("totem")
 	public float particleXzSpread = 0.45F;
 
-	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Gui.Tooltip
 	@ConfigEntry.Category("totem")
 	public float particleYSpread = 0.55F;
 
-	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Gui.Tooltip
 	@ConfigEntry.Category("totem")
 	public float modelScale = 1.8F;
 
-	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Gui.Tooltip
 	@ConfigEntry.Category("totem")
 	public float bobAmplitude = 0.25F;
 
-	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.BoundedDiscrete(min = 4, max = 60)
+	@ConfigEntry.Gui.Tooltip
 	@ConfigEntry.Category("totem")
 	public int bobPeriod = 12;
 
-	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.BoundedDiscrete(min = 4, max = 60)
+	@ConfigEntry.Gui.Tooltip
 	@ConfigEntry.Category("totem")
 	public int spinPeriod = 8;
 
-	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Gui.Tooltip
 	@ConfigEntry.Category("totem")
 	public float swayAmplitude = 0.08F;
 
-	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.BoundedDiscrete(min = 4, max = 60)
+	@ConfigEntry.Gui.Tooltip
 	@ConfigEntry.Category("totem")
 	public int swayPeriod = 20;
 
@@ -222,7 +227,8 @@ public class QuirkyConfig implements ConfigData {
 	@ConfigEntry.Category("copper_golem")
 	public float aiTemperature = 0.7F;
 
-	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.BoundedDiscrete(min = 64, max = 4096)
+	@ConfigEntry.Gui.Tooltip
 	@ConfigEntry.Category("copper_golem")
 	public int aiMaxTokens = 256;
 
@@ -234,7 +240,7 @@ public class QuirkyConfig implements ConfigData {
 	@ConfigEntry.Category("copper_golem")
 	public String aiThinking = "low"; // off/low/medium/high/xhigh/max
 
-	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Gui.Tooltip
 	@ConfigEntry.Category("copper_golem")
 	public String aiSummaryModel = "";
 

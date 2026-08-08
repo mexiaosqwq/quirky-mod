@@ -75,7 +75,7 @@ class QuirkyConfigValidateTest {
 	void hiddenFieldsAreGuiExcluded() throws Exception {
 		// 抽查代表字段：防漏注解（漏了会出现在 GUI，对齐铁律即失败）
 		for (String name : new String[] {"quiverCapacity", "boomerangRange", "deathCamDuration",
-			"aiTemperature", "modelScale", "aiSummaryTokens"}) {
+			"aiTemperature", "aiCooldownTicks", "aiSummaryTokens"}) {
 			var f = QuirkyConfig.class.getField(name);
 			assertNotNull(f.getAnnotation(ConfigEntry.Gui.Excluded.class), name + " 必须 Gui.Excluded");
 		}
