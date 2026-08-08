@@ -139,9 +139,9 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 		this.setItem(item);
 		this.throwSlot = throwSlot;
 		this.setClockwise(clockwise);
-		// 蓄力缩放：力度 0.4~1.5 → 初速 0.28~1.05、射程 5~18 格（钳制）
+		// 蓄力缩放：力度 0.4~1.5 → 初速 0.28~1.05、射程 5~24 格（钳制）
 		this.throwSpeed = BASE_THROW_SPEED * power;
-		this.maxRange = Math.max(5, Math.min(20, (int) (QuirkyConfigHolder.get().boomerangRange * power)));
+		this.maxRange = Math.max(5, Math.min(24, (int) (QuirkyConfigHolder.get().boomerangRange * power)));
 		this.setThrowSpeed(this.throwSpeed);
 		this.setMaxRange(this.maxRange);
 		this.consumed = consumed;
