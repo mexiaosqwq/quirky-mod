@@ -43,6 +43,7 @@ public class QuirkyConfig implements ConfigData {
 	public boolean melonSeedSpitEnabled = true;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("gameplay")
 	public int wakeUpSlowFallingSeconds = 12;
 
 	// ==== client 客户端组：提示类开关 ====
@@ -88,15 +89,19 @@ public class QuirkyConfig implements ConfigData {
 	public boolean advancedTooltipEnabled = true;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("client")
 	public int tickerHoldTicks = 50;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("client")
 	public int tickerAnimTicks = 5;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("client")
 	public int deathCamDuration = 50;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("client")
 	public float arrowDingVolume = 0.6F;
 
 	// ==== totem 图腾组（独立页）：开关 + 核心数值可见 ====
@@ -116,48 +121,63 @@ public class QuirkyConfig implements ConfigData {
 	public int spawnHeightOffset = 1;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("totem")
 	public float hitSoundVolume = 1.0F;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("totem")
 	public float hitSoundPitch = 1.0F;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("totem")
 	public float retrieveSoundVolume = 0.5F;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("totem")
 	public int enchantParticleChance = 4;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("totem")
 	public int endRodParticleChance = 12;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("totem")
 	public float endRodParticleXzSpread = 0.35F;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("totem")
 	public float endRodParticleYSpread = 0.3F;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("totem")
 	public float particleXzSpread = 0.45F;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("totem")
 	public float particleYSpread = 0.55F;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("totem")
 	public float modelScale = 1.8F;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("totem")
 	public float bobAmplitude = 0.25F;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("totem")
 	public int bobPeriod = 12;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("totem")
 	public int spinPeriod = 8;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("totem")
 	public float swayAmplitude = 0.08F;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("totem")
 	public int swayPeriod = 20;
 
 	// ==== copper_golem 铜傀儡组：总开关 + 连接三件套 + 行为数值可见 ====
@@ -199,53 +219,69 @@ public class QuirkyConfig implements ConfigData {
 	public int aiListenRange = 16;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("copper_golem")
 	public float aiTemperature = 0.7F;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("copper_golem")
 	public int aiMaxTokens = 256;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("copper_golem")
 	public int aiCooldownTicks = 40;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("copper_golem")
 	public String aiThinking = "low"; // off/low/medium/high/xhigh/max
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("copper_golem")
 	public String aiSummaryModel = "";
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("copper_golem")
 	public int aiSummaryMessages = 20;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("copper_golem")
 	public int aiSummaryTokens = 4000;
 
 	// ==== 物品类（无开关，数值全部隐藏，json5 可调）====
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("gameplay")
 	public int quiverCapacity = 4;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("gameplay")
 	public int ropeMaxExtendPerUse = 32;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("gameplay")
 	public int boomerangRange = 24;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("gameplay")
 	public float boomerangBreakChance = 0.05F;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("gameplay")
 	public int seedPouchRadius = 1;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("gameplay")
 	public int fishBaitDurationSeconds = 90;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("gameplay")
 	public int fishBaitRadius = 4;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("gameplay")
 	public int petWhistleRadius = 24;
 
 	@ConfigEntry.Gui.Excluded
+	@ConfigEntry.Category("gameplay")
 	public int petWhistlePhantomMax = 3;
 
 	/**
