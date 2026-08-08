@@ -209,7 +209,11 @@ public final class CopperGolemAiService {
 	}
 
 	private static void tickHeartbeats(net.minecraft.server.MinecraftServer server) {
-		int interval = QuirkyConfigHolder.get().heartbeatIntervalSeconds;
+		QuirkyConfig config = QuirkyConfigHolder.get();
+		if (!CopperGolemAiConfig.enabled(config)) {
+			return; // AI 关闭（总开关或 key/model 未配）→ 无自主心跳
+		}
+		int interval = config.heartbeatIntervalSeconds;
 		if (interval <= 0) {
 			return;
 		}
