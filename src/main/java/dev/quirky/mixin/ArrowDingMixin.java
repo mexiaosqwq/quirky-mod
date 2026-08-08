@@ -31,6 +31,9 @@ public abstract class ArrowDingMixin {
 
 	@Inject(method = "onHitEntity(Lnet/minecraft/world/phys/EntityHitResult;)V", at = @At("TAIL"))
 	private void quirky$playDing(EntityHitResult hitResult, CallbackInfo ci) {
+		if (!QuirkyConfigHolder.get().arrowDingEnabled) {
+			return;
+		}
 		AbstractArrow arrow = (AbstractArrow) (Object) this;
 		Level level = arrow.level();
 		if (level.isClientSide()) {

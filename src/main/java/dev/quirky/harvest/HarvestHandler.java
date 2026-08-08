@@ -3,6 +3,7 @@ package dev.quirky.harvest;
 import java.util.Iterator;
 import java.util.List;
 
+import dev.quirky.config.QuirkyConfigHolder;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -34,6 +35,9 @@ public final class HarvestHandler {
 	}
 
 	private static InteractionResult onUseBlock(Player player, Level level, InteractionHand hand, BlockHitResult hit) {
+		if (!QuirkyConfigHolder.get().harvestReplantEnabled) {
+			return InteractionResult.PASS;
+		}
 		if (level.isClientSide()) {
 			return InteractionResult.PASS;
 		}

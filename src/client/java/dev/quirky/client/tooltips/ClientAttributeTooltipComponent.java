@@ -2,6 +2,7 @@ package dev.quirky.client.tooltips;
 
 import java.util.List;
 
+import dev.quirky.config.QuirkyConfigHolder;
 import dev.quirky.tooltips.AttributeTooltipComponent;
 import dev.quirky.tooltips.AttributeTooltipComponent.AttributeLine;
 import net.minecraft.client.Minecraft;
@@ -96,6 +97,8 @@ public class ClientAttributeTooltipComponent implements ClientTooltipComponent {
 	}
 
 	private static boolean shiftHidesLines() {
-		return AttributeTooltipVisibility.shiftHidesCompactRow(Minecraft.getInstance());
+		// 开关关闭时横条一并隐藏（原版文本段由 AttributeTextHideMixin 同步放行）
+		return !QuirkyConfigHolder.get().attributeTooltipEnabled
+			|| AttributeTooltipVisibility.shiftHidesCompactRow(Minecraft.getInstance());
 	}
 }

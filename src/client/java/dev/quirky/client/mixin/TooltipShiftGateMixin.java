@@ -3,6 +3,7 @@ package dev.quirky.client.mixin;
 import java.util.List;
 
 import dev.quirky.client.tooltips.TooltipShiftHelper;
+import dev.quirky.config.QuirkyConfigHolder;
 import dev.quirky.tooltips.TooltipShiftState;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -40,6 +41,9 @@ public abstract class TooltipShiftGateMixin {
 		Item.TooltipContext context, @Nullable Player player, TooltipFlag flag,
 		CallbackInfoReturnable<List<Component>> cir
 	) {
+		if (!QuirkyConfigHolder.get().advancedTooltipEnabled) {
+			return; // 不抑制、不加提示行 → 保持原版显示
+		}
 		if (player == null) {
 			TooltipShiftState.enter(false);
 			return;

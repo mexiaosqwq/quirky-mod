@@ -34,6 +34,9 @@ public abstract class WakeUpMixin {
 
 	@Inject(method = "stopSleepInBed(ZZ)V", at = @At("TAIL"))
 	private void quirky$applyWakeUpProtection(boolean forcefulWakeUp, boolean updateLevelList, CallbackInfo ci) {
+		if (!QuirkyConfigHolder.get().wakeUpEnabled) {
+			return;
+		}
 		Player player = (Player) (Object) this;
 		if (player.level().isClientSide()) {
 			return; // 仅服务端执行，避免双端叠加音效/效果

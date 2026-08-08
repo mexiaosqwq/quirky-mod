@@ -72,6 +72,9 @@ public final class DeathCamClient {
 	 * 不重建时间轴，否则两个包的 yaw 微小差异会让镜头朝向/进度跳变（"会随"感）。
 	 */
 	public static void start(Vec3 pos, float yaw, float pitch) {
+		if (!QuirkyConfigHolder.get().deathCamEnabled) {
+			return;
+		}
 		origin = pos;
 		if (timeline == null) {
 			timeline = new DeathCamTimeline(QuirkyConfigHolder.get().deathCamDuration, yaw);

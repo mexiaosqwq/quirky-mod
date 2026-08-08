@@ -1,5 +1,6 @@
 package dev.quirky.mixin;
 
+import dev.quirky.config.QuirkyConfigHolder;
 import dev.quirky.food.MelonSeedHandler;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
@@ -18,6 +19,11 @@ public abstract class MelonSeedMixin {
 		)
 	)
 	private ItemStack quirky$finishUsingMelon(ItemStack stack, Level level, LivingEntity entity) {
+		if (!QuirkyConfigHolder.get().melonSeedSpitEnabled) {
+			// 不拦截 = 走原版 finishUsingItem（@Redirect 只作用于 completeUsingItem 内该调用点，
+			// 此处再调不会递归）
+			return stack.finishUsingItem(level, entity);
+		}
 		return MelonSeedHandler.finishUsing(stack, level, entity);
 	}
 }

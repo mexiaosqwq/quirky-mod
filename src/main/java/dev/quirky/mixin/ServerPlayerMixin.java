@@ -32,6 +32,9 @@ public class ServerPlayerMixin {
 		)
 	)
 	private void quirky$totemProtectInventory(DamageSource source, CallbackInfo ci) {
+		if (!QuirkyConfigHolder.get().totemEnabled) {
+			return;
+		}
 		ServerPlayer player = (ServerPlayer) (Object) this;
 		boolean keepInventory = player.level().getGameRules().get(GameRules.KEEP_INVENTORY);
 		if (!TotemOfHoldingLogic.shouldSpawnTotem(player, source, keepInventory)) {

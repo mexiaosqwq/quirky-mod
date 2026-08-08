@@ -124,6 +124,9 @@ public final class UsageTickerHud {
 	}
 
 	private static void render(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
+		if (!QuirkyConfigHolder.get().tickerEnabled) {
+			return;
+		}
 		Minecraft minecraft = Minecraft.getInstance();
 		if (minecraft.player == null) {
 			return;

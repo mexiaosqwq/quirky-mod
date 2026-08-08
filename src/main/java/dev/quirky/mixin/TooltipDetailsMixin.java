@@ -3,6 +3,7 @@ package dev.quirky.mixin;
 import java.util.List;
 import java.util.Optional;
 
+import dev.quirky.config.QuirkyConfigHolder;
 import dev.quirky.tooltips.AttributeTooltipComponent.AttributeLine;
 import dev.quirky.tooltips.AttributeLineCollector;
 import dev.quirky.tooltips.AttributeTooltipComponent;
@@ -29,6 +30,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class TooltipDetailsMixin {
 	@Inject(method = "getTooltipImage", at = @At("HEAD"), cancellable = true)
 	private void quirky$shulkerTooltip(ItemStack stack, CallbackInfoReturnable<Optional<TooltipComponent>> cir) {
+		if (!QuirkyConfigHolder.get().shulkerPreviewEnabled) {
+			return;
+		}
 		if (cir.isCancelled()) {
 			return;
 		}
@@ -61,7 +65,7 @@ public abstract class TooltipDetailsMixin {
 			return;
 		}
 		TooltipDisplay display = stack.getOrDefault(DataComponents.TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT);
-		if (!display.shows(DataComponents.FOOD)) {
+		if (!display.shows(DataComponents.FOOD) || !QuirkyConfigHolder.get().foodTooltipEnabled) {
 			return;
 		}
 		// FOOD 组件无默认值：非食物物品 stack.get 返回 null

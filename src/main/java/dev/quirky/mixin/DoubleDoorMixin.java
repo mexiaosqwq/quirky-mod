@@ -1,5 +1,6 @@
 package dev.quirky.mixin;
 
+import dev.quirky.config.QuirkyConfigHolder;
 import dev.quirky.door.DoubleDoorHandler;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionResult;
@@ -26,6 +27,9 @@ public abstract class DoubleDoorMixin {
 		BlockHitResult hitResult,
 		CallbackInfoReturnable<InteractionResult> cir
 	) {
+		if (!QuirkyConfigHolder.get().doubleDoorEnabled) {
+			return;
+		}
 		if (DoorBlock.isWoodenDoor(level, pos)) {
 			DoubleDoorHandler.sync(level, pos, player, !state.getValue(DoorBlock.OPEN));
 		}
@@ -40,6 +44,9 @@ public abstract class DoubleDoorMixin {
 		boolean shouldOpen,
 		CallbackInfo ci
 	) {
+		if (!QuirkyConfigHolder.get().doubleDoorEnabled) {
+			return;
+		}
 		if (DoorBlock.isWoodenDoor(level, pos)) {
 			DoubleDoorHandler.sync(level, pos, sourceEntity, shouldOpen);
 		}

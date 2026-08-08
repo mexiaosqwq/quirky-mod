@@ -1,5 +1,6 @@
 package dev.quirky.mixin;
 
+import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
@@ -34,6 +35,9 @@ public abstract class ContainerTooltipMixin {
 		TooltipFlag flag,
 		CallbackInfo ci
 	) {
+		if (!QuirkyConfigHolder.get().shulkerPreviewEnabled) {
+			return;
+		}
 		if (type != DataComponents.CONTAINER) {
 			return;
 		}

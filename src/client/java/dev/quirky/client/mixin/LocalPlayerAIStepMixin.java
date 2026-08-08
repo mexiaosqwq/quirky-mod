@@ -1,6 +1,7 @@
 package dev.quirky.client.mixin;
 
 import dev.quirky.client.ladder_snap.LadderSnapHelper;
+import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.player.Player;
@@ -25,6 +26,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class LocalPlayerAIStepMixin {
 	@Inject(method = "travel", at = @At("HEAD"))
 	private void quirky$autoClimb(Vec3 input, CallbackInfo ci) {
+		if (!QuirkyConfigHolder.get().autoClimbEnabled) {
+			return;
+		}
 		if (!((Object) this instanceof LocalPlayer player)) {
 			return;
 		}

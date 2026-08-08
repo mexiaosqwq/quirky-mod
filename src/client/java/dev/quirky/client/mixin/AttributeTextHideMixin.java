@@ -3,6 +3,7 @@ package dev.quirky.client.mixin;
 import java.util.function.Consumer;
 
 import dev.quirky.client.tooltips.AttributeTooltipVisibility;
+import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
@@ -30,6 +31,9 @@ public abstract class AttributeTextHideMixin {
 	private void quirky$hideVanillaAttributeText(
 		Consumer<Component> consumer, TooltipDisplay display, @Nullable Player player, CallbackInfo ci
 	) {
+		if (!QuirkyConfigHolder.get().attributeTooltipEnabled) {
+			return; // 放行原版属性文本段
+		}
 		// 搜索索引构建路径（player == null），不干预
 		if (player == null) {
 			return;

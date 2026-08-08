@@ -3,6 +3,7 @@ package dev.quirky.equip_swap;
 import java.util.Optional;
 
 import dev.quirky.QuirkyMod;
+import dev.quirky.config.QuirkyConfigHolder;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.core.component.DataComponents;
@@ -24,6 +25,9 @@ public final class EquipSwapServer {
 	}
 
 	private static void handle(EquipSwapPayload payload, ServerPlayNetworking.Context context) {
+		if (!QuirkyConfigHolder.get().quickEquipEnabled) {
+			return;
+		}
 		context.server().execute(() -> trySwap(context.player(), payload.containerId(), payload.slotIndex()));
 	}
 

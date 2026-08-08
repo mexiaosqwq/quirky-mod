@@ -1,6 +1,7 @@
 package dev.quirky.mixin;
 
 import dev.quirky.ModParticles;
+import dev.quirky.config.QuirkyConfigHolder;
 import dev.quirky.particle.DyedCampfireSmokeOption;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
@@ -66,6 +67,9 @@ public abstract class CampfireBlockMixin {
 		BlockHitResult hitResult,
 		CallbackInfoReturnable<InteractionResult> cir
 	) {
+		if (!QuirkyConfigHolder.get().campfireSmokeEnabled) {
+			return; // 不 cancel → 走原版
+		}
 		if (!state.getValue(CampfireBlock.LIT)) {
 			return; // 未点燃：走原版行为
 		}
@@ -102,6 +106,9 @@ public abstract class CampfireBlockMixin {
 		boolean isPrecise,
 		CallbackInfo ci
 	) {
+		if (!QuirkyConfigHolder.get().campfireSmokeEnabled) {
+			return; // 不 cancel → 走原版
+		}
 		if (!state.getValue(CampfireBlock.LIT)) {
 			return;
 		}

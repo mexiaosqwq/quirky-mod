@@ -2,6 +2,7 @@ package dev.quirky.client.mixin;
 
 import dev.quirky.client.soul_lighting.SoulLightingHelper;
 import dev.quirky.client.soul_lighting.SoulLightingModels;
+import dev.quirky.config.QuirkyConfigHolder;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.FlameParticle;
 import net.minecraft.client.particle.SingleQuadParticle;
@@ -45,6 +46,9 @@ public abstract class FlameParticleMixin {
 		TextureAtlasSprite sprite,
 		CallbackInfo ci
 	) {
+		if (!QuirkyConfigHolder.get().soulLightEnabled) {
+			return; // 不替换 sprite → 走原版火焰
+		}
 		if (!((Object) this instanceof FlameParticle)) {
 			return;
 		}
