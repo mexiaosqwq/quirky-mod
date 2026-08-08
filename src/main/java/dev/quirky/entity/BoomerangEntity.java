@@ -398,7 +398,7 @@ public class BoomerangEntity extends Projectile implements ItemSupplier {
 
 		this.setPos(newPos);
 		// 飞行拖尾粒子：每 2 tick 在当前位置发 1 个端粒，稀疏运动痕迹（服务端 sendParticles；Level.addParticle 是空实现）
-		if (server && (this.lifetimeTicks & 1) == 0) {
+		if (server && (this.lifetimeTicks & 1) == 0 && QuirkyConfigHolder.get().boomerangTrailEnabled) {
 			((ServerLevel) level).sendParticles(ParticleTypes.END_ROD, this.getX(), this.getY(), this.getZ(), 1, 0.08, 0.08, 0.08, 0.0);
 		}
 		this.setDeltaMovement(vel);

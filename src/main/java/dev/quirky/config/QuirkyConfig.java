@@ -88,6 +88,10 @@ public class QuirkyConfig implements ConfigData {
 	@ConfigEntry.Gui.Tooltip
 	public boolean advancedTooltipEnabled = true;
 
+	@ConfigEntry.Category("client")
+	@ConfigEntry.Gui.Tooltip
+	public boolean boomerangTrailEnabled = true;
+
 	@ConfigEntry.Gui.Excluded
 	@ConfigEntry.Category("client")
 	public int tickerHoldTicks = 50;

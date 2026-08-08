@@ -142,5 +142,7 @@
   "text.autoconfig.quirky.option.swayAmplitude": "摇摆幅度",
   "text.autoconfig.quirky.option.swayAmplitude.@Tooltip": "左右摇摆的幅度（弧度）。",
   "text.autoconfig.quirky.option.swayPeriod": "摇摆周期",
-  "text.autoconfig.quirky.option.swayPeriod.@Tooltip": "摇摆周期（tick），越大摇摆越慢。"
+  "text.autoconfig.quirky.option.swayPeriod.@Tooltip": "摇摆周期（tick），越大摇摆越慢。",
+  "text.autoconfig.quirky.option.boomerangTrailEnabled": "回旋镖拖尾",
+  "text.autoconfig.quirky.option.boomerangTrailEnabled.@Tooltip": "投出的回旋镖后方显示发光粒子拖尾。"
 }

@@ -142,5 +142,7 @@
   "text.autoconfig.quirky.option.swayAmplitude": "Sway Amplitude",
   "text.autoconfig.quirky.option.swayAmplitude.@Tooltip": "Side-to-side sway amount (radians).",
   "text.autoconfig.quirky.option.swayPeriod": "Sway Period",
-  "text.autoconfig.quirky.option.swayPeriod.@Tooltip": "Sway period in ticks; higher values sway slower."
+  "text.autoconfig.quirky.option.swayPeriod.@Tooltip": "Sway period in ticks; higher values sway slower.",
+  "text.autoconfig.quirky.option.boomerangTrailEnabled": "Boomerang Trail",
+  "text.autoconfig.quirky.option.boomerangTrailEnabled.@Tooltip": "Show the glowing particle trail behind a thrown boomerang."
 }

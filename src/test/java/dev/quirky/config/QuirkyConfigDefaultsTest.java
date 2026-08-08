@@ -86,6 +86,7 @@ class QuirkyConfigDefaultsTest {
 		assertTrue(c.foodTooltipEnabled);
 		assertTrue(c.attributeTooltipEnabled);
 		assertTrue(c.advancedTooltipEnabled);
+		assertTrue(c.boomerangTrailEnabled);
 		assertTrue(c.totemEnabled);
 		assertTrue(c.golemAiEnabled);
 	}
