@@ -2,6 +2,7 @@ package dev.quirky.config;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import me.shedaniel.autoconfig.annotation.ConfigEntry;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
@@ -44,6 +45,9 @@ class QuirkyConfigValidateTest {
 	void langKeysCoverAllConfigFields() throws Exception {
 		Set<String> fields = new HashSet<>();
 		for (var f : QuirkyConfig.class.getFields()) {
+			if (f.isAnnotationPresent(ConfigEntry.Gui.Excluded.class)) {
+				continue; // GUI 隐藏字段无 lang 键（json5 可改，不渲染）
+			}
 			fields.add(f.getName());
 		}
 		try (var stream = QuirkyConfigValidateTest.class.getClassLoader()
@@ -62,8 +66,18 @@ class QuirkyConfigValidateTest {
 					}
 				}
 			});
-			assertEquals(fields, optionKeys, "option 键必须覆盖全部配置字段（缺键会显示原始字段名）");
-			assertEquals(fields, tooltipKeys, "@Tooltip 键必须覆盖全部配置字段");
+			assertEquals(fields, optionKeys, "option 键必须覆盖全部可见配置字段");
+			assertEquals(fields, tooltipKeys, "@Tooltip 键必须覆盖全部可见配置字段");
+		}
+	}
+
+	@Test
+	void hiddenFieldsAreGuiExcluded() throws Exception {
+		// 抽查代表字段：防漏注解（漏了会出现在 GUI，对齐铁律即失败）
+		for (String name : new String[] {"quiverCapacity", "boomerangRange", "deathCamDuration",
+			"aiTemperature", "modelScale", "aiSummaryTokens"}) {
+			var f = QuirkyConfig.class.getField(name);
+			assertNotNull(f.getAnnotation(ConfigEntry.Gui.Excluded.class), name + " 必须 Gui.Excluded");
 		}
 	}
 }

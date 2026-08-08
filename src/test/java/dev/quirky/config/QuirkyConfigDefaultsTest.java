@@ -12,7 +12,7 @@ class QuirkyConfigDefaultsTest {
 		QuirkyConfig c = new QuirkyConfig();
 		assertEquals(4, c.quiverCapacity);
 		assertEquals(32, c.ropeMaxExtendPerUse);
-		assertEquals(12, c.boomerangRange);
+		assertEquals(24, c.boomerangRange);
 		assertEquals(0.05F, c.boomerangBreakChance);
 		assertEquals(1, c.seedPouchRadius);
 		assertEquals(90, c.fishBaitDurationSeconds);
@@ -64,5 +64,29 @@ class QuirkyConfigDefaultsTest {
 		assertTrue(c.tickerHoldTicks >= 20 && c.tickerHoldTicks <= 200);
 		assertTrue(c.tickerAnimTicks >= 2 && c.tickerAnimTicks <= 20);
 		assertTrue(c.deathCamDuration >= 40 && c.deathCamDuration <= 100);
+	}
+
+	@Test
+	void featureSwitchesDefaultOn() {
+		QuirkyConfig c = new QuirkyConfig();
+		assertTrue(c.wakeUpEnabled);
+		assertTrue(c.autoClimbEnabled);
+		assertTrue(c.soulLightEnabled);
+		assertTrue(c.harvestReplantEnabled);
+		assertTrue(c.doubleDoorEnabled);
+		assertTrue(c.quickEquipEnabled);
+		assertTrue(c.melonSeedSpitEnabled);
+		assertTrue(c.tickerEnabled);
+		assertTrue(c.arrowDingEnabled);
+		assertTrue(c.campfireSmokeEnabled);
+		assertTrue(c.deathCamEnabled);
+		assertTrue(c.shulkerPreviewEnabled);
+		assertTrue(c.mapPreviewEnabled);
+		assertTrue(c.clockTooltipEnabled);
+		assertTrue(c.foodTooltipEnabled);
+		assertTrue(c.attributeTooltipEnabled);
+		assertTrue(c.advancedTooltipEnabled);
+		assertTrue(c.totemEnabled);
+		assertTrue(c.golemAiEnabled);
 	}
 }
